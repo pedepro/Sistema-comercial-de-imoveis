@@ -1,0 +1,200 @@
+<div id="gestao-pedidos">
+    <header>
+        <h2>Gestão de Pedidos</h2>
+        <button id="novo-pedido">+ Novo Pedido</button>
+    </header>
+    <div class="status-container">
+        <div id="pendentes">
+            <h3>Pedidos Pendentes</h3>
+            <div class="pedido-lista"></div>
+        </div>
+        
+        <div id="aceitos">
+            <h3>Pedidos Aceitos</h3>
+            <div class="pedido-lista"></div>
+        </div>
+        
+        <div id="a-caminho-pronto">
+            <h3>Á Caminho</h3>
+            <div class="pedido-lista"></div>
+        </div>
+    </div>
+    <div id="pdv">
+        <div class="pdvproducts">
+            <div class="headerpdv">
+                <div class="backgroudfiltro">
+                    <i class="material-icons search">search</i>
+                    <input type="text" class="filtroprodutos" id="filtro" placeholder="Digite para filtrar...">
+                </div>
+                <div class="typeorder">
+                    <div class="buttomretirada">
+                        <div>[R] RETIRADA</div>
+                    </div>
+                    <div class="buttomdelivery">
+                        <div>[D] DELIVERY</div>
+                    </div>
+                </div>
+            </div>
+            <div id="categorys"></div>
+            <div id="products"></div>
+        </div>
+        <div class="pdvcriarpedido">
+            <div class="headerpdvcriarpedido">
+                <div id="botaofecharpdv">[V] VOLTAR</div>
+                <div id="agendarpdv" onclick="openAgendamentoPopup()">[A] Agendamento</div>
+                <div id="excluirpdv">[K] Excluir</div>
+            </div>
+            <div class="fundocabecalhocarrinho">
+                <div class="textocabecalhocarrinho">Produtos</div>
+                <div class="textocabecalhocarrinho">Subtotal</div>
+            </div>
+            <div id="carrinhopdv">
+                <!--carrinho do pedido aqui-->
+            </div>
+            <div class="subtotaispdv">
+                <div class="textossubtotais">
+                    <div class="textopdvesquerda">Produtos</div>
+                    <div id="totalvalueproducts">R$ 0,00</div>
+                </div>
+                <div class="textossubtotais">
+                    <div class="textopdvesquerda">Taxa de entrega</div>
+                    <div id="taxadeentrega">R$ 0,00</div>
+                </div>
+                <div class="textossubtotais">
+                    <div class="textopdvesquerda">Descontos</div>
+                    <div id="descontospdv">R$ 0,00</div>
+                </div>
+            </div>
+            <div class="fundocabecalhocarrinho">
+                <div class="textocabecalhocarrinho">Total</div>
+                <div id="textocabecalhocarrinhob">R$ 0,00</div>
+            </div>
+            <div class="botoespdv">
+                <div class="eathcontainerbotoes">
+                    <div id="botaoclientespdv">[C] CLIENTE</div>
+                    <div id="botaodescontopdv".onclick="openPopupb()">[D] DESCONTO</div>
+                </div>
+                <div class="eathcontainerbotoes">
+                    <div id="botaoenderecopdv">[E] ENDEREÇO</div>
+                    <!-- Container do groupfocus -->
+<div id="paymentOptionsGroupFocus" style="display: none; position: absolute; bottom: 50px; left: 80%; background: white; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1900;">
+    <div id="paymentOptionsList" style="display: flex; flex-direction: column; gap: 10px;">
+        <!-- As opções de pagamento -->
+        <div onclick="selectPaymentOption('Dinheiro')" data-type="Dinheiro" style="padding: 8px; cursor: pointer; border: 1px solid #ccc; border-radius: 5px;">Dinheiro</div>
+        <div onclick="selectPaymentOption('Pix')" data-type="Pix" style="padding: 8px; cursor: pointer; border: 1px solid #ccc; border-radius: 5px;">Pix</div>
+        <div onclick="selectPaymentOption('Cartão de Crédito')" data-type="Cartão de Crédito" style="padding: 8px; cursor: pointer; border: 1px solid #ccc; border-radius: 5px;">Cartão de Crédito</div>
+        <div onclick="selectPaymentOption('Cartão de Débito')" data-type="Cartão de Débito" style="padding: 8px; cursor: pointer; border: 1px solid #ccc; border-radius: 5px;">Cartão de Débito</div>
+    </div>
+</div>
+
+                    <div id="botaopagamentopdv">[P] PAGAMENTO</div>
+                </div>
+                <div id="botaocriarpedido">[ENTER] CRIAR PEDIDO</div>
+            </div>
+        </div>
+        <div id="detalhesproducts"></div>
+        <!-- O Popup -->
+        <div class="overlay"></div>
+        <div id="popup" class="popup">
+            <div class="popup-content">
+                <span id="closePopup" class="close">&times;</span>
+                <h2>Clientes</h2>
+                <div class="backgroudfiltroclientes">
+                    <i class="material-icons search">search</i>
+                    <input type="text" id="filtroclientes" placeholder="Digite para filtrar...">
+                </div>
+                <div id="tabelaclientespdv"></div>
+                <div id="pagination2"></div>
+
+            </div>
+        </div>
+
+        <!-- Overlay e Popup de Agendamento -->
+<div id="overlayagendamento" class="overlayagendamento" onclick="closeAgendamentoPopup()">
+    <div id="popupagendamento" class="popupagendamento" onclick="event.stopPropagation()">
+      <h3>Agendamento</h3>
+      <div id="horariosDisponiveis"></div> <!-- Aqui você vai inserir os horários disponíveis -->
+      <button onclick="closeAgendamentoPopup()">Fechar</button>
+    </div>
+  </div>
+
+
+
+        <!-- Overlay para o popup -->
+<div id="overlaycashback" class="overlaycashback" onclick="closePopup()">
+    <div id="popupcashback" class="popupcashback" onclick="event.stopPropagation()">
+      <h3>Aplicar Desconto</h3>
+  
+      <p>Saldo Cashback: R$ <span id="cashbackSaldo"></span></p>
+  
+      <!-- Toggle para usar o cashback -->
+      <label for="cashbackToggle">Usar Cashback</label>
+      <input type="checkbox" id="cashbackToggle" onclick="toggleCashback()">
+      <p id="saldoRestante"></p>
+      
+      <!-- Input para aplicar desconto manual -->
+      <label for="manualDiscount">Desconto Manual (R$):</label>
+      <input type="number" id="manualDiscount" oninput="validateDiscount()" value="0.00" step="0.01" />
+  
+      <button onclick="applyDiscount()">Aplicar Desconto</button>
+      <button onclick="closePopup()">Fechar</button>
+
+
+      
+
+    </div>
+  </div>
+
+
+
+
+
+
+         <!-- Overlay -->
+        <div class="overlay"></div>
+              <!-- Popup de Endereço -->
+        <div id="popupendereco" class="popupendereco">
+            <span id="closePopupadress" class="close">&times;</span>
+            <h2>Endereços do Cliente</h2>
+  
+            <!-- Seção de endereços -->
+            <div id="enderecos-section">
+                <p id="enderecos-message">Carregando endereços...</p>
+                <table id="enderecos-table" class="enderecos-table"></table>
+            </div>
+  
+            <!-- Se não houver endereços, exibimos o botão para criar um novo -->
+            <div id="criar-endereco-section" style="display:none;">
+                <p>Não há endereços cadastrados. Deseja criar um novo?</p>
+            </div>
+  
+                <!-- Botão para criar novo endereço (sempre visível) -->
+            <div id="criar-endereco-btn">
+                <button onclick="openAddressForm()">Criar Endereço</button>
+            </div>
+  
+                 <!-- Formulário de Criação de Endereço -->
+            <div id="form-endereco" class="form-endereco" style="display:none;">
+                 <h3>Criar Novo Endereço</h3>
+                <label for="bairro">Bairro:</label>
+                <select id="bairro" required></select><br>
+  
+                <label for="rua">Rua:</label>
+                <input type="text" id="rua" required><br>
+  
+                <label for="numero">Número:</label>
+                <input type="text" id="numero" required><br>
+  
+                <label for="complemento">Complemento:</label>
+                <input type="text" id="complemento"><br>
+  
+                <label for="referencia">Referência:</label>
+                <input type="text" id="referencia"><br>
+  
+                <button onclick="createAddress()">Salvar Endereço</button>
+                <button onclick="cancelAddressForm()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+

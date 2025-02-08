@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Tabelas e Colunas</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h1 { color: #2c3e50; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
+    th { background-color: #f4f4f4; }
+  </style>
+</head>
+<body>
+  <h1>Painel de Tabelas e Colunas do Banco de Dados</h1>
+
+  <% if (tables.length === 0) { %>
+    <p>Nenhuma tabela encontrada no banco de dados.</p>
+  <% } else { %>
+    <table>
+      <thead>
+        <tr>
+          <th>Nome da Tabela</th>
+          <th>Colunas</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% tables.forEach(table => { %>
+          <tr>
+            <td><%= table.table_name %></td>
+            <td>
+              <ul>
+                <% columns[table.table_name].forEach(column => { %>
+                  <li><%= column %></li>
+                <% }) %>
+              </ul>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</body>
+</html>

@@ -1,0 +1,71 @@
+/* Ajuste para evitar que o conteúdo fique escondido pelo header fixo */
+body {
+    padding-top: 70px;
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    color: #333;
+}
+
+/* Estilo do header */
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: white;
+    padding: 15px 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1500;
+}
+
+.btn-voltar {
+    text-decoration: none;
+    background-color: #4CAF50;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+/* Container dos detalhes */
+.detalhes-container {
+    max-width: 800px;
+    margin: 80px auto 20px;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.imovel-detalhes img {
+    width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.imovel-detalhes h2 {
+    margin: 15px 0;
+    font-size: 24px;
+}
+
+.imovel-detalhes p {
+    font-size: 16px;
+    margin: 5px 0;
+}
+
+/* Responsividade */
+@media (max-width: 420px) {
+    .detalhes-container {
+        width: 90%;
+        padding: 15px;
+    }
+    
+    .btn-voltar {
+        font-size: 12px;
+        padding: 6px 10px;
+    }
+}

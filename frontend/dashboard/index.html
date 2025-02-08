@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste WebSocket</title>
+    <script>
+        function startWebSocket() {
+            const wsUrl = 'ws://localhost:3001';
+            console.log('Iniciando conexão WebSocket para', wsUrl);
+
+            const ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('Conectado ao servidor WebSocket');
+
+                const userSubscription = {
+                    table: 'users',
+                    column: 'id',
+                    value: 4 
+                };
+
+                console.log('Enviando inscrição para tabela users:', userSubscription);
+                ws.send(JSON.stringify(userSubscription));
+            };
+
+            ws.onmessage = (event) => {
+                console.log('Evento recebido do servidor:', event);
+
+                let data;
+                try {
+                    data = JSON.parse(event.data);
+                    console.log('Dados JSON recebidos:', data);
+                } catch (error) {
+                    console.log('Mensagem recebida não é JSON válido:', event.data);
+                    return;
+                }
+
+                if (data.table === 'users' && data.data.length > 0) {
+                    const userData = data.data[0];
+
+                    const messageElement = document.getElementById('messages');
+                    messageElement.innerHTML = '<h3>Dados do usuário atualizados:</h3>';
+                    messageElement.innerHTML += `<p>Name: ${userData.name}</p>`;
+                    messageElement.innerHTML += `<p>Email: ${userData.email}</p>`;
+                    
+                    console.log('Dados do usuário renderizados na tela!');
+
+                    if (userData.restaurant_id) {
+                        const restaurantSubscription = {
+                            table: 'restaurants',
+                            column: 'id',
+                            value: userData.restaurant_id
+                        };
+
+                        console.log('Enviando inscrição para tabela restaurants:', restaurantSubscription);
+                        ws.send(JSON.stringify(restaurantSubscription));
+                    }
+                }
+
+                if (data.table === 'restaurants' && data.data.length > 0) {
+                    const restaurantData = data.data[0];
+
+                    const restaurantElement = document.getElementById('restaurant-data');
+                    restaurantElement.innerHTML = '<h3>Dados do restaurante atualizados:</h3>';
+                    restaurantElement.innerHTML += `<p>Name: ${restaurantData.name}</p>`;
+                    restaurantElement.innerHTML += `<p>Phone: ${restaurantData.phone}</p>`;
+                    restaurantElement.innerHTML += `<p>Address: ${restaurantData.address}</p>`;
+
+                    console.log('Dados do restaurante renderizados na tela!');
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('Desconectado do servidor WebSocket');
+            };
+
+            ws.onerror = (error) => {
+                console.error('Erro WebSocket:', error);
+            };
+        }
+    </script>
+</head>
+<body>
+    <h1>Teste WebSocket</h1>
+    <button onclick="startWebSocket()">Conectar ao WebSocket</button>
+    <pre id="messages"></pre>
+    <pre id="restaurant-data"></pre>
+</body>
+</html>

@@ -1,0 +1,162 @@
+.floating-column {
+    position: fixed;
+    top: 70px; /* Margem superior de 70px */
+    left: 0px; /* Inicialmente fora da tela à esquerda */
+    width: 270px;
+    height: calc(100% - 70px); /* Garante que a altura seja adequada considerando a margem superior */
+    background-color: #13274E; /* Fundo azul */
+    transition: left 0.3s ease; /* Animação suave para o movimento */
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+    overflow-y: auto; /* Permite rolagem vertical */
+    overflow-x: hidden; /* Evita rolagem horizontal */
+    scrollbar-width: thin; /* Estilo da barra de rolagem para navegadores suportados */
+    scrollbar-color: #0b022c #1b1b53; /* Cores da barra de rolagem */
+}
+
+/* Personalização da barra de rolagem para navegadores baseados em WebKit (Chrome, Edge, Safari) */
+.floating-column::-webkit-scrollbar {
+    width: 6px; /* Largura da barra */
+}
+
+.floating-column::-webkit-scrollbar-track {
+    background: #13274E; /* Fundo da área de rolagem */
+}
+
+.floating-column::-webkit-scrollbar-thumb {
+    background-color: #555; /* Cor da barra de rolagem */
+    border-radius: 4px; /* Bordas arredondadas */
+}
+
+.floating-column::-webkit-scrollbar-thumb:hover {
+    background-color: #777; /* Cor ao passar o mouse */
+}
+
+/* Quando a classe 'active' for adicionada, o sidebar será exibido */
+.floating-column.active {
+    left: 0; /* Traz o menu flutuante para dentro da tela */
+}
+
+/* Estilo para os botões do menu lateral */
+.floating-column .menu-button {
+    display: flex; /* Usar flexbox para alinhar ícones e texto */
+    align-items: center; /* Alinha os ícones ao centro verticalmente */
+    padding: 10px;
+    margin: 10px 0;
+    background-color: transparent; /* Sem cor inicialmente */
+    color: white;
+    text-align: left; /* Alinha o texto à esquerda */
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 15px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    gap: 10px; /* Espaçamento entre ícone e texto */
+    position: relative; /* Necessário para o submenu ficar posicionado fora */
+}
+
+/* Estilo de hover e seleção */
+.floating-column .menu-button:hover,
+.floating-column .menu-button:focus,
+.floating-column .menu-button.active {
+    background-color: #0b1f3a; /* Azul bem escuro */
+    color: white;
+}
+
+/* Ícone de seta para botões com submenu */
+.menu-button.has-submenu::after {
+    content: "▼"; /* Seta para baixo */
+    margin-left: auto; /* Alinha à direita */
+    font-size: 12px; /* Tamanho da seta */
+    color: white; /* Cor da seta */
+    transition: transform 0.3s ease; /* Animação para girar */
+}
+
+/* Seta para cima quando o submenu está ativo */
+.menu-button.has-submenu.active::after {
+    transform: rotate(180deg); /* Gira a seta para cima */
+}
+
+/* Estilo do submenu */
+.submenu-container {
+    display: none;  /* Inicialmente oculta o submenu */
+    margin-top: 5px; /* Distância entre o botão e o submenu */
+    padding-left: 10px; /* Indentação do submenu */
+}
+
+/* Exibe o submenu ao passar o mouse ou ao ativá-lo via clique */
+.submenu-container.active {
+    display: block;  /* Exibe o submenu */
+}
+
+/* Estilo para os itens do submenu */
+.submenu-button {
+    display: flex; /* Flexbox para alinhar ícones e texto */
+    align-items: center; /* Alinha o ícone com o texto */
+    padding: 10px;
+    background-color: transparent; /* Sem cor inicialmente */
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    border-radius: 5px;
+    margin-top: 5px;
+    gap: 8px; /* Espaçamento entre ícone e texto */
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.submenu-button:hover,
+.submenu-button:focus {
+    background-color: #0b1f3a; /* Azul bem escuro */
+    color: white;
+}
+
+/* Ícones nos botões principais e submenu */
+.menu-button i,
+.submenu-button i {
+    font-size: 20px; /* Tamanho do ícone */
+    color: white;  /* Cor do ícone */
+    transition: color 0.3s ease;
+}
+
+/* Alterar cor do ícone no hover */
+.menu-button:hover i,
+.submenu-button:hover i {
+    color: white;
+}
+
+/* Estilo do campo de pesquisa */
+.search-input {
+    width: calc(100% + 40px); /* Ajusta a largura com base na margem negativa */
+    margin: -30px -20px 5px -20px; /* Margem superior, direita, inferior e esquerda */
+    height: 35px; /* Altura do campo */
+    border: none; /* Remove outras bordas */
+    border-bottom: 1px solid #fff; /* Borda inferior branca */
+    background-color: transparent; /* Sem fundo */
+    font-size: 14px; /* Tamanho do texto */
+    color: #fff; /* Cor do texto */
+    padding: 5px 10px; /* Padding interno */
+    box-sizing: border-box; /* Inclui padding no cálculo do tamanho */
+}
+
+/* Estilo do placeholder para se alinhar com a personalização */
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.7); /* Placeholder com opacidade reduzida */
+    font-style: italic; /* Estilo opcional */
+}
+
+/* Foco no campo de pesquisa */
+.search-input:focus {
+    outline: none; /* Remove o contorno padrão */
+    border-bottom: 2px solid #fff; /* Destaca a borda inferior no foco */
+}
+
+/* Estilo para os cabeçalhos das seções */
+.section-header {
+    font-size: 10px;
+    font-weight: 400; /* Peso da fonte */
+    color: #fff;
+    text-align: left; /* Alinhamento do texto à esquerda */
+    text-transform: uppercase;
+    margin: 20px 0 10px; /* Espaço acima e abaixo do cabeçalho */
+    padding-left: 10px; /* Espaçamento à esquerda */
+    border-left: 3px solid #007BFF; /* Linha decorativa à esquerda */
+}

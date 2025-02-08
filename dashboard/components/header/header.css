@@ -1,0 +1,19 @@
+/* Estilo básico para o cabeçalho */
+header {
+    background-color: #FFFFFF; /* Fundo branco */
+    height: 70px; /* Altura do cabeçalho */
+    display: flex; /* Usando flexbox para alinhar os itens */
+    justify-content: flex-start; /* Alinha os itens à esquerda */
+    align-items: center; /* Alinha os itens verticalmente no centro */
+    padding: 0 20px; /* Espaçamento interno à esquerda e direita */
+}
+
+/* Logo */
+header .logo img {
+    height: 60px; /* Ajusta o tamanho do logo */
+    width: auto; /* Mantém a proporção do logo */
+    object-fit: contain; /* Garante que a logo se ajuste bem sem distorcer */
+    margin: 0; /* Remove qualquer margem ao redor da imagem */
+    padding: 0; /* Remove qualquer padding ao redor da imagem */
+
+}

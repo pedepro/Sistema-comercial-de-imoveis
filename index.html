@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Imóveis</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <button class="menu-toggle">☰</button>
+        <h1>Imóveis Disponíveis</h1>
+    </header>
+
+    <!-- Sidebar Oculta -->
+    <nav class="sidebar">
+        <ul>
+            <li><a href="#" id="imoveis-link">Imóveis</a></li>
+            <li><a href="#" id="clientes-link">Leads (Clientes)</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <div class="container" id="imoveis-container"></div>
+        <div class="container" id="clientes-container" style="display: none;"></div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

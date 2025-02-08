@@ -1,0 +1,99 @@
+[
+    {
+        "label": "Seu dia a dia",
+        "buttons": [
+            { 
+                "id": "pedidos", 
+                "label": "Gestor de Pedidos", 
+                "link": "/pedidos", 
+                "icon": "fa fa-tasks" 
+            }
+        ]
+    },
+    {
+        "label": "Análise",
+        "buttons": [
+            { 
+                "id": "meus-clientes", 
+                "label": "Meus Clientes", 
+                "link": "/meus-clientes", 
+                "icon": "fa fa-users",
+                "submenu": [
+                    { "id": "clientes", "label": "Ver lista de clientes", "link": "/clientes/lista" },
+                    { "id": "disparo-em-massa", "label": "Disparo em massa", "link": "/clientes/disparo" },
+                    { "id": "clientes-sem-pedido", "label": "Clientes sem pedido", "link": "/clientes/sem-pedido" }
+                ]
+            },
+            { 
+                "id": "relatorios", 
+                "label": "Relatórios", 
+                "link": "/relatorios", 
+                "icon": "fa fa-chart-line",
+                "submenu": [
+                    { "id": "relatorio-de-pedidos", "label": "Relatório de pedidos", "link": "/relatorios/pedidos" },
+                    { "id": "relatorio-de-carrinhos", "label": "Relatório de carrinhos", "link": "/relatorios/carrinhos" },
+                    { "id": "areas-de-entrega", "label": "Áreas de entrega", "link": "/relatorios/entregas" }
+                ]
+            },
+            { 
+                "id": "gestor-de-cardapio", 
+                "label": "Gestor de Cardápio", 
+                "link": "/cardapio", 
+                "icon": "fa fa-utensils",
+                "submenu": [
+                    { "id": "produtos", "label": "Produtos", "link": "/cardapio/produtos" }
+                ]
+            },
+            { 
+                "id": "marketing", 
+                "label": "Marketing", 
+                "link": "/marketing", 
+                "icon": "fa fa-bullhorn",
+                "submenu": [
+                    { "id": "cupons-de-desconto", "label": "Cupons de desconto", "link": "/marketing/cupons" },
+                    { "id": "banners", "label": "Banners", "link": "/marketing/banners" },
+                    { "id": "link-e-qr-code", "label": "Link e QR Code", "link": "/marketing/link-qrcode" },
+                    { "id": "facebook-pixel", "label": "Facebook Pixel", "link": "/marketing/facebook-pixel" }
+                ]
+            },
+            { 
+                "id": "estatisticas", 
+                "label": "Estatísticas", 
+                "link": "/estatisticas", 
+                "icon": "fa fa-chart-pie" 
+            }
+        ]
+    },
+    {
+        "label": "Meu negócio",
+        "buttons": [
+            { 
+                "id": "configuracoes", 
+                "label": "Configurações", 
+                "link": "/configuracoes", 
+                "icon": "fa fa-cogs",
+                "submenu": [
+                    { "id": "meu-negocio", "label": "Meu Negócio", "link": "/configuracoes/meu-negocio" },
+                    { "id": "pedidos", "label": "Pedidos", "link": "/configuracoes/pedidos" },
+                    { "id": "impressora", "label": "Impressora", "link": "/configuracoes/impressora" },
+                    { "id": "minha-pagina", "label": "Minha Página", "link": "/configuracoes/minha-pagina" }
+                ]
+            },
+            { 
+                "id": "fidelidade", 
+                "label": "Fidelidade", 
+                "link": "/fidelidade", 
+                "icon": "fa fa-star",
+                "submenu": [
+                    { "id": "cashback", "label": "Cashback", "link": "/fidelidade/cashback" }
+                ]
+            },
+            { 
+                "id": "chatbot", 
+                "label": "ChatBot", 
+                "link": "/chatbot", 
+                "icon": "fa fa-robot" 
+            }
+        ]
+    }
+]

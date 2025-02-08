@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Banco de Dados</title>
+    <script>
+        const API_BASE_URL = "http://localhost:3002"; // Ajuste se necessário
+
+        async function loadTables() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/tables`);
+                if (!response.ok) throw new Error("Erro ao carregar tabelas");
+                const tables = await response.json();
+                const tableList = document.getElementById('tables');
+                tableList.innerHTML = '';
+                tables.forEach(table => {
+                    const li = document.createElement('li');
+                    li.textContent = table.table_name;
+                    li.onclick = () => loadColumnsAndData(table.table_name);
+                    tableList.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Erro ao buscar tabelas:", error);
+            }
+        }
+
+        async function loadColumnsAndData(table) {
+            try {
+                const columnResponse = await fetch(`${API_BASE_URL}/columns/${table}`);
+                if (!columnResponse.ok) throw new Error("Erro ao carregar colunas");
+                const columns = await columnResponse.json();
+                const columnList = document.getElementById('columns');
+                columnList.innerHTML = `<h3>Colunas da Tabela: ${table}</h3>`;
+                columns.forEach(column => {
+                    columnList.innerHTML += `<p>${column.column_name} (${column.data_type})</p>`;
+                });
+
+                const dataResponse = await fetch(`${API_BASE_URL}/data/${table}`);
+                if (!dataResponse.ok) throw new Error("Erro ao carregar dados");
+                const data = await dataResponse.json();
+                const dataTable = document.getElementById('data');
+                dataTable.innerHTML = `<h3>Dados da Tabela: ${table}</h3>`;
+                data.forEach(row => {
+                    dataTable.innerHTML += `<pre>${JSON.stringify(row, null, 2)}</pre>`;
+                });
+            } catch (error) {
+                console.error("Erro ao buscar dados:", error);
+            }
+        }
+
+        window.onload = loadTables;
+    </script>
+</head>
+<body>
+    <h1>Visualizador de Banco de Dados</h1>
+    <h2>Tabelas:</h2>
+    <ul id="tables"></ul>
+    <div id="columns"></div>
+    <div id="data"></div>
+</body>
+</html>

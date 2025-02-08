@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PedePro - Login</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box" id="login-box">
+            <h1>PedePro</h1>
+            <form action="#" method="POST" id="login-form">
+                <div class="input-group">
+                    <span class="material-icons">email</span>
+                    <input type="email" name="login-email" placeholder="Email" required>
+                </div>
+                <div class="input-group">
+                    <span class="material-icons">lock</span>
+                    <input type="password" name="login-password" placeholder="Senha" required>
+                </div>
+                <button type="submit">Entrar</button>
+                <div class="create-account">
+                    <p>Ainda não tem uma conta? <a href="#" onclick="toggleForm()">Criar conta</a></p>
+                </div>
+            </form>
+        </div>
+
+        <div class="signup-box hidden" id="signup-box">
+            <h2>Criar Conta</h2>
+            <form action="#" method="POST" id="signup-form">
+                <div class="input-group">
+                    <span class="material-icons">person</span>
+                    <input type="text" name="signup-name" placeholder="Nome" required>
+                </div>
+                <div class="input-group">
+                    <span class="material-icons">email</span>
+                    <input type="email" name="signup-email" placeholder="Email" required>
+                </div>
+                <div class="input-group">
+                    <span class="material-icons">lock</span>
+                    <input type="password" name="signup-password" placeholder="Senha" required>
+                </div>
+                <div class="input-group">
+                    <span class="material-icons">phone</span>
+                    <input type="text" name="signup-phone" placeholder="Telefone" required>
+                </div>
+                <button type="submit">Criar Conta</button>
+                <div class="login-link">
+                    <p>Já tem uma conta? <a href="#" onclick="toggleForm()">Fazer login</a></p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+/* Definindo a paleta de cores */
+:root {
+    --primary-color: #4CAF50; /* Verde - cor principal */
+    --secondary-color: #FFC107; /* Amarelo */
+    --accent-color: #FF5722; /* Laranja */
+    --background-color: #F4F4F4; /* Cor de fundo */
+    --text-color: #333333; /* Texto principal */
+    --heading-color: #111111; /* Cor dos títulos */
+    --button-text-color: #FFFFFF; /* Cor do texto dos botões */
+    --border-color: #DDDDDD; /* Cor das bordas */
+    --link-color: #2196F3; /* Cor dos links */
+    --hover-color: #0D47A1; /* Cor do hover (passar o mouse) */
+}
+
+/* Exemplo de aplicação das cores no corpo */
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-family: 'Arial', sans-serif;
+}
+
+/* Estilos para links */
+a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--hover-color);
+}
+
+/* Estilos para botões */
+button {
+    background-color: var(--primary-color);
+    color: var(--button-text-color);
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: var(--accent-color);
+}
+
+/* Estilos de bordas */
+.border {
+    border: 1px solid var(--border-color);
+}
+
+/* Estilos para títulos */
+h1, h2, h3 {
+    color: var(--heading-color);
+}

@@ -1,0 +1,124 @@
+/* Resetando algumas margens e padding para garantir consistência */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Definições globais */
+body {
+    font-size: 16px; /* Tamanho padrão da fonte */
+    line-height: 1.5;
+    font-family: 'Arial', sans-serif; /* Fonte padrão */
+    height: calc(100% - 70px); /* Garante que a altura seja adequada considerando a margem superior */
+
+}
+
+/* Definindo o layout de container para o conteúdo */
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Layout do cabeçalho */
+header {
+    background-color: var(--primary-color);
+    color: var(--button-text-color);
+    padding: 20px;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+/* Layout do rodapé */
+footer {
+    background-color: #333;
+    color: #fff;
+    padding: 15px;
+    text-align: center;
+}
+
+/* Layout do sidebar */
+.sidebar {
+    width: 250px;
+    background-color: var(--secondary-color);
+    height: 100vh;
+    padding: 20px;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+.sidebar ul {
+    list-style-type: none;
+}
+
+.sidebar ul li {
+    margin: 10px 0;
+}
+
+.sidebar ul li a {
+    text-decoration: none;
+    color: #fff;
+    font-size: 18px;
+}
+
+.sidebar ul li a:hover {
+    color: var(--hover-color);
+}
+
+/* Layout do conteúdo principal */
+main {
+    margin-left: 270px; /* Espaço para a sidebar */
+    padding: 20px;
+    height: 500px; /* Garante que a altura seja adequada considerando a margem superior */
+    height: calc(100% - 70px); /* Garante que a altura seja adequada considerando a margem superior */
+
+
+}
+
+/* Seções principais */
+.section {
+    margin-bottom: 40px;
+}
+
+.section h2 {
+    font-size: 1.8rem;
+    color: var(--heading-color);
+    margin-bottom: 10px;
+}
+
+.section .content {
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Tabelas */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+table th, table td {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    text-align: left;
+}
+
+table th {
+    background-color: var(--primary-color);
+    color: var(--button-text-color);
+}
+
+table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}

@@ -1,0 +1,1467 @@
+.status-container {
+    display: flex;                /* Layout flexível para alinhamento horizontal */
+    justify-content: space-between; /* Distribui os itens com espaço entre eles */
+    align-items: flex-start;       /* Alinha os itens na parte superior do contêiner */
+    height: 100%;     /* Garante que a altura seja adequada considerando a margem superior */
+    gap: 0px;                      /* Removendo qualquer gap entre as tabelas */
+    padding: 0px;                  /* Removendo o padding do contêiner */
+    min-width: calc(100% - 270px);
+    height: calc(100% - 70px);     /* Garante que a altura seja adequada considerando a margem superior */
+    flex-wrap: wrap;               /* Permite que os itens quebrem para a linha seguinte em telas pequenas */
+}
+
+/* Estilos gerais */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Impede que a página ultrapasse a largura da tela */
+}
+
+/* Cabeçalho e título */
+h3 {
+    font-size: 1.5em;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+/* Estilo para os containers das tabelas */
+.pedido-lista-container {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    gap: 0px; /* Removendo qualquer gap entre as tabelas */
+    margin: 0px;
+    height: calc(100% - 70px);     /* Garante que a altura seja adequada considerando a margem superior */
+    flex-wrap: wrap; /* Permite que os itens quebrem para a linha seguinte em telas pequenas */
+}
+
+/* Estilo para cada tabela */
+.pedido-lista {
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ddd;
+    overflow-y: auto; /* Habilita a rolagem vertical */
+    max-height: 400px; /* Define a altura máxima da lista */
+    flex: 1 1 30%; /* Flexível, mas com no mínimo 30% de largura */
+    min-width: 150px; /* Largura mínima reduzida para 150px */
+    box-sizing: border-box; /* Inclui padding e border no cálculo da largura */
+    scrollbar-width: thin; /* Barra de rolagem fina */
+    scrollbar-color: #888 #f1f1f1; /* Cor da barra de rolagem */
+    min-height: 100%;
+}
+
+/* Estilos para o conteúdo das listas */
+.pedido-lista ul {
+    list-style-type: none;
+    padding-left: 0;
+    min-height: 100%;
+
+}
+
+/* Estilo para o card de pedido */
+.pedido-card {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f0f0f0;
+    width: 100%;
+}
+
+.pedido-card h4 {
+    margin: 0 0 10px;
+    font-size: 1.1em;
+    color: #333;
+}
+
+.pedido-info {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.pedido-acoes {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pedido-acoes button {
+    padding: 8px 12px;
+    font-size: 0.9em;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.pedido-acoes button:hover {
+    background-color: #0056b3;
+}
+
+.icons i {
+    margin: 0 5px;
+    font-size: 1.2em;
+    cursor: pointer;
+    color: #666;
+}
+
+.icons i:hover {
+    color: #333;
+}
+
+/* Estilos para os botões de status */
+#pendentes .pedido-lista {
+    border-left: 5px solid #ffdd57;
+    height: 100px;     /* Garante que a altura seja adequada considerando a margem superior */
+    min-height: 100%;
+
+}
+
+#aceitos .pedido-lista {
+    border-left: 5px solid #28a745;
+}
+
+#a-caminho-pronto .pedido-lista {
+    border-left: 5px solid #ffc107;
+    height: 100%;
+}
+
+/* Botão Novo Pedido */
+#novo-pedido {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 1em;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin: 20px;
+}
+
+#novo-pedido:hover {
+    background-color: #218838;
+}
+
+/* Responsividade */
+@media screen and (max-width: 1024px) {
+    .pedido-lista {
+        flex: 1 1 30%; /* Ajusta a largura das colunas para 30% */
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .pedido-lista {
+        flex: 1 1 45%; /* Ajusta a largura das colunas para 45% */
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .pedido-lista {
+        flex: 1 1 100%; /* Coloca as colunas em 100% de largura */
+    }
+}
+
+#pendentes, #aceitos, #a-caminho-pronto {
+    width: 33%;
+    height: calc(100% - 70px);     /* Garante que a altura seja adequada considerando a margem superior */
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+.pedido-lista {
+    min-height: 100%;
+}
+
+header {
+    justify-content: space-between;
+    align-items: space-between;
+}
+
+/* Animação de push para frente */
+@keyframes push-frente {
+    0% {
+        transform: translateX(0);
+    }
+    20% {
+        transform: translateX(10px); /* Empurra para frente */
+    }
+    40% {
+        transform: translateX(-5px); /* Levemente para trás */
+    }
+    60% {
+        transform: translateX(5px); /* Um pequeno empurrão para frente */
+    }
+    80% {
+        transform: translateX(-2px); /* Ajuste final para um retorno suave */
+    }
+    100% {
+        transform: translateX(0); /* Volta à posição original */
+    }
+}
+
+.card-pulando {
+    animation: push-frente 0.6s ease-in-out;
+}
+
+/* Personalizando as barras de rolagem */
+.pedido-lista::-webkit-scrollbar {
+    width: 2px; /* Diminuindo a largura da barra de rolagem */
+}
+
+.pedido-lista::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 10px;
+}
+
+.pedido-lista::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+#gestao-pedidos {
+    height: calc(100% - 70px);     /* Garante que a altura seja adequada considerando a margem superior */
+}
+
+#pdv {
+    position: fixed;
+    bottom: 0;
+    right: 0; /* Posição padrão dentro da tela */
+    width: calc(100% - 270px);
+    height: calc(100% - 70px);
+    background-color: #f1f1f1;
+    z-index: 1300;
+    flex-direction: row; /* Garantir alinhamento horizontal */
+    justify-content: space-between; /* Espaço entre os grupos */
+    transform: translateX(100vw); /* Inicialmente fora da tela à direita */
+    transition: transform 0.5s ease-in-out; /* Animação suave ao transformar */
+    visibility: hidden; /* Esconde o elemento inicialmente */
+    opacity: 0; /* Torna invisível */
+    padding-left: 10px;
+}
+
+/* Classe que move o #pdv para fora da tela */
+#pdv.hidden {
+    transform: translateX(100vw); /* Move o elemento para fora da tela pela direita */
+    visibility: hidden; /* Garante que esteja invisível */
+    opacity: 0;
+}
+
+/* Classe para tornar o PDV visível */
+#pdv.visible {
+    transform: translateX(0); /* Move o elemento para a posição visível */
+    visibility: visible; /* Garante que esteja visível */
+    opacity: 1;
+}
+
+
+.pdvproducts {
+    padding: 0px;
+    height: 100%;
+    width: 69%;
+    gap: 10px;
+
+}
+
+.pdvcriarpedido {
+    background-color: #ffffff;
+    height: 100%;
+    width: 30%;
+    gap: 10px;            /* Espaçamento entre os elementos */
+
+
+}
+
+.headerpdvcriarpedido {
+    display: flex;        /* Alinhamento horizontal */
+    justify-content: flex-start; /* Opcional, se você quiser alinhar os elementos à esquerda */
+    gap: 2px;            /* Espaçamento entre os elementos */
+    padding: 0px;
+    max-width: 100%;
+}
+
+/* Estilo base para as divs */
+#botaofecharpdv, #agendarpdv, #excluirpdv {
+    border: 1px solid #5f5f5f;
+    border-radius: 5px;
+    text-align: center;
+    line-height: 35px; /* Alinha o texto verticalmente ao centro */
+    height: 35px;
+    cursor: pointer; /* Altera o cursor para pointer (mãozinha) */
+    padding-left: 10px;
+    padding-right: 10px;
+    font-size: 14px;
+    white-space: nowrap; /* Impede quebra de linha */
+    color: #525252;
+    display: inline-block; /* As divs ficam lado a lado */
+    margin: 5px; /* Espaço entre as divs */
+    transform-origin: center; /* Faz o redimensionamento a partir do centro */
+    transition: transform 0.5s ease-in-out; /* Transição suave no redimensionamento */
+}
+
+/* Media Query para telas menores que 768px */
+@media (max-width: 1500px) {
+    #botaofecharpdv, #agendarpdv, #excluirpdv {
+        font-size: 14px; /* Diminui o tamanho da fonte */
+        height: 35px; /* Diminui a altura */
+        padding-left: 8px;
+        padding-right: 8px;
+        transform: scale(0.9); /* Reduz o tamanho da div para 90% */
+    }
+}
+
+
+/* Media Query para telas menores que 768px */
+@media (max-width: 768px) {
+    #botaofecharpdv, #agendarpdv, #excluirpdv {
+        font-size: 12px; /* Diminui o tamanho da fonte */
+        height: 30px; /* Diminui a altura */
+        padding-left: 8px;
+        padding-right: 8px;
+        transform: scale(0.9); /* Reduz o tamanho da div para 90% */
+    }
+}
+
+/* Media Query para telas menores que 480px */
+@media (max-width: 480px) {
+    #botaofecharpdv, #agendarpdv, #excluirpdv {
+        font-size: 10px; /* Diminui mais o tamanho da fonte */
+        height: 25px; /* Diminui ainda mais a altura */
+        padding-left: 5px;
+        padding-right: 5px;
+        transform: scale(0.8); /* Reduz o tamanho da div para 80% */
+    }
+}
+
+
+
+.fundocabecalhocarrinho {
+    background-color: #E6E6E6;
+    display: flex;        /* Alinhamento horizontal */
+    gap: 10px;            /* Espaçamento entre os elementos */
+    justify-content: space-between;
+    padding: 10px;
+    font-weight: 600;
+    color: #5e5e5e;
+}
+
+.headerpdv {
+    height: 60px;
+    width: 100%;
+    align-items: center; /* Centraliza verticalmente os itens */
+    justify-content: space-between; /* Alinha os itens internos à esquerda e à direita */
+    display: flex;
+
+}
+
+.backgroudfiltro {
+    display: flex;
+    background-color: #ffffff;
+    border-radius: 5px; /* Bordas arredondadas (opcional) */
+    height: 50px;
+    width: 300px;
+    padding: 5px;
+    align-items: center; /* Centraliza verticalmente os itens */
+    max-width: 400px;
+    min-width: 150px;
+
+
+}
+
+#filtro {
+    border: none; /* Remove a borda */
+    outline: none; /* Remove a borda ao focar */
+    padding: 10px; /* Adiciona espaçamento interno */
+    font-size: 16px; /* Define o tamanho da fonte */
+    background-color: #ffffff; /* Cor de fundo */
+    color: #333; /* Cor do texto */
+    width: 100%;
+    height: 40px;
+    line-height: 40px; /* Alinha o texto verticalmente ao centro */
+    padding-bottom: 12px;
+    margin: 0;
+
+
+}
+
+.search {
+    height: 30px;
+    width: 30px;
+    padding: 3px;
+    margin: 0px;
+    
+}
+
+.typeorder {
+    display: flex;
+    background-color: #ffffff;
+    border-radius: 5px; /* Bordas arredondadas (opcional) */
+    height: 50px;
+    width: 300px;
+    align-items: center; /* Centraliza verticalmente os itens */
+    border: 1px solid #004d9b; /* Borda de 1px, sólida e cor azul escuro */
+}
+
+.buttomretirada {
+    white-space: nowrap; /* Impede quebra de linha */
+    line-height: 45px; /* Alinha o texto verticalmente ao centro */
+    font-size: 16px;
+    font-weight: 500;
+    width: 50%;
+    text-align: center; /* Opcional: Alinha o texto horizontalmente ao centro */
+    border-right: 1px solid #004d9b; /* Borda direita de 1px, sólida e cor azul escuro */
+    margin: 0;
+    background-color: #ffffff;
+    height: 100%;
+    color: #161616;
+    cursor: pointer; /* Altera o cursor para pointer (mãozinha) */
+
+
+
+}
+
+.buttomdelivery {
+    white-space: nowrap; /* Impede quebra de linha */
+    line-height: 45px; /* Alinha o texto verticalmente ao centro */
+    font-size: 16px;
+    font-weight: 500;
+    width: 50%;
+    text-align: center; /* Opcional: Alinha o texto horizontalmente ao centro */
+    height: 100%;
+    cursor: pointer; /* Altera o cursor para pointer (mãozinha) */
+
+
+
+}
+
+#categorys {
+    background-color: #ffffff;
+    border-radius: 5px;
+    border: 1px solid #ffffff; /* Borda de 1px */
+    padding: 5px;
+    height: 50px;
+    align-items: center; /* Alinha os itens no centro verticalmente */
+    display: flex;
+    gap: 10px; /* Adiciona espaçamento entre os itens */
+    overflow-x: auto; /* Adiciona barra de rolagem horizontal, se necessário */
+    white-space: nowrap; /* Evita que os itens quebrem para a próxima linha */
+    margin-top: 5px;
+}
+
+
+.category-item {
+    margin: 0px;
+    line-height: 35px; /* Alinha o texto verticalmente ao centro */
+    font-size: 20px;
+    font-weight: 500;
+    cursor: pointer; /* Altera o cursor para pointer (mãozinha) */
+    border: 1px solid #525252; /* Borda de 1px, sólida */
+    display: flex; /* Configura o item como flexbox */
+    justify-content: center; /* Centraliza o texto horizontalmente */
+    align-items: center; /* Centraliza o texto verticalmente */
+    width: min-content; /* Ajusta a largura ao conteúdo */
+    min-width: 100px; /* Define a largura mínima */
+    text-align: center;
+    padding-left: 5px;
+    padding-right: 5px;
+    border-radius: 5px;
+}
+
+.category-item.selected {
+    background-color: #d1e7ff; /* Fundo azul claro */
+    border-color: #0d6efd; /* Borda azul */
+    color: #0d6efd; /* Texto azul */
+}
+
+#products {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.product-card {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    width: 200px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    cursor: pointer; /* Altera o cursor para pointer (mãozinha) */
+
+}
+
+.product-image img {
+    max-width: 100%;
+    border-radius: 5px;
+}
+
+.product-info h3 {
+    font-size: 18px;
+    margin: 10px 0;
+}
+
+.product-info p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #555;
+}
+
+#detalhesproducts {
+    display: none; /* Inicialmente oculto */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    padding: 0px;
+    width: 80%; /* Ajusta a largura */
+    height: 80%; /* Ajusta a altura */
+    z-index: 1000;
+    text-align: left;
+    overflow: hidden; /* Evita transbordamento */
+}
+
+/* Estilo principal */
+.product-details-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+/* Imagem do produto */
+.product-image2 {
+    width: 50%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #f9f9f9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.product-image2 img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: cover;
+}
+
+/* Informações do produto */
+.product-info2 {
+    width: 100%;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow-y: auto; /* Adiciona rolagem vertical se necessário */
+}
+
+.principal {
+    width: 50%;
+    justify-content: space-between;
+    overflow-y: auto; /* Adiciona rolagem vertical se necessário */
+    display: flex;
+    flex-direction: column;
+
+}
+.nomeproduct {
+    text-align: left;
+    font-size: 25px;
+    font-weight: 600;
+}
+
+.precoprincipal {
+    text-align: left;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+/* Grupo de variações */
+.group-order {
+    margin-bottom: 20px;
+}
+
+.group-order h4 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+/* Contador de itens selecionados */
+.selected-count {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 10px;
+}
+
+/* Variações */
+.variations {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Detalhes da variação */
+.variation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Detalhes da variação (nome e descrição) */
+.variation-details {
+    display: flex;
+    flex-direction: column;
+    font-size: 16px;
+    flex-grow: 1; /* Para ocupar o espaço restante */
+    max-width: 60%;
+    
+}
+
+.variation-name {
+    font-weight: bold;
+    text-align: left;
+}
+
+.variation-description {
+    font-size: 14px;
+    color: #777;
+    text-align: left;
+
+}
+
+/* Controles de quantidade e preço */
+.quantity-price-control {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    justify-content: flex-end; /* Alinha o preço e os controles de quantidade à direita */
+}
+
+/* Controles de quantidade */
+.quantity-control {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background-color: #f0f0f0;
+    padding: 5px 10px;
+    border-radius: 10px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+}
+
+.quantity-control button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    width: 25px;
+    height: 25px;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0px;
+    text-align: center;
+    justify-content: center
+    
+}
+
+.quantity-control button:hover {
+    background-color: #0056b3;
+}
+
+.quantity-control span {
+    font-size: 16px;
+    font-weight: bold;
+    min-width: 20px;
+    text-align: center;
+}
+
+.variation-price {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin-left: 10px;
+}
+
+/* Single-choice (radio) */
+.single-choice input[type="radio"] {
+    display: none;
+}
+
+.single-choice label {
+    padding: 10px 20px;
+    background-color: #f0f0f0;
+    border-radius: 20px;
+    cursor: pointer;
+    text-align: center;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+}
+
+.single-choice input[type="radio"]:checked + label {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Observações */
+.product-observations {
+    width: 100%;
+    margin: 20px 0;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    min-height: 50px;
+    font-size: 16px;
+}
+
+/* Adicionar ao carrinho */
+.add-to-cart {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding: 20px;
+}
+
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.quantity-button {
+    padding: 10px;
+    font-size: 18px;
+    background-color: #f0f0f0;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    width: 40px;
+    height: 40px;
+    font-weight: bold;
+}
+
+.add-to-cart-button {
+    padding: 15px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.add-to-cart-button:hover {
+    background-color: #0056b3;
+}
+
+/* Botão de fechar */
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: red;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Barra de rolagem estilizada */
+.product-info2::-webkit-scrollbar {
+    width: 8px;
+}
+
+.product-info2::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+    border-radius: 4px;
+}
+
+.product-info2::-webkit-scrollbar-track {
+    background-color: #f5f5f5;
+}
+
+
+
+/* Estilos para o carrinho de compras */
+#carrinhopdv {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    max-height: 280px;
+    overflow-y: auto;
+    min-height: 280px;
+}
+
+/* Estilos para cada produto no carrinho */
+.product-card-cart {
+    display: flex;
+    flex-direction: column; /* Disposição vertical dos itens */
+    justify-content: center; /* Alinha os itens verticalmente no centro */
+    align-items: center; /* Alinha os itens horizontalmente no centro */
+    background-color: #f9f9f9;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    max-width: 100%; /* Garantir que o card ocupe apenas o espaço disponível */
+}
+
+/* Nova classe para borda azul */
+.selected-product-card-card-delete {
+    border: 2px solid blue; /* Borda azul ao redor do produto */
+    background-color: #e8f4ff; /* Opção de cor de fundo para indicar seleção */
+}
+
+
+
+
+/* Estilos para cada produto no carrinho */
+.infoscardproductcarrinho {
+    display: flex;
+    flex-direction: row; /* Garante que os itens fiquem em linha (horizontal) */
+    justify-content: space-between; /* Distribui os itens com espaçamento entre eles */
+    max-width: 100%; /* Garantir que o card ocupe apenas o espaço disponível */
+    align-items: flex-start;
+    min-width: 100%;
+
+}
+
+/* Estilos para o principal card do produto */
+.principalcardprodutocard {
+    display: flex;
+    flex-direction: column; /* Disposição dos itens em coluna (vertical) */
+    align-items: flex-start; /* Alinha os itens à esquerda */
+    justify-content: flex-start; /* Alinha os itens ao topo (verticalmente) */
+    margin: 0px; /* Adiciona margem ao redor do card */
+    width: 100%;
+}
+
+
+
+/* Alinhamento do texto dentro do card */
+.product-card-cart p {
+    margin: 0;
+    word-wrap: break-word; /* Garante que o texto quebre de linha corretamente */
+}
+
+/* Nome do produto */
+.product-name-cart {
+    font-weight: bold;
+    flex: 1; /* Faz o nome ocupar o espaço disponível */
+    white-space: normal; /* Permite que o nome quebre de linha */
+    overflow: visible; /* Garante que o nome não seja cortado */
+    word-wrap: break-word; /* Garante que o texto quebre em linhas quando necessário */
+}
+
+/* Preço do produto */
+.product-price-cart {
+    color: #272727;
+    font-weight: bold;
+    white-space: nowrap; /* Evita que o preço quebre de linha */
+}
+
+/* Quantidade do produto */
+.product-quantity-cart {
+    font-size: 14px;
+    color: #555;
+    white-space: nowrap; /* Evita que a quantidade quebre de linha */
+    text-align: center;
+}
+
+/* Div para os botões e ações */
+.product-actions-cart {
+    display: flex;
+    flex-direction: row; /* Alinhamento horizontal */
+    justify-content: flex-start; /* Alinha os itens no início (à esquerda) */
+    align-items: center; /* Centraliza os itens verticalmente */
+    gap: 10px; /* Espaço entre os botões */
+    min-width: 100px;
+}
+
+
+/* Estilos para o controle de quantidade */
+.quantity-control-cart {
+    display: flex;
+    flex-direction: row; /* Alinha os itens em linha (horizontal) */
+    justify-content: center; /* Centraliza os itens na linha */
+    align-items: center; /* Alinha os itens verticalmente no centro */
+    width: auto; /* Ajusta a largura ao conteúdo */
+    gap: 10px; /* Espaçamento entre os itens (opcional) */
+}
+
+
+/* Botão de exclusão (lixeira) */
+.quantity-minus-cart {
+    background-color: #dddddd;
+    border: none;
+    cursor: pointer;
+    color: #000000;
+    font-size: 24px;
+    padding: 0; /* Remove o padding para evitar espaçamento extra */
+    margin: 0; /* Remove a margem */
+    width: 25px;
+    height: 25px;
+    display: flex; /* Torna o botão um contêiner flexível */
+    justify-content: center; /* Alinha o texto horizontalmente */
+    align-items: center; /* Alinha o texto verticalmente */
+    text-align: center; /* Garante que o texto esteja centralizado */
+}
+
+/* Botão de exclusão (lixeira) */
+.quantity-plus-cart {
+    background-color: #dddddd;
+    border: none;
+    cursor: pointer;
+    color: #000000;
+    font-size: 24px;
+    padding: 0; /* Remove o padding para evitar espaçamento extra */
+    margin: 0; /* Remove a margem */
+    width: 25px;
+    height: 25px;
+}
+
+/* Muda a cor para um tom mais escuro quando o botão é hoverizado */
+.quantity-plus-cart:hover, .quantity-minus-cart:hover {
+    background-color: #bbbbbb; /* Cor mais escura */
+}
+
+
+
+/* Botão para expandir para ver as variações */
+.expand-button-cart {
+    background-color: #2196F3;
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    width: auto; /* Ajusta o botão para não esticar horizontalmente */
+    align-self: flex-start; /* Garante que o botão fique alinhado à esquerda */
+}
+
+.expand-button-cart:hover {
+    background-color: #1976D2;
+}
+
+.variations-container {
+    width: 100%;
+
+}
+
+.subtotaispdv {
+    margin-top: 10px;
+}
+
+.textossubtotais {
+    max-width: 100%;
+    height: 25px;
+    display: flex;
+    justify-content: space-between; /* Alinha os itens nas extremidades */
+    align-items: center; /* Alinha verticalmente os itens no centro */
+    padding: 10px;
+    font-weight: 600;
+    font-size: 16px;
+    color: #525252;
+}
+
+.eathcontainerbotoes {
+    display: flex;
+    justify-content: flex-start; /* Alinha à esquerda */
+    padding: 0;
+    gap: 5px;
+    margin-bottom: 5px;
+}
+
+/* Estilo base para as divs */
+#botaoclientespdv, #botaodescontopdv, #botaoenderecopdv, #botaopagamentopdv {
+    border: 1px solid #01003f;
+    border-radius: 5px;
+    text-align: center;
+    line-height: 35px; /* Alinha o texto verticalmente ao centro */
+    height: 35px;
+    cursor: pointer; /* Altera o cursor para pointer (mãozinha) */
+    padding-left: 10px;
+    padding-right: 10px;
+    font-size: 14px;
+    white-space: nowrap; /* Impede quebra de linha */
+    color: #525252;
+    display: inline-block; /* As divs ficam lado a lado */
+    transform-origin: center; /* Faz o redimensionamento a partir do centro */
+    transition: transform 0.5s ease-in-out; /* Transição suave no redimensionamento */
+    width: 50%;
+
+}
+
+/* Estilo BOTÃO ADICIONAR AO CARRINHO */
+#botaocriarpedido {
+    border: 1px solid #01003f;
+    border-radius: 5px;
+    text-align: center;
+    line-height: 40px; /* Alinha o texto verticalmente ao centro */
+    height: 40px;
+    cursor: pointer; /* Altera o cursor para pointer (mãozinha) */
+    padding-left: 10px;
+    padding-right: 10px;
+    font-size: 14px;
+    white-space: nowrap; /* Impede quebra de linha */
+    color: #ffffff;
+    transform-origin: center; /* Faz o redimensionamento a partir do centro */
+    transition: transform 0.5s ease-in-out; /* Transição suave no redimensionamento */
+    width: 100%;
+    background-color: #004d9b;
+}
+
+.botoespdv {
+    justify-content: center; /* Centraliza os itens no eixo horizontal */
+    align-items: center; /* Centraliza os itens no eixo vertical (se necessário) */
+    width: 100%; /* Garante que ocupe toda a largura disponível */
+    padding: 10px;
+
+}
+
+
+.overlay {
+    visibility: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Fundo escuro */
+    z-index: 1400; /* Certifique-se de que fique abaixo do popup */
+}
+
+/* Popup */
+.popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 500px;
+    background-color: white; /* Fundo do popup */
+    z-index: 1501; /* Garantir que fique acima do overlay */
+    visibility: hidden; /* Ocultar inicialmente */
+    display: flex; /* Para centralizar conteúdo dentro do popup */
+    align-items: center;
+    justify-content: center;
+}
+
+/* Quando visível */
+.overlay.active,
+.popup.active {
+    visibility: visible;
+}
+
+
+/* Conteúdo do popup */
+.popup-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    position: relative;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Botão de fechar */
+.close {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.backgroudfiltroclientes {
+    display: flex;
+    background-color: #f0f0f0;
+    border-radius: 5px; /* Bordas arredondadas (opcional) */
+    height: 50px;
+    width: 300px;
+    padding: 5px;
+    align-items: center; /* Centraliza verticalmente os itens */
+    max-width: 80%;
+    min-width: 80%;
+    margin: 0 auto; /* Centraliza horizontalmente */
+    margin-top: 10px;
+}
+
+
+#filtroclientes {
+    border: none; /* Remove a borda */
+    outline: none; /* Remove a borda ao focar */
+    padding: 10px; /* Adiciona espaçamento interno */
+    font-size: 16px; /* Define o tamanho da fonte */
+    background-color: #f0f0f0; /* Cor de fundo */
+    color: #333; /* Cor do texto */
+    width: 100%;
+    height: 40px;
+    line-height: 40px; /* Alinha o texto verticalmente ao centro */
+    padding-bottom: 12px;
+    margin: 0;
+
+
+}
+
+/* Estilos gerais da tabela */
+#tabelaclientespdv table {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: 'Arial', sans-serif;
+    font-size: 14px; /* Fontes um pouco menores */
+    margin-top: 10px;
+  }
+  
+  /* Estilo do cabeçalho */
+  #tabelaclientespdv th {
+    background-color: #f0f4f8; /* Branco gelo */
+    color: #333;
+    font-size: 12px; /* Fonte menor para cabeçalho */
+    font-weight: bold;
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #ddd;
+  }
+  
+  /* Estilo das células */
+  #tabelaclientespdv td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+    font-size: 13px; /* Fontes menores para as células */
+    color: #555;
+  }
+  
+  /* Alterar cor ao passar o mouse sobre as linhas */
+  #tabelaclientespdv tr:hover {
+    background-color: #f9f9f9;
+    cursor: pointer;
+  }
+  
+  /* Estilo para a linha selecionada */
+  .selected-row {
+    background-color: #d0f0ff !important; /* Azul claro para destacar a linha selecionada */
+  }
+  
+  /* Estilo geral da tabela quando não houver dados */
+  #tabelaclientespdv p {
+    font-size: 16px;
+    text-align: center;
+    color: #888;
+    margin: 20px 0;
+  }
+  
+  /* Ajuste para a tabela responsiva em telas menores */
+  @media (max-width: 768px) {
+    #tabelaclientespdv table {
+      font-size: 12px;
+    }
+  
+    #tabelaclientespdv th, #tabelaclientespdv td {
+      padding: 6px;
+    }
+  }
+  
+/* Estilos para a div de paginação */
+.pagination {
+    display: flex;               /* Flexbox para organização */
+    justify-content: flex-end;   /* Alinha os itens à direita */
+    align-items: center;         /* Alinha verticalmente ao centro */
+    margin-top: 20px;
+    width: 100%;                 /* Garante que ocupe toda a largura */
+    height: 30px;
+    padding: 0;
+}
+
+.pagination-btn {
+    background-color: #f1f1f1;
+    border: 1px solid #ddd;
+    padding: 5px 10px;          /* Ajustado para deixar o botão mais leve */
+    font-size: 14px;            /* Tamanho de fonte reduzido */
+    cursor: pointer;
+    margin: 0 10px;             /* Ajuste para o espaçamento entre os botões */
+    border-radius: 4px;         /* Bordas arredondadas */
+
+    display: inline-flex;       /* Flex para alinhar conteúdo */
+    justify-content: center;    /* Alinha horizontalmente o conteúdo */
+    align-items: center;        /* Alinha verticalmente o conteúdo */
+    height: 30px;               /* Definindo uma altura para o botão */
+    white-space: nowrap;        /* Impede que o conteúdo quebre em múltiplas linhas */
+}
+
+/* Estilo para o número da página */
+.page-number {
+    font-size: 14px;
+    display: inline-block;      /* Mantém o texto como bloco, mas não quebra a linha */
+    text-align: center;         /* Centraliza o texto */
+    line-height: 20px;          /* Garante que o texto fique centralizado verticalmente */
+    flex-shrink: 0;             /* Evita que o texto encolha */
+    height: 34px;
+    margin: 0;
+}
+
+/* Desabilitar botões */
+.pagination-btn:disabled {
+    background-color: #e0e0e0;
+    cursor: not-allowed;
+}
+
+
+
+
+/* Estilos gerais */
+.popupendereco {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #fff;
+    width: 400px;
+    max-width: 90%;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    visibility: hidden;
+    z-index: 1500;
+  }
+  
+  .overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    visibility: hidden;
+    z-index: 1400;
+  }
+  
+  .enderecos-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  
+  .enderecos-table th,
+  .enderecos-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  
+  .enderecos-table th {
+    background-color: #f4f4f4;
+  }
+  
+  .enderecos-table tr:hover {
+    background-color: #f1f1f1;
+  }
+  
+  .selected-address {
+    background-color: rgba(0, 0, 255, 0.1) !important; /* Força a cor de destaque */
+    transition: background-color 0.3s ease;
+}
+
+  
+  
+  .form-endereco {
+    display: block;
+    margin-top: 20px;
+  }
+  
+  button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    margin-top: 10px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 16px;
+  }
+  
+  button:hover {
+    background-color: #45a049;
+  }
+  
+  #criar-endereco-section {
+    margin-top: 20px;
+    text-align: center;
+  }
+  
+  #enderecos-message {
+    font-size: 16px;
+    color: #666;
+  }
+  
+  select, input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+  
+  select:focus, input:focus {
+    border-color: #4CAF50;
+  }
+  
+
+  #criar-endereco-btn {
+    text-align: center;
+    margin-top: 20px;
+  }
+  
+  #criar-endereco-btn button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  #criar-endereco-btn button:hover {
+    background-color: #45a049;
+  }
+  
+  
+  
+  #paymentOptionsGroupFocus div:hover {
+    background-color: #f0f0f0;
+}
+
+
+
+
+
+
+
+
+
+/* Overlay (inicialmente oculto) */
+.overlaycashback {
+    display: none; /* Inicialmente oculto */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  /* Quando a classe "visible" é adicionada, o overlay fica visível */
+  .overlaycashback.visible {
+    display:flex !important;
+  }
+  
+  /* Popup */
+  .popupcashback {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    width: 300px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  input[type="number"] {
+    margin-top: 10px;
+    padding: 5px;
+    width: 100%;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+  
+  button {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #1877f2; /* Cor similar ao Facebook */
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  button:hover {
+    background-color: #165eab;
+  }
+  
+  h3 {
+    margin-bottom: 20px;
+  }
+  
+
+
+
+
+/* Estilo para o overlay de agendamento */
+.overlayagendamento {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 10500; /* Garante que o overlay fica acima de outros elementos */
+  }
+  
+  /* Visibilidade do overlay quando ativado */
+  .overlayagendamento.visible {
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  /* Estilo do popup de agendamento */
+  .popupagendamento {
+    position: relative;
+    background: white;
+    padding: 20px;
+    margin: 10% auto;
+    width: 80%;
+    max-width: 400px;
+    text-align: center;
+    z-index: 12000; /* Garante que o popup fique acima do overlay */
+  }
+  
+  button {
+    margin: 5px;
+  }
+  
+  

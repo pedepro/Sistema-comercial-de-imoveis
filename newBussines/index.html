@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Restaurante</title>
+    <link rel="stylesheet" href="../newBussines/styles.css">
+</head>
+<body>
+    <div class="background">
+        <div class="container">
+            <div class="form-container">
+                <img src="https://d1muf25xaso8hp.cloudfront.net/https%3A%2F%2Fccc1de47663730c9d968d11d27291701.cdn.bubble.io%2Ff1709194322527x721668235051563800%2FVertical%2520principal%2520%25281%2529%2520%25283%2529.png?w=256&h=76&auto=compress&dpr=0.75&fit=max" alt="Logo" class="logo">
+                <h1 id="form-title">Cadastro de Restaurante</h1>
+    
+                <!-- Exibindo o email do usuário conectado -->
+                <div id="user-email-container" class="user-email-container">
+                    <p>Usuário Conectado: <span id="user-email">carregando...</span></p>
+                </div>
+    
+                <form id="restaurant-form">
+                    <input type="text" id="restaurant-name" placeholder="Nome do Restaurante" required>
+                    <input type="text" id="cnpj-cpf" placeholder="CNPJ/CPF" required>
+                    <select id="business-type" required>
+                        <option value="" disabled selected>Selecione o Tipo de Negócio</option>
+                        <option value="Pizzaria">Pizzaria</option>
+                        <option value="Hamburgueria">Hamburgueria</option>
+                        <option value="Comida Japonesa">Comida Japonesa</option>
+                        <option value="Comida Chinesa">Comida Chinesa</option>
+                        <option value="Padaria">Padaria</option>
+                        <option value="Lancheria">Lancheria</option>
+                        <option value="Lanchonete">Lanchonete</option>
+                    </select>
+                    <input type="text" id="whatsapp" placeholder="WhatsApp do Negócio" required>
+    
+                    <!-- Novo campo de entrada para a slug com feedback visual -->
+                    <div class="slug-container">
+                        <div class="slug-preview">
+                            <span>pedepro.com.br/products/</span><span id="slug-display">nome-meu-negocio</span>
+                        </div>
+                        <input type="text" id="custom-link" placeholder="Slug Personalizada" value="nome-meu-negocio" required>
+                    </div>
+    
+                    <button type="submit">Cadastrar Negócio</button>
+                </form>
+            </div>
+            <div class="image-container">
+                <img src="https://d1muf25xaso8hp.cloudfront.net/https%3A%2F%2F314980cfb9b5cd63f6999e9aa012ca27.cdn.bubble.io%2Ff1724679472019x418021212033245400%2Fimage%25201?w=768&h=480&auto=compress&dpr=0.75&fit=max" alt="Imagem ilustrativa">
+            </div>
+        </div>
+    </div>    
+    <script src="../newBussines/script.js"></script>
+</body>
+</html>

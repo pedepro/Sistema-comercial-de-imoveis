@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PedePro Dashboard</title>
+    <link rel="icon" type="image/x-icon" href="assets/icon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/theme.css"> <!-- Paleta de cores -->
+    <link rel="stylesheet" href="css/style.css"> <!-- Estilos gerais -->
+    <link rel="stylesheet" href="components/header/header.css"> <!-- Estilos do cabeçalho -->
+    <link rel="stylesheet" href="components/sidebar/sidebar.css"> <!-- Estilos do sidebar -->
+    <link rel="stylesheet" href="pedidos/pedidos.css"> <!-- Estilos do sidebar -->
+</head>
+<body>
+    
+    <!-- Cabeçalho -->
+    <header>
+        <div class="logo">
+            <img src="https://d1muf25xaso8hp.cloudfront.net/https%3A%2F%2Fccc1de47663730c9d968d11d27291701.cdn.bubble.io%2Ff1709194322527x721668235051563800%2FVertical%2520principal%2520%25281%2529%2520%25283%2529.png?w=256&h=76&auto=compress&dpr=0.75&fit=max" alt="Logo PedePro" />
+        </div>
+
+        <!-- Botão para abrir/fechar a coluna -->
+    <button class="toggle-btn" onclick="toggleSlider()">Abrir/Fechar Menu</button>
+
+    <!-- Coluna lateral flutuante -->
+    <div class="floating-column" id="floatingColumn">
+        <!-- Campo de pesquisa -->
+        <input type="text" id="searchInput" class="search-input" placeholder="Pesquise...">
+    
+        <!-- Botões do menu serão carregados aqui -->
+         
+    </div>
+    </header>
+
+        <!-- Container principal onde o conteúdo dinâmico será carregado -->
+        <main id="dashboard-container">
+            <!-- Conteúdo inicial ou mensagem padrão -->
+            <p>Carregando conteúdo...</p>
+        </main>
+
+    <script src="https://unpkg.com/graphql-ws@5.0.0/index.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+
+
+</body>
+</html>
