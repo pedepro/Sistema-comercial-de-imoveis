@@ -501,3 +501,38 @@ app.get('/list-corretores', async (req, res) => {
     }
 });
 
+// Rota para listar os imóveis de um corretor, baseado no array de IDs na tabela "corretores"
+app.get('/list-imoveis/:id', async (req, res) => {
+    const corretorId = req.params.id;  // Obtendo o ID do corretor a partir da URL
+
+    try {
+        // Consulta para obter o array de IDs de imóveis do corretor
+        const corretorResult = await pool.query(
+            'SELECT imoveis FROM corretores WHERE id = $1',
+            [corretorId]  // Passando o ID do corretor como parâmetro
+        );
+
+        // Verificando se o corretor foi encontrado
+        if (corretorResult.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Corretor não encontrado' });
+        }
+
+        const imoveisIds = corretorResult.rows[0].imoveis;
+
+        // Verificando se o corretor tem imóveis associados
+        if (!imoveisIds || imoveisIds.length === 0) {
+            return res.status(404).json({ success: false, message: 'Nenhum imóvel associado a este corretor' });
+        }
+
+        // Consulta para obter os imóveis com base nos IDs
+        const imoveisResult = await pool.query(
+            'SELECT * FROM imoveis WHERE id = ANY($1)', 
+            [imoveisIds]  // Passando o array de IDs de imóveis
+        );
+
+        // Retornando os imóveis encontrados
+        res.json({ success: true, imoveis: imoveisResult.rows });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
