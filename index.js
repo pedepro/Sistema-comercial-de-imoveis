@@ -458,3 +458,46 @@ app.get('/list-clientes', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
+
+// Rota para listar corretores com filtros, incluindo o filtro por id
+app.get('/list-corretores', async (req, res) => {
+    const { name, email, creci, id } = req.query;  // Obtendo os parâmetros de filtro da query string
+
+    // Construindo a parte da consulta com base nos filtros fornecidos
+    let query = 'SELECT * FROM corretores WHERE 1=1';
+    let params = [];
+
+    if (id) {
+        query += ' AND id = $' + (params.length + 1);
+        params.push(id);  // Filtro por id (exato)
+    }
+
+    if (name) {
+        query += ' AND name ILIKE $' + (params.length + 1);
+        params.push('%' + name + '%');  // Filtro por nome (usando ILIKE para não diferenciar maiúsculas/minúsculas)
+    }
+
+    if (email) {
+        query += ' AND email ILIKE $' + (params.length + 1);
+        params.push('%' + email + '%');  // Filtro por e-mail
+    }
+
+    if (creci) {
+        query += ' AND creci = $' + (params.length + 1);
+        params.push(creci);  // Filtro por creci
+    }
+
+    try {
+        const result = await pool.query(query, params);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Nenhum corretor encontrado' });
+        }
+
+        res.json({ success: true, corretores: result.rows });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
