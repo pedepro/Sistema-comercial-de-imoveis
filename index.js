@@ -536,3 +536,41 @@ app.get('/list-imoveis/:id', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
+
+
+// Rota para listar os clientes de um corretor, baseado no array de IDs na tabela "corretores"
+app.get('/list-clientes/:id', async (req, res) => {
+    const corretorId = req.params.id;  // Obtendo o ID do corretor a partir da URL
+
+    try {
+        // Consulta para obter o array de IDs de clientes do corretor
+        const corretorResult = await pool.query(
+            'SELECT clientes FROM corretores WHERE id = $1',
+            [corretorId]  // Passando o ID do corretor como parâmetro
+        );
+
+        // Verificando se o corretor foi encontrado
+        if (corretorResult.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Corretor não encontrado' });
+        }
+
+        const clientesIds = corretorResult.rows[0].clientes;
+
+        // Verificando se o corretor tem clientes associados
+        if (!clientesIds || clientesIds.length === 0) {
+            return res.status(404).json({ success: false, message: 'Nenhum cliente associado a este corretor' });
+        }
+
+        // Consulta para obter os clientes com base nos IDs
+        const clientesResult = await pool.query(
+            'SELECT * FROM clientes WHERE id = ANY($1)', 
+            [clientesIds]  // Passando o array de IDs de clientes
+        );
+
+        // Retornando os clientes encontrados
+        res.json({ success: true, clientes: clientesResult.rows });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
