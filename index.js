@@ -574,3 +574,76 @@ app.get('/list-clientes/:id', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
+
+
+
+
+
+
+// Função para gerar um token aleatório
+function gerarToken() {
+    return crypto.randomBytes(32).toString('hex');
+}
+
+// 📌 Rota de login
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ error: "Email e senha são obrigatórios." });
+    }
+
+    try {
+        const result = await pool.query("SELECT id, password, token FROM corretores WHERE email = $1", [email]);
+
+        if (result.rows.length === 0) {
+            return res.status(401).json({ error: "Email ou senha inválidos." });
+        }
+
+        const corretor = result.rows[0];
+
+        // Verifica a senha
+        const senhaCorreta = await bcrypt.compare(password, corretor.password);
+        if (!senhaCorreta) {
+            return res.status(401).json({ error: "Email ou senha inválidos." });
+        }
+
+        res.json({ id: corretor.id, token: corretor.token });
+    } catch (error) {
+        console.error("Erro no login:", error);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+});
+
+// 📌 Rota para criar um corretor
+app.post('/corretores', async (req, res) => {
+    const { email, password, phone, creci, name } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ error: "Email e senha são obrigatórios." });
+    }
+
+    try {
+        // Verifica se o email já está cadastrado
+        const checkEmail = await pool.query("SELECT id FROM corretores WHERE email = $1", [email]);
+        if (checkEmail.rows.length > 0) {
+            return res.status(400).json({ error: "Email já está em uso." });
+        }
+
+        // Criptografar a senha antes de armazenar
+        const senhaCriptografada = await bcrypt.hash(password, 10);
+        const token = gerarToken();
+
+        const result = await pool.query(
+            "INSERT INTO corretores (email, password, phone, creci, name, token) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, token",
+            [email, senhaCriptografada, phone || null, creci || null, name || null, token]
+        );
+
+        res.status(201).json({ id: result.rows[0].id, token: result.rows[0].token });
+    } catch (error) {
+        console.error("Erro ao criar corretor:", error);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+});
+
