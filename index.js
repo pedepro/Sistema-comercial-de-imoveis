@@ -4,7 +4,6 @@ const WebSocket = require('ws');
 const crypto = require('crypto');
 require('dotenv').config();
 const cors = require('cors');  // Adicionei a importação do cors
-const bcrypt = require('bcrypt');
 
 
 const app = express();
