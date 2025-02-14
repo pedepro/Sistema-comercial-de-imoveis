@@ -646,3 +646,27 @@ app.post('/corretores', async (req, res) => {
 });
 
 
+// 📌 Rota para obter informações do corretor
+app.get('/corretor', async (req, res) => {
+    const { id, token } = req.query; // Pegando id e token dos parâmetros da URL
+
+    if (!id || !token) {
+        return res.status(400).json({ error: "ID e Token são obrigatórios." });
+    }
+
+    try {
+        const result = await pool.query(
+            "SELECT email, phone, token, id, creci, imoveis, clientes, name FROM corretores WHERE id = $1 AND token = $2",
+            [id, token]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(401).json({ error: "Credenciais inválidas." });
+        }
+
+        res.json(result.rows[0]); // Retorna os dados do corretor
+    } catch (error) {
+        console.error("Erro ao buscar corretor:", error);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+});
