@@ -1,6 +1,9 @@
 # Use uma imagem oficial do Node.js (versão 16 baseada em Alpine para ser mais leve)
 FROM node:16-alpine
 
+# Instale dependências necessárias para compilar bcrypt
+RUN apk add --no-cache python3 make g++
+
 # Define o diretório de trabalho dentro do container
 WORKDIR /app
 
@@ -18,3 +21,4 @@ EXPOSE 3000 3001
 
 # Comando para iniciar o servidor
 CMD ["node", "index.js"]
+
