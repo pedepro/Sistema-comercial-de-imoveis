@@ -269,7 +269,7 @@ app.put('/update-user', async (req, res) => {
 
 
 // Rota para autenticação de usuário (login)
-app.post('/login', async (req, res) => {
+app.post('/loginv', async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
