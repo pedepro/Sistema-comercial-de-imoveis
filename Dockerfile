@@ -21,4 +21,3 @@ EXPOSE 3000 3001
 
 # Comando para iniciar o servidor
 CMD ["node", "index.js"]
-
