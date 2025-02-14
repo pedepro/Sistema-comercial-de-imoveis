@@ -605,9 +605,8 @@ app.post('/login', async (req, res) => {
 
         const corretor = result.rows[0];
 
-        // Verifica a senha
-        const senhaCorreta = await bcrypt.compare(password, corretor.password);
-        if (!senhaCorreta) {
+        // Comparação direta da senha sem criptografia
+        if (password !== corretor.password) {
             return res.status(401).json({ error: "Email ou senha inválidos." });
         }
 
@@ -633,13 +632,11 @@ app.post('/corretores', async (req, res) => {
             return res.status(400).json({ error: "Email já está em uso." });
         }
 
-        // Criptografar a senha antes de armazenar
-        const senhaCriptografada = await bcrypt.hash(password, 10);
         const token = gerarToken();
 
         const result = await pool.query(
             "INSERT INTO corretores (email, password, phone, creci, name, token) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, token",
-            [email, senhaCriptografada, phone || null, creci || null, name || null, token]
+            [email, password, phone || null, creci || null, name || null, token]
         );
 
         res.status(201).json({ id: result.rows[0].id, token: result.rows[0].token });
@@ -648,4 +645,5 @@ app.post('/corretores', async (req, res) => {
         res.status(500).json({ error: "Erro interno do servidor." });
     }
 });
+
 
