@@ -453,12 +453,28 @@ app.get("/get-imovel/:id", async (req, res) => {
 
 app.get('/list-clientes', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM clientes ORDER BY id ASC');
+        let query = 'SELECT * FROM clientes WHERE 1=1';
+        let values = [];
+
+        if (req.query.tipo_imovel) {
+            values.push(req.query.tipo_imovel);
+            query += ` AND tipo_imovel = $${values.length}`;
+        }
+
+        if (req.query.valor_max) {
+            values.push(req.query.valor_max);
+            query += ` AND valor <= $${values.length}`;
+        }
+
+        const result = await pool.query(query, values);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
+
+
 
 
 // Rota para listar corretores com filtros, incluindo o filtro por id
