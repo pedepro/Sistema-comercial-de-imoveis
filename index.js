@@ -453,25 +453,97 @@ app.get("/get-imovel/:id", async (req, res) => {
 
 app.get('/list-clientes', async (req, res) => {
     try {
+        console.log("🚀 Recebendo requisição em /list-clientes");
+        console.log("📥 Query Params recebidos:", req.query);
+
         let query = 'SELECT * FROM clientes WHERE 1=1';
         let values = [];
+        let index = 1;
 
+        // Filtros para a consulta de clientes
         if (req.query.tipo_imovel) {
+            query += ` AND tipo_imovel = $${index}`;
             values.push(req.query.tipo_imovel);
-            query += ` AND tipo_imovel = $${values.length}`;
+            console.log(`📌 Filtro tipo_imovel: ${req.query.tipo_imovel}`);
+            index++;
         }
 
         if (req.query.valor_max) {
-            values.push(req.query.valor_max);
-            query += ` AND valor <= $${values.length}`;
+            const valorMax = parseInt(req.query.valor_max);
+            if (!isNaN(valorMax)) {
+                query += ` AND valor <= $${index}`;
+                values.push(valorMax);
+                console.log(`📌 Filtro valor_max: ${valorMax}`);
+                index++;
+            } else {
+                console.warn("⚠️ valor_max recebido não é um número válido:", req.query.valor_max);
+            }
         }
 
+        if (req.query.nome) {
+            query += ` AND nome ILIKE $${index}`;
+            values.push(`%${req.query.nome}%`);
+            console.log(`📌 Filtro nome: ${req.query.nome}`);
+            index++;
+        }
+
+        // Tratamento para paginação
+        const limit = parseInt(req.query.limit) || 5; // Limite padrão de 5 itens
+        const offset = parseInt(req.query.offset) || 0; // Padrão: começa do início
+
+        query += ` LIMIT $${index} OFFSET $${index + 1}`;
+        values.push(limit, offset);
+
+        console.log("📝 Query gerada:", query);
+        console.log("📊 Valores utilizados:", values);
+
+        // Consulta principal
         const result = await pool.query(query, values);
-        res.json(result.rows);
+
+        // Consulta para contar o número total de clientes aplicando os filtros
+        let countQuery = 'SELECT COUNT(*) FROM clientes WHERE 1=1';
+        let countValues = [];
+
+        // Repetir os filtros na contagem
+        if (req.query.tipo_imovel) {
+            countQuery += ` AND tipo_imovel = $${countValues.length + 1}`;
+            countValues.push(req.query.tipo_imovel);
+        }
+
+        if (req.query.valor_max) {
+            const valorMax = parseInt(req.query.valor_max);
+            if (!isNaN(valorMax)) {
+                countQuery += ` AND valor <= $${countValues.length + 1}`;
+                countValues.push(valorMax);
+            }
+        }
+
+        if (req.query.nome) {
+            countQuery += ` AND nome ILIKE $${countValues.length + 1}`;
+            countValues.push(`%${req.query.nome}%`);
+        }
+
+        console.log("📝 Consulta de contagem gerada:", countQuery);
+        console.log("📊 Valores utilizados na contagem:", countValues);
+
+        const countResult = await pool.query(countQuery, countValues);
+        const totalRegistros = parseInt(countResult.rows[0].count);
+
+        console.log("✅ Consulta realizada com sucesso. Resultados encontrados:", result.rows.length);
+        console.log("📊 Total de registros na base com filtros:", totalRegistros);
+
+        res.json({
+            clientes: result.rows,
+            total: totalRegistros
+        });
     } catch (err) {
+        console.error("❌ Erro ao buscar clientes:", err.message);
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
+
+
 
 
 
