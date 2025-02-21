@@ -761,13 +761,20 @@ app.get('/corretor', async (req, res) => {
 
 
 
-// 📌 Rota para obter todas as cidades
 app.get('/cidades', async (req, res) => {
     try {
-        const result = await pool.query("SELECT * FROM cidades");
-        res.json(result.rows); // Retorna a lista de cidades
-    } catch (error) {
-        console.error("Erro ao buscar cidades:", error);
-        res.status(500).json({ error: "Erro interno do servidor." });
+        const result = await pool.query('SELECT * FROM cidades');
+        
+        if (result.rowCount === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Nenhuma cidade encontrada'
+            });
+        }
+
+        res.setHeader("Access-Control-Allow-Origin", "*"); // Permite acesso de qualquer domínio
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
     }
 });
