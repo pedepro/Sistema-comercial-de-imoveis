@@ -758,3 +758,16 @@ app.get('/corretor', async (req, res) => {
         res.status(500).json({ error: "Erro interno do servidor." });
     }
 });
+
+
+
+// 📌 Rota para obter todas as cidades
+app.get('/cidades', async (req, res) => {
+    try {
+        const result = await pool.query("SELECT * FROM cidades");
+        res.json(result.rows); // Retorna a lista de cidades
+    } catch (error) {
+        console.error("Erro ao buscar cidades:", error);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+});
