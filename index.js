@@ -451,7 +451,7 @@ app.get("/get-imovel/:id", async (req, res) => {
 });
 
 
-app.get('/list-clientes', async (req, res) => {
+app.get('/list-cliientes', async (req, res) => {
     try {
         console.log("🚀 Recebendo requisição em /list-clientes");
         console.log("📥 Query Params recebidos:", req.query);
@@ -544,6 +544,159 @@ app.get('/list-clientes', async (req, res) => {
 
 
 
+
+
+app.get('/list-clientes', async (req, res) => {
+    try {
+        console.log("🚀 Recebendo requisição em /list-clientes");
+        console.log("📥 Query Params recebidos:", req.query);
+
+        let query = 'SELECT * FROM clientes WHERE 1=1';
+        let values = [];
+        let index = 1;
+
+        // Filtros para a consulta de clientes
+        if (req.query.tipo_imovel) {
+            query += ` AND tipo_imovel = $${index}`;
+            values.push(req.query.tipo_imovel);
+            console.log(`📌 Filtro tipo_imovel: ${req.query.tipo_imovel}`);
+            index++;
+        }
+
+        // Filtro por categoria (1 = Médio Padrão, 2 = Alto Padrão)
+        if (req.query.categoria) {
+            const categoria = parseInt(req.query.categoria);
+            if (!isNaN(categoria) && (categoria === 1 || categoria === 2)) {
+                query += ` AND categoria = $${index}`;
+                values.push(categoria);
+                console.log(`📌 Filtro categoria: ${categoria === 1 ? 'Médio Padrão' : 'Alto Padrão'}`);
+                index++;
+            } else {
+                console.warn("⚠️ categoria recebida não é válida (deve ser 1 ou 2):", req.query.categoria);
+            }
+        }
+
+        // Filtro por intervalo de valor
+        if (req.query.valor_min) {
+            const valorMin = parseInt(req.query.valor_min);
+            if (!isNaN(valorMin)) {
+                query += ` AND valor >= $${index}`;
+                values.push(valorMin);
+                console.log(`📌 Filtro valor_min: ${valorMin}`);
+                index++;
+            } else {
+                console.warn("⚠️ valor_min recebido não é um número válido:", req.query.valor_min);
+            }
+        }
+
+        if (req.query.valor_max) {
+            const valorMax = parseInt(req.query.valor_max);
+            if (!isNaN(valorMax)) {
+                query += ` AND valor <= $${index}`;
+                values.push(valorMax);
+                console.log(`📌 Filtro valor_max: ${valorMax}`);
+                index++;
+            } else {
+                console.warn("⚠️ valor_max recebido não é um número válido:", req.query.valor_max);
+            }
+        }
+
+        if (req.query.nome) {
+            query += ` AND nome ILIKE $${index}`;
+            values.push(`%${req.query.nome}%`);
+            console.log(`📌 Filtro nome: ${req.query.nome}`);
+            index++;
+        }
+
+        // Ordenação por valor_lead
+        if (req.query.ordenacao) {
+            if (req.query.ordenacao === 'maior-menor') {
+                query += ` ORDER BY valor_lead DESC`;
+                console.log(`📌 Ordenação: Maior para Menor (valor_lead DESC)`);
+            } else if (req.query.ordenacao === 'menor-maior') {
+                query += ` ORDER BY valor_lead ASC`;
+                console.log(`📌 Ordenação: Menor para Maior (valor_lead ASC)`);
+            } else {
+                console.warn("⚠️ Ordenação inválida recebida:", req.query.ordenacao);
+            }
+        }
+
+        // Tratamento para paginação
+        const limit = parseInt(req.query.limit) || 20; // Limite padrão ajustado para 20
+        const offset = parseInt(req.query.offset) || 0;
+
+        query += ` LIMIT $${index} OFFSET $${index + 1}`;
+        values.push(limit, offset);
+
+        console.log("📝 Query gerada:", query);
+        console.log("📊 Valores utilizados:", values);
+
+        // Consulta principal
+        const result = await pool.query(query, values);
+
+        // Consulta para contar o número total de clientes aplicando os filtros
+        let countQuery = 'SELECT COUNT(*) FROM clientes WHERE 1=1';
+        let countValues = [];
+        let countIndex = 1;
+
+        // Repetir os filtros na contagem
+        if (req.query.tipo_imovel) {
+            countQuery += ` AND tipo_imovel = $${countIndex}`;
+            countValues.push(req.query.tipo_imovel);
+            countIndex++;
+        }
+
+        if (req.query.categoria) {
+            const categoria = parseInt(req.query.categoria);
+            if (!isNaN(categoria) && (categoria === 1 || categoria === 2)) {
+                countQuery += ` AND categoria = $${countIndex}`;
+                countValues.push(categoria);
+                countIndex++;
+            }
+        }
+
+        if (req.query.valor_min) {
+            const valorMin = parseInt(req.query.valor_min);
+            if (!isNaN(valorMin)) {
+                countQuery += ` AND valor >= $${countIndex}`;
+                countValues.push(valorMin);
+                countIndex++;
+            }
+        }
+
+        if (req.query.valor_max) {
+            const valorMax = parseInt(req.query.valor_max);
+            if (!isNaN(valorMax)) {
+                countQuery += ` AND valor <= $${countIndex}`;
+                countValues.push(valorMax);
+                countIndex++;
+            }
+        }
+
+        if (req.query.nome) {
+            countQuery += ` AND nome ILIKE $${countIndex}`;
+            countValues.push(`%${req.query.nome}%`);
+            countIndex++;
+        }
+
+        console.log("📝 Consulta de contagem gerada:", countQuery);
+        console.log("📊 Valores utilizados na contagem:", countValues);
+
+        const countResult = await pool.query(countQuery, countValues);
+        const totalRegistros = parseInt(countResult.rows[0].count);
+
+        console.log("✅ Consulta realizada com sucesso. Resultados encontrados:", result.rows.length);
+        console.log("📊 Total de registros na base com filtros:", totalRegistros);
+
+        res.json({
+            clientes: result.rows,
+            total: totalRegistros
+        });
+    } catch (err) {
+        console.error("❌ Erro ao buscar clientes:", err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 
 
 
