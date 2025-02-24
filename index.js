@@ -473,7 +473,7 @@ app.get('/list-imoveis', async (req, res) => {
 
         // Paginação
         const limite = parseInt(req.query.limite) || 6; // Padrão: 6 itens por página
-        const offset = parseInt(req.query.offset) || 0; // Padrão: início (pagina 1)
+        const offset = parseInt(req.query.offset) || 0; // Padrão: início (página 1)
         if (isNaN(limite) || limite <= 0) {
             return res.status(400).json({ success: false, error: 'Limite deve ser um número positivo' });
         }
@@ -488,13 +488,6 @@ app.get('/list-imoveis', async (req, res) => {
         console.log('Parâmetros:', params);
 
         const result = await pool.query(query, params);
-
-        if (result.rowCount === 0) {
-            return res.status(404).json({
-                success: false,
-                error: 'Nenhum imóvel encontrado'
-            });
-        }
 
         // Calcula o total de imóveis com os mesmos filtros (sem LIMIT/OFFSET)
         let totalQuery = 'SELECT COUNT(*) FROM imoveis WHERE 1=1';
@@ -518,6 +511,16 @@ app.get('/list-imoveis', async (req, res) => {
         const totalResult = await pool.query(totalQuery, totalParams);
         const total = parseInt(totalResult.rows[0].count);
 
+        // Retorna os resultados ou uma resposta sem erro quando não há resultados
+        if (result.rowCount === 0) {
+            return res.status(200).json({
+                success: false,
+                imoveis: [],
+                total: 0,
+                message: 'Nenhum imóvel encontrado para os filtros aplicados'
+            });
+        }
+
         res.json({
             success: true,
             imoveis: result.rows,
@@ -528,7 +531,6 @@ app.get('/list-imoveis', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
-
 
 
 
