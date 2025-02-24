@@ -413,7 +413,7 @@ app.get('/user-data/:userId', async (req, res) => {
 
 
 
-app.get('/list-imoveis', async (req, res) => {
+app.get('/list-imoveis1', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM imoveis');
 
@@ -433,6 +433,54 @@ app.get('/list-imoveis', async (req, res) => {
     }
 });
 
+
+app.get('/list-imoveis', async (req, res) => {
+    try {
+        let query = 'SELECT * FROM imoveis WHERE 1=1';
+        const params = [];
+
+        // Filtro por cidade (se fornecido)
+        if (req.query.cidade) {
+            query += ' AND cidade = $1';
+            params.push(req.query.cidade);
+        }
+
+        // Filtro por preço (se fornecido)
+        if (req.query.precoMin || req.query.precoMax) {
+            if (req.query.precoMin) {
+                query += ' AND valor >= $' + (params.length + 1);
+                params.push(req.query.precoMin);
+            }
+            if (req.query.precoMax) {
+                query += ' AND valor <= $' + (params.length + 1);
+                params.push(req.query.precoMax);
+            }
+        }
+
+        // Paginação
+        const limite = parseInt(req.query.limite) || 6; // Padrão: 6 itens por página
+        const offset = parseInt(req.query.offset) || 0; // Padrão: início (página 1)
+        query += ' LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
+        params.push(limite, offset);
+
+        const result = await pool.query(query, params);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Nenhum imóvel encontrado'
+            });
+        }
+
+        res.json({
+            success: true,
+            imoveis: result.rows,
+            total: (await pool.query('SELECT COUNT(*) FROM imoveis' + (query.match(/WHERE/) ? query.split('WHERE')[1].split('LIMIT')[0] : ''))).rows[0].count // Total para paginação
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 
 app.get("/get-imovel/:id", async (req, res) => {
     const { id } = req.params;
