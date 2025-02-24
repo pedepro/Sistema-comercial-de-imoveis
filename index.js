@@ -434,6 +434,8 @@ app.get('/list-imoveis1', async (req, res) => {
 });
 
 
+
+
 app.get('/list-imoveis', async (req, res) => {
     try {
         let query = 'SELECT * FROM imoveis WHERE 1=1';
@@ -441,27 +443,49 @@ app.get('/list-imoveis', async (req, res) => {
 
         // Filtro por cidade (se fornecido)
         if (req.query.cidade) {
-            query += ' AND cidade = $1';
-            params.push(req.query.cidade);
+            const cidade = parseInt(req.query.cidade);
+            if (isNaN(cidade)) {
+                return res.status(400).json({ success: false, error: 'Cidade deve ser um número válido' });
+            }
+            query += ' AND cidade = $' + (params.length + 1);
+            params.push(cidade);
         }
 
         // Filtro por preço (se fornecido)
         if (req.query.precoMin || req.query.precoMax) {
             if (req.query.precoMin) {
+                const precoMin = parseFloat(req.query.precoMin);
+                if (isNaN(precoMin)) {
+                    return res.status(400).json({ success: false, error: 'Preço mínimo deve ser um número válido' });
+                }
                 query += ' AND valor >= $' + (params.length + 1);
-                params.push(req.query.precoMin);
+                params.push(precoMin);
             }
             if (req.query.precoMax) {
+                const precoMax = parseFloat(req.query.precoMax);
+                if (isNaN(precoMax)) {
+                    return res.status(400).json({ success: false, error: 'Preço máximo deve ser um número válido' });
+                }
                 query += ' AND valor <= $' + (params.length + 1);
-                params.push(req.query.precoMax);
+                params.push(precoMax);
             }
         }
 
         // Paginação
         const limite = parseInt(req.query.limite) || 6; // Padrão: 6 itens por página
-        const offset = parseInt(req.query.offset) || 0; // Padrão: início (página 1)
+        const offset = parseInt(req.query.offset) || 0; // Padrão: início (pagina 1)
+        if (isNaN(limite) || limite <= 0) {
+            return res.status(400).json({ success: false, error: 'Limite deve ser um número positivo' });
+        }
+        if (isNaN(offset) || offset < 0) {
+            return res.status(400).json({ success: false, error: 'Offset deve ser um número não negativo' });
+        }
         query += ' LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
         params.push(limite, offset);
+
+        // Log para depuração
+        console.log('Query executada:', query);
+        console.log('Parâmetros:', params);
 
         const result = await pool.query(query, params);
 
@@ -472,15 +496,41 @@ app.get('/list-imoveis', async (req, res) => {
             });
         }
 
+        // Calcula o total de imóveis com os mesmos filtros (sem LIMIT/OFFSET)
+        let totalQuery = 'SELECT COUNT(*) FROM imoveis WHERE 1=1';
+        let totalParams = [];
+
+        if (req.query.cidade) {
+            totalQuery += ' AND cidade = $1';
+            totalParams.push(parseInt(req.query.cidade));
+        }
+        if (req.query.precoMin || req.query.precoMax) {
+            if (req.query.precoMin) {
+                totalQuery += ' AND valor >= $' + (totalParams.length + 1);
+                totalParams.push(parseFloat(req.query.precoMin));
+            }
+            if (req.query.precoMax) {
+                totalQuery += ' AND valor <= $' + (totalParams.length + 1);
+                totalParams.push(parseFloat(req.query.precoMax));
+            }
+        }
+
+        const totalResult = await pool.query(totalQuery, totalParams);
+        const total = parseInt(totalResult.rows[0].count);
+
         res.json({
             success: true,
             imoveis: result.rows,
-            total: (await pool.query('SELECT COUNT(*) FROM imoveis' + (query.match(/WHERE/) ? query.split('WHERE')[1].split('LIMIT')[0] : ''))).rows[0].count // Total para paginação
+            total: total // Total para paginação
         });
     } catch (err) {
+        console.error('Erro no servidor:', err.message, err.stack);
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
+
+
 
 app.get("/get-imovel/:id", async (req, res) => {
     const { id } = req.params;
