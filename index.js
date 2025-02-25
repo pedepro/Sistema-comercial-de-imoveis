@@ -133,42 +133,161 @@ listenForNotifications();
 
 
 
-// Rota para listar todas as tabelas e suas colunas do banco de dados
+// Rota para listar todas as tabelas do banco de dados
 app.get('/tables', async (req, res) => {
     try {
-        // Consultar todas as tabelas e suas respectivas colunas
         const result = await pool.query(`
-            SELECT 
-                table_name, 
-                array_agg(column_name) AS columns
-            FROM 
-                information_schema.columns
-            WHERE 
-                table_schema = 'public'
-            GROUP BY 
-                table_name
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public'
         `);
-        
-        res.json({ success: true, tables: result.rows });
+        const tables = result.rows.map(row => ({ name: row.table_name }));
+        res.json(tables);
     } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao listar tabelas' });
     }
 });
 
-
-// Rota para criar uma nova tabela
-app.post('/create-table', async (req, res) => {
-    const { tableName } = req.body;
-    if (!tableName) {
-        return res.status(400).json({ success: false, error: 'O nome da tabela é obrigatório' });
-    }
+// Rota para criar uma nova tabela com uma coluna 'id' padrão
+app.post('/tables', async (req, res) => {
+    const { name } = req.body;
     try {
-        await pool.query(`CREATE TABLE IF NOT EXISTS ${tableName} (id SERIAL PRIMARY KEY, name TEXT NOT NULL)`);
-        res.json({ success: true, message: `Tabela ${tableName} criada com sucesso` });
+        await pool.query(`CREATE TABLE ${name} (id SERIAL PRIMARY KEY)`);
+        res.status(201).json({ message: `Tabela '${name}' criada com sucesso` });
+        broadcastUpdate(name);
     } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao criar tabela' });
     }
 });
+
+// Rota para obter colunas e dados de uma tabela específica
+app.get('/tables/:tableName', async (req, res) => {
+    const { tableName } = req.params;
+    try {
+        const columns = await pool.query(`
+            SELECT column_name as name 
+            FROM information_schema.columns 
+            WHERE table_name = $1
+        `, [tableName]);
+        
+        const rows = await pool.query(`SELECT * FROM ${tableName}`);
+        res.json({ columns: columns.rows, rows: rows.rows });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao buscar dados da tabela' });
+    }
+});
+
+app.post('/tables/:tableName/columns', async (req, res) => {
+    const { tableName } = req.params;
+    const { name, type, nullable = true, unique = false, indexed = false } = req.body;
+
+    try {
+        // Constrói a query base para adicionar a coluna
+        let query = `ALTER TABLE ${tableName} ADD COLUMN ${name} ${type}`;
+        if (!nullable) {
+            query += ' NOT NULL';
+        }
+
+        // Executa a query base
+        await pool.query(query);
+
+        // Adiciona restrição UNIQUE, se necessário
+        if (unique) {
+            await pool.query(`ALTER TABLE ${tableName} ADD CONSTRAINT ${tableName}_${name}_unique UNIQUE (${name})`);
+        }
+
+        // Cria índice, se necessário
+        if (indexed) {
+            await pool.query(`CREATE INDEX ${tableName}_${name}_idx ON ${tableName} (${name})`);
+        }
+
+        res.status(201).json({ message: `Coluna '${name}' adicionada à tabela '${tableName}'` });
+        broadcastUpdate(tableName);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao adicionar coluna' });
+    }
+});
+
+// Rota para adicionar uma nova linha a uma tabela (valores padrão)
+app.post('/tables/:tableName/rows', async (req, res) => {
+    const { tableName } = req.params;
+    try {
+        await pool.query(`INSERT INTO ${tableName} DEFAULT VALUES`);
+        res.status(201).json({ message: `Nova linha adicionada à tabela '${tableName}'` });
+        broadcastUpdate(tableName);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao adicionar linha' });
+    }
+});
+
+// Função auxiliar para notificar clientes WebSocket sobre atualizações
+function broadcastUpdate(tableName) {
+    wsServer.clients.forEach(async (client) => {
+        if (client.readyState === WebSocket.OPEN && client.subscription?.table === tableName) {
+            const result = await pool.query(
+                `SELECT * FROM ${tableName} WHERE ${client.subscription.column} = $1`, 
+                [client.subscription.value]
+            );
+            client.send(JSON.stringify({ table: tableName, data: result.rows }));
+        }
+    });
+}
+
+// Rota para editar uma linha específica
+app.put('/tables/:tableName/rows/:id', async (req, res) => {
+    const { tableName, id } = req.params;
+    const data = req.body;
+    try {
+        const columns = Object.keys(data).map((key, index) => `${key} = $${index + 1}`).join(', ');
+        const values = Object.values(data);
+        values.unshift(id); // Adiciona o ID como primeiro parâmetro
+        await pool.query(`UPDATE ${tableName} SET ${columns} WHERE id = $1`, values);
+        res.status(200).json({ message: `Linha ${id} atualizada na tabela '${tableName}'` });
+        broadcastUpdate(tableName);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao editar linha' });
+    }
+});
+
+// Rota para excluir uma linha específica
+app.delete('/tables/:tableName/rows/:id', async (req, res) => {
+    const { tableName, id } = req.params;
+    try {
+        await pool.query(`DELETE FROM ${tableName} WHERE id = $1`, [id]);
+        res.status(200).json({ message: `Linha ${id} excluída da tabela '${tableName}'` });
+        broadcastUpdate(tableName);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao excluir linha' });
+    }
+});
+
+app.delete('/tables/:tableName', async (req, res) => {
+    const { tableName } = req.params;
+    try {
+        await pool.query(`DROP TABLE ${tableName}`);
+        res.status(200).json({ message: `Tabela '${tableName}' excluída com sucesso` });
+        broadcastUpdate(tableName); // Notifica clientes, se necessário
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao excluir tabela' });
+    }
+});
+
+
+
+
+
+
+
+
+
 
 // Rota para criar um novo usuário
 app.post('/create-user', async (req, res) => {
@@ -309,106 +428,9 @@ app.post('/loginv', async (req, res) => {
 });
 
 
-// Rota para criar um novo restaurante e associá-lo a um usuário
-app.post('/create-restaurant', async (req, res) => {
-    const { user_id, name, phone, address } = req.body;
-
-    if (!user_id || !name || !phone || !address) {
-        return res.status(400).json({ success: false, error: 'user_id, name, phone e address são obrigatórios' });
-    }
-
-    try {
-        // Criar o restaurante com todos os campos
-        const restaurantResult = await pool.query(
-            `INSERT INTO restaurants (name, phone, address, "user") VALUES ($1, $2, $3, $4) RETURNING id`,
-            [name, phone, address, user_id]
-        );
-
-        const restaurant_id = restaurantResult.rows[0].id;
-
-        res.json({ success: true, restaurant_id, message: 'Restaurante criado e associado ao usuário' });
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
-
-app.put('/edit-restaurant/:id', async (req, res) => {
-    const restaurant_id = req.params.id;
-    const { name, phone, address, user_id } = req.body;
-
-    if (!name || !phone || !address || !user_id) {
-        return res.status(400).json({ 
-            success: false, 
-            error: 'name, phone, address e user_id são obrigatórios' 
-        });
-    }
-
-    try {
-        const result = await pool.query(
-            `UPDATE restaurants 
-             SET name = $1, phone = $2, address = $3, "user" = $4 
-             WHERE id = $5 
-             RETURNING *`,
-            [name, phone, address, user_id, restaurant_id]
-        );
-
-        if (result.rowCount === 0) {
-            return res.status(404).json({ 
-                success: false, 
-                error: 'Restaurante não encontrado' 
-            });
-        }
-
-        res.json({ 
-            success: true, 
-            restaurant: result.rows[0], 
-            message: 'Restaurante atualizado com sucesso' 
-        });
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
 
 
 
-app.get('/user-data/:userId', async (req, res) => {
-    const { userId } = req.params;
-
-    if (!userId) {
-        return res.status(400).json({ success: false, error: 'O ID do usuário é obrigatório.' });
-    }
-
-    try {
-        const userQuery = await pool.query(
-            `SELECT id, name, email, phone, restaurant_id FROM users WHERE id = $1`,
-            [userId]
-        );
-
-        if (userQuery.rows.length === 0) {
-            return res.status(404).json({ success: false, error: 'Usuário não encontrado.' });
-        }
-
-        const user = userQuery.rows[0];
-
-        // Buscar os dados do restaurante associado ao usuário
-        let restaurant = null;
-        if (user.restaurant_id) {
-            const restaurantQuery = await pool.query(
-                `SELECT * FROM restaurants WHERE id = $1`,
-                [user.restaurant_id]
-            );
-
-            if (restaurantQuery.rows.length > 0) {
-                restaurant = restaurantQuery.rows[0];
-            }
-        }
-
-        res.json({ success: true, user, restaurant });
-    } catch (err) {
-        console.error("Erro ao buscar dados do usuário:", err);
-        res.status(500).json({ success: false, error: "Erro interno do servidor." });
-    }
-});
 
 
 
@@ -844,7 +866,7 @@ app.get('/list-corretores', async (req, res) => {
 });
 
 // Rota para listar os imóveis de um corretor, baseado no array de IDs na tabela "corretores"
-app.get('/list-imoveis/:id', async (req, res) => {
+app.get('/list-imovaeis/:id', async (req, res) => {
     const corretorId = req.params.id;  // Obtendo o ID do corretor a partir da URL
 
     try {
@@ -874,6 +896,96 @@ app.get('/list-imoveis/:id', async (req, res) => {
 
         // Retornando os imóveis encontrados
         res.json({ success: true, imoveis: imoveisResult.rows });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+
+// Rota para listar os imóveis de um corretor, baseado no array de IDs na tabela "corretores"
+app.get('/list-imoveis/:id', async (req, res) => {
+    const corretorId = req.params.id;  // Obtendo o ID do corretor a partir da URL
+
+    try {
+        // Consulta para obter os arrays de IDs de imóveis comprados e afiliados do corretor
+        const corretorResult = await pool.query(
+            'SELECT imoveis_comprados, imoveis_afiliados FROM corretores WHERE id = $1',
+            [corretorId]  // Passando o ID do corretor como parâmetro
+        );
+        console.log('Resultado da consulta de corretores:', corretorResult.rows);
+
+        // Verificando se o corretor foi encontrado
+        if (corretorResult.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Corretor não encontrado' });
+        }
+
+        const imoveisComprados = corretorResult.rows[0].imoveis_comprados || [];
+        const imoveisAfiliados = corretorResult.rows[0].imoveis_afiliados || [];
+
+        // Combinando os IDs de imóveis comprados e afiliados (removendo duplicatas, se necessário)
+        const todosImoveisIds = [...new Set([...imoveisComprados, ...imoveisAfiliados])];
+
+        // Verificando se o corretor tem imóveis associados
+        if (todosImoveisIds.length === 0) {
+            return res.status(404).json({ success: false, message: 'Nenhum imóvel associado a este corretor' });
+        }
+
+        // Consulta para obter os imóveis com base nos IDs
+        const imoveisResult = await pool.query(
+            'SELECT * FROM imoveis WHERE id = ANY($1)',
+            [todosImoveisIds]  // Passando o array combinado de IDs de imóveis
+        );
+        console.log('Resultado da consulta de imóveis:', imoveisResult.rows);
+
+        // Adicionando a informação de origem (comprado ou afiliado) a cada imóvel
+        const imoveisComOrigem = imoveisResult.rows.map(imovel => {
+            const origem = imoveisComprados.includes(imovel.id) 
+                ? (imoveisAfiliados.includes(imovel.id) ? 'ambos' : 'comprado') 
+                : 'afiliado';
+            return { ...imovel, origem };
+        });
+
+        // Retornando os imóveis encontrados com a informação de origem
+        res.json({ success: true, imoveis: imoveisComOrigem });
+    } catch (err) {
+        console.error('Erro na rota /list-imoveis:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+
+
+// Rota para remover um imóvel da lista de afiliados de um corretor
+app.delete('/remover-afiliacao/:corretorId/:imovelId', async (req, res) => {
+    const corretorId = req.params.corretorId;
+    const imovelId = parseInt(req.params.imovelId);
+
+    try {
+        // Consulta para obter o array de imoveis_afiliados do corretor
+        const corretorResult = await pool.query(
+            'SELECT imoveis_afiliados FROM corretores WHERE id = $1',
+            [corretorId]
+        );
+
+        if (corretorResult.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Corretor não encontrado' });
+        }
+
+        const imoveisAfiliados = corretorResult.rows[0].imoveis_afiliados || [];
+
+        // Verificar se o imóvel está na lista de afiliados
+        if (!imoveisAfiliados.includes(imovelId)) {
+            return res.status(400).json({ success: false, message: 'Imóvel não está na lista de afiliados' });
+        }
+
+        // Atualizar a lista removendo o imóvel
+        const novosImoveisAfiliados = imoveisAfiliados.filter(id => id !== imovelId);
+        await pool.query(
+            'UPDATE corretores SET imoveis_afiliados = $1 WHERE id = $2',
+            [novosImoveisAfiliados, corretorId]
+        );
+
+        res.json({ success: true, message: 'Afiliação removida com sucesso' });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
