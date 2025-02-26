@@ -582,6 +582,9 @@ app.get("/get-imovel/:id", async (req, res) => {
             return res.status(404).json({ error: "Imóvel não encontrado" });
         }
 
+        // Adiciona console.log para mostrar as imagens do imóvel
+        console.log(`Imagens do imóvel ${id}:`, result.rows[0].imagens);
+
         // Retorna o primeiro (e único) resultado com as imagens incluídas
         res.json(result.rows[0]);
     } catch (err) {
