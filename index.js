@@ -463,6 +463,13 @@ app.get('/list-imoveis', async (req, res) => {
         let query = 'SELECT * FROM imoveis WHERE 1=1';
         const params = [];
 
+        // Filtro por disponibilidade (opcional)
+        if (req.query.disponivel !== undefined) {
+            const disponivel = req.query.disponivel.toLowerCase() === 'true';
+            query += ' AND disponivel = $' + (params.length + 1);
+            params.push(disponivel);
+        }
+
         // Filtro por cidade (se fornecido)
         if (req.query.cidade) {
             const cidade = parseInt(req.query.cidade);
@@ -515,8 +522,14 @@ app.get('/list-imoveis', async (req, res) => {
         let totalQuery = 'SELECT COUNT(*) FROM imoveis WHERE 1=1';
         let totalParams = [];
 
+        if (req.query.disponivel !== undefined) {
+            const disponivel = req.query.disponivel.toLowerCase() === 'true';
+            totalQuery += ' AND disponivel = $' + (totalParams.length + 1);
+            totalParams.push(disponivel);
+        }
+
         if (req.query.cidade) {
-            totalQuery += ' AND cidade = $1';
+            totalQuery += ' AND cidade = $' + (totalParams.length + 1);
             totalParams.push(parseInt(req.query.cidade));
         }
         if (req.query.precoMin || req.query.precoMax) {
