@@ -554,9 +554,107 @@ app.get('/list-imoveis', async (req, res) => {
     }
 });
 
+// Rota para listar apenas imóveis disponíveis
+app.get('/list-imoveis/disponiveis', async (req, res) => {
+    try {
+        let query = 'SELECT * FROM imoveis WHERE disponivel = TRUE';
+        const params = [];
+
+        // Filtro por cidade (se fornecido)
+        if (req.query.cidade) {
+            const cidade = parseInt(req.query.cidade);
+            if (isNaN(cidade)) {
+                return res.status(400).json({ success: false, error: 'Cidade deve ser um número válido' });
+            }
+            query += ' AND cidade = $' + (params.length + 1);
+            params.push(cidade);
+        }
+
+        // Filtro por preço (se fornecido)
+        if (req.query.precoMin || req.query.precoMax) {
+            if (req.query.precoMin) {
+                const precoMin = parseFloat(req.query.precoMin);
+                if (isNaN(precoMin)) {
+                    return res.status(400).json({ success: false, error: 'Preço mínimo deve ser um número válido' });
+                }
+                query += ' AND valor >= $' + (params.length + 1);
+                params.push(precoMin);
+            }
+            if (req.query.precoMax) {
+                const precoMax = parseFloat(req.query.precoMax);
+                if (isNaN(precoMax)) {
+                    return res.status(400).json({ success: false, error: 'Preço máximo deve ser um número válido' });
+                }
+                query += ' AND valor <= $' + (params.length + 1);
+                params.push(precoMax);
+            }
+        }
+
+        // Paginação
+        const limite = parseInt(req.query.limite) || 6; // Padrão: 6 itens por página
+        const offset = parseInt(req.query.offset) || 0; // Padrão: início (página 1)
+        if (isNaN(limite) || limite <= 0) {
+            return res.status(400).json({ success: false, error: 'Limite deve ser um número positivo' });
+        }
+        if (isNaN(offset) || offset < 0) {
+            return res.status(400).json({ success: false, error: 'Offset deve ser um número não negativo' });
+        }
+        query += ' LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
+        params.push(limite, offset);
+
+        // Log para depuração
+        console.log('Query executada (disponíveis):', query);
+        console.log('Parâmetros:', params);
+
+        const result = await pool.query(query, params);
+
+        // Calcula o total de imóveis disponíveis com os mesmos filtros (sem LIMIT/OFFSET)
+        let totalQuery = 'SELECT COUNT(*) FROM imoveis WHERE disponivel = TRUE';
+        let totalParams = [];
+
+        if (req.query.cidade) {
+            totalQuery += ' AND cidade = $1';
+            totalParams.push(parseInt(req.query.cidade));
+        }
+        if (req.query.precoMin || req.query.precoMax) {
+            if (req.query.precoMin) {
+                totalQuery += ' AND valor >= $' + (totalParams.length + 1);
+                totalParams.push(parseFloat(req.query.precoMin));
+            }
+            if (req.query.precoMax) {
+                totalQuery += ' AND valor <= $' + (totalParams.length + 1);
+                totalParams.push(parseFloat(req.query.precoMax));
+            }
+        }
+
+        const totalResult = await pool.query(totalQuery, totalParams);
+        const total = parseInt(totalResult.rows[0].count);
+
+        // Retorna os resultados ou uma resposta sem erro quando não há resultados
+        if (result.rowCount === 0) {
+            return res.status(200).json({
+                success: false,
+                imoveis: [],
+                total: 0,
+                message: 'Nenhum imóvel disponível encontrado para os filtros aplicados'
+            });
+        }
+
+        res.json({
+            success: true,
+            imoveis: result.rows,
+            total: total // Total para paginação
+        });
+    } catch (err) {
+        console.error('Erro no servidor (disponíveis):', err.message, err.stack);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 
 
-app.get("/get-imovel/:id", async (req, res) => {
+
+
+app.get("/get-imov1el/:id", async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -592,6 +690,51 @@ app.get("/get-imovel/:id", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+
+app.get("/get-imovel/:id", async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Consulta combinada para pegar o imóvel e todas as suas imagens
+        const result = await pool.query(
+            `
+            SELECT 
+                i.*, 
+                COALESCE(
+                    (SELECT json_agg(json_build_object(
+                        'id', images.id,  -- Adicionado o ID da imagem
+                        'url', url,
+                        'livre', livre,
+                        'afiliados', afiliados,
+                        'compradores', compradores
+                    ))
+                     FROM images 
+                     WHERE images.imovel = i.id), 
+                    '[]'::json
+                ) AS imagens
+            FROM imoveis i
+            WHERE i.id = $1
+            `,
+            [id]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: "Imóvel não encontrado" });
+        }
+
+        // Adiciona console.log para mostrar os dados do imóvel e imagens
+        console.log(`Dados do imóvel ${id}:`, result.rows[0]);
+        console.log(`Imagens do imóvel ${id}:`, result.rows[0].imagens);
+
+        // Retorna o primeiro (e único) resultado com as imagens incluídas
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro na consulta do imóvel:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 
 
 app.get('/list-cliientes', async (req, res) => {
@@ -1128,5 +1271,322 @@ app.get('/cidades', async (req, res) => {
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+
+
+
+// Rota para cadastrar imóvel (sem imagens)
+app.post('/imoveis/novo', async (req, res) => {
+    let client;
+    try {
+        client = await pool.connect();
+        await client.query('BEGIN');
+
+        console.log('Dados recebidos do frontend (imóvel):', req.body);
+
+        const imovelData = {
+            valor: req.body.valor || null,
+            banheiros: req.body.banheiros || null,
+            metros_quadrados: req.body.metros_quadrados || null,
+            andar: req.body.andar || null,
+            mobiliado: req.body.mobiliado === 'sim' ? true : false,
+            price_contato: req.body.price_contato || '39.90',
+            vagas_garagem: req.body.vagas_garagem || '0',
+            cidade: req.body.cidade || null,
+            categoria: req.body.categoria || null,
+            quartos: req.body.quartos || null,
+            texto_principal: req.body.texto_principal || '',
+            whatsapp: req.body.whatsapp || '',
+            tipo: req.body.tipo || '',
+            endereco: req.body.endereco || '',
+            descricao: req.body.descricao || '',
+            nome_proprietario: req.body.nome_proprietario || '',
+            descricao_negociacao: req.body.descricao_negociacao || ''
+        };
+
+        const requiredFields = {
+            banheiros: 'Banheiros',
+            endereco: 'Endereço',
+            metros_quadrados: 'Metros Quadrados',
+            quartos: 'Quartos',
+            texto_principal: 'Título Principal',
+            tipo: 'Tipo',
+            valor: 'Valor'
+        };
+        const missingFields = Object.entries(requiredFields)
+            .filter(([key]) => !imovelData[key] || imovelData[key] === '' || imovelData[key] === undefined)
+            .map(([, label]) => label);
+
+        if (missingFields.length > 0) {
+            throw new Error(`Campos obrigatórios faltando: ${missingFields.join(', ')}`);
+        }
+
+        const imovelQuery = `
+            INSERT INTO imoveis (valor, banheiros, metros_quadrados, andar, mobiliado, price_contato, vagas_garagem, cidade, categoria, quartos, texto_principal, whatsapp, tipo, endereco, descricao, nome_proprietario, descricao_negociacao)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            RETURNING id
+        `;
+        const imovelValues = [
+            imovelData.valor, imovelData.banheiros, imovelData.metros_quadrados, imovelData.andar,
+            imovelData.mobiliado, imovelData.price_contato, imovelData.vagas_garagem, imovelData.cidade,
+            imovelData.categoria, imovelData.quartos, imovelData.texto_principal, imovelData.whatsapp,
+            imovelData.tipo, imovelData.endereco, imovelData.descricao, imovelData.nome_proprietario,
+            imovelData.descricao_negociacao
+        ];
+        const imovelResult = await client.query(imovelQuery, imovelValues);
+        const imovelId = imovelResult.rows[0].id;
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Imóvel cadastrado com sucesso', imovelId });
+    } catch (err) {
+        if (client) await client.query('ROLLBACK');
+        console.error('Erro ao cadastrar imóvel:', err);
+        res.status(500).json({ success: false, message: err.message || 'Erro interno no servidor' });
+    } finally {
+        if (client) client.release();
+    }
+});
+
+// Rota para cadastrar imagens
+app.post('/imoveis/:id/imagens', async (req, res) => {
+    let client;
+    try {
+        client = await pool.connect();
+        await client.query('BEGIN');
+
+        const imovelId = req.params.id;
+        const { url, livre, afiliados, compradores } = req.body;
+
+        console.log(`Cadastrando imagem para imóvel ${imovelId}:`, req.body);
+
+        const imagemQuery = `
+            INSERT INTO images (imovel, url, livre, afiliados, compradores, disponible)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        `;
+        await client.query(imagemQuery, [
+            imovelId, url, livre, afiliados, compradores, true
+        ]);
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Imagem cadastrada com sucesso' });
+    } catch (err) {
+        if (client) await client.query('ROLLBACK');
+        console.error('Erro ao cadastrar imagem:', err);
+        res.status(500).json({ success: false, message: err.message || 'Erro interno no servidor' });
+    } finally {
+        if (client) client.release();
+    }
+});
+
+
+// Rota para excluir imagens
+app.delete('/imoveis/:id/imagens/:imagemId', async (req, res) => {
+    let client;
+    try {
+        client = await pool.connect();
+        await client.query('BEGIN');
+
+        const imovelId = req.params.id;
+        const imagemId = req.params.imagemId;
+
+        console.log(`Excluindo imagem ${imagemId} do imóvel ${imovelId}`);
+
+        const deleteQuery = `
+            DELETE FROM images 
+            WHERE imovel = $1 AND id = $2
+        `;
+        const result = await client.query(deleteQuery, [imovelId, imagemId]);
+
+        if (result.rowCount === 0) {
+            throw new Error('Imagem não encontrada');
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Imagem excluída com sucesso' });
+    } catch (err) {
+        if (client) await client.query('ROLLBACK');
+        console.error('Erro ao excluir imagem:', err);
+        res.status(500).json({ success: false, message: err.message || 'Erro interno no servidor' });
+    } finally {
+        if (client) client.release();
+    }
+});
+
+
+// Rota para atualizar um imóvel existente
+app.put('/imoveis/:id', async (req, res) => {
+    let client;
+    try {
+        client = await pool.connect();
+        await client.query('BEGIN');
+
+        const imovelId = req.params.id;
+        const imovelData = {
+            valor: req.body.valor || null,
+            banheiros: req.body.banheiros || null,
+            metros_quadrados: req.body.metros_quadrados || null,
+            andar: req.body.andar || null,
+            mobiliado: req.body.mobiliado === 'sim' ? true : false,
+            price_contato: req.body.price_contato || '39.90',
+            vagas_garagem: req.body.vagas_garagem || '0',
+            cidade: req.body.cidade || null,
+            categoria: req.body.categoria || null,
+            quartos: req.body.quartos || null,
+            texto_principal: req.body.texto_principal || '',
+            whatsapp: req.body.whatsapp || '',
+            tipo: req.body.tipo || '',
+            endereco: req.body.endereco || '',
+            descricao: req.body.descricao || '',
+            nome_proprietario: req.body.nome_proprietario || '',
+            descricao_negociacao: req.body.descricao_negociacao || ''
+        };
+
+        const requiredFields = {
+            banheiros: 'Banheiros',
+            endereco: 'Endereço',
+            metros_quadrados: 'Metros Quadrados',
+            quartos: 'Quartos',
+            texto_principal: 'Título Principal',
+            tipo: 'Tipo',
+            valor: 'Valor'
+        };
+        const missingFields = Object.entries(requiredFields)
+            .filter(([key]) => !imovelData[key] || imovelData[key] === '' || imovelData[key] === undefined)
+            .map(([, label]) => label);
+
+        if (missingFields.length > 0) {
+            throw new Error(`Campos obrigatórios faltando: ${missingFields.join(', ')}`);
+        }
+
+        const updateQuery = `
+            UPDATE imoveis
+            SET valor = $1, banheiros = $2, metros_quadrados = $3, andar = $4, mobiliado = $5,
+                price_contato = $6, vagas_garagem = $7, cidade = $8, categoria = $9, quartos = $10,
+                texto_principal = $11, whatsapp = $12, tipo = $13, endereco = $14, descricao = $15,
+                nome_proprietario = $16, descricao_negociacao = $17
+            WHERE id = $18
+            RETURNING id
+        `;
+        const values = [
+            imovelData.valor, imovelData.banheiros, imovelData.metros_quadrados, imovelData.andar,
+            imovelData.mobiliado, imovelData.price_contato, imovelData.vagas_garagem, imovelData.cidade,
+            imovelData.categoria, imovelData.quartos, imovelData.texto_principal, imovelData.whatsapp,
+            imovelData.tipo, imovelData.endereco, imovelData.descricao, imovelData.nome_proprietario,
+            imovelData.descricao_negociacao, imovelId
+        ];
+
+        const result = await client.query(updateQuery, values);
+
+        if (result.rows.length === 0) {
+            throw new Error('Imóvel não encontrado');
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Imóvel atualizado com sucesso', imovelId });
+    } catch (err) {
+        if (client) await client.query('ROLLBACK');
+        console.error('Erro ao atualizar imóvel:', err);
+        res.status(500).json({ success: false, message: err.message || 'Erro interno no servidor' });
+    } finally {
+        if (client) client.release();
+    }
+});
+
+
+// Rota para atualizar uma imagem existente
+app.put('/imoveis/:id/imagens/:imagemId', async (req, res) => {
+    let client;
+    try {
+        client = await pool.connect();
+        await client.query('BEGIN');
+
+        const imovelId = req.params.id;
+        const imagemId = req.params.imagemId;
+        const { url, livre, afiliados, compradores } = req.body;
+
+        console.log(`Atualizando imagem ${imagemId} do imóvel ${imovelId}:`, req.body);
+
+        const updateQuery = `
+            UPDATE images 
+            SET url = $1, livre = $2, afiliados = $3, compradores = $4
+            WHERE imovel = $5 AND id = $6
+            RETURNING id
+        `;
+        const result = await client.query(updateQuery, [url, livre, afiliados, compradores, imovelId, imagemId]);
+
+        if (result.rowCount === 0) {
+            throw new Error('Imagem não encontrada');
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Imagem atualizada com sucesso' });
+    } catch (err) {
+        if (client) await client.query('ROLLBACK');
+        console.error('Erro ao atualizar imagem:', err);
+        res.status(500).json({ success: false, message: err.message || 'Erro interno no servidor' });
+    } finally {
+        if (client) client.release();
+    }
+});
+
+
+// Rota para atualizar apenas os toggles (disponivel e destaque) do imóvel
+app.put('/imoveis/toggles/:id', async (req, res) => {
+    let client;
+    try {
+        client = await pool.connect();
+        await client.query('BEGIN');
+
+        const imovelId = req.params.id;
+        const { disponivel, destaque } = req.body;
+
+        // Verifica se pelo menos um campo foi fornecido
+        if (disponivel === undefined && destaque === undefined) {
+            throw new Error('Nenhum campo fornecido para atualização');
+        }
+
+        // Construir a query dinamicamente com base nos campos fornecidos
+        let updateFields = [];
+        let values = [];
+        let paramCount = 1;
+
+        if (disponivel !== undefined) {
+            updateFields.push(`disponivel = $${paramCount}`);
+            values.push(disponivel);
+            paramCount++;
+        }
+        if (destaque !== undefined) {
+            updateFields.push(`destaque = $${paramCount}`);
+            values.push(destaque);
+            paramCount++;
+        }
+
+        values.push(imovelId); // Último parâmetro é o ID do imóvel
+
+        const updateQuery = `
+            UPDATE imoveis
+            SET ${updateFields.join(', ')}
+            WHERE id = $${paramCount}
+            RETURNING id
+        `;
+
+        console.log(`Atualizando toggles do imóvel ${imovelId}:`, req.body);
+
+        const result = await client.query(updateQuery, values);
+
+        if (result.rowCount === 0) {
+            throw new Error('Imóvel não encontrado');
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Toggles do imóvel atualizados com sucesso' });
+    } catch (err) {
+        if (client) await client.query('ROLLBACK');
+        console.error('Erro ao atualizar toggles do imóvel:', err);
+        res.status(500).json({ success: false, message: err.message || 'Erro interno no servidor' });
+    } finally {
+        if (client) client.release();
     }
 });
