@@ -595,7 +595,28 @@ app.get('/list-imoveis', async (req, res) => {
 // Rota para listar apenas imóveis disponíveis
 app.get('/list-imoveis/disponiveis', async (req, res) => {
     try {
-        let query = 'SELECT * FROM imoveis WHERE disponivel = TRUE';
+        // Query ajustada para incluir a primeira imagem com livre = true
+        let query = `
+            SELECT 
+                i.*, 
+                COALESCE(
+                    (SELECT json_build_object(
+                        'id', images.id,
+                        'url', images.url,
+                        'livre', images.livre,
+                        'afiliados', images.afiliados,
+                        'compradores', images.compradores
+                    )
+                     FROM images 
+                     WHERE images.imovel = i.id 
+                     AND images.livre = true 
+                     ORDER BY images.id 
+                     LIMIT 1), 
+                    NULL
+                ) AS imagem
+            FROM imoveis i
+            WHERE i.disponivel = TRUE
+        `;
         const params = [];
 
         // Filtro por cidade (se fornecido)
@@ -604,7 +625,7 @@ app.get('/list-imoveis/disponiveis', async (req, res) => {
             if (isNaN(cidade)) {
                 return res.status(400).json({ success: false, error: 'Cidade deve ser um número válido' });
             }
-            query += ' AND cidade = $' + (params.length + 1);
+            query += ' AND i.cidade = $' + (params.length + 1);
             params.push(cidade);
         }
 
@@ -615,7 +636,7 @@ app.get('/list-imoveis/disponiveis', async (req, res) => {
                 if (isNaN(precoMin)) {
                     return res.status(400).json({ success: false, error: 'Preço mínimo deve ser um número válido' });
                 }
-                query += ' AND valor >= $' + (params.length + 1);
+                query += ' AND i.valor >= $' + (params.length + 1);
                 params.push(precoMin);
             }
             if (req.query.precoMax) {
@@ -623,14 +644,14 @@ app.get('/list-imoveis/disponiveis', async (req, res) => {
                 if (isNaN(precoMax)) {
                     return res.status(400).json({ success: false, error: 'Preço máximo deve ser um número válido' });
                 }
-                query += ' AND valor <= $' + (params.length + 1);
+                query += ' AND i.valor <= $' + (params.length + 1);
                 params.push(precoMax);
             }
         }
 
         // Paginação
-        const limite = parseInt(req.query.limite) || 6; // Padrão: 6 itens por página
-        const offset = parseInt(req.query.offset) || 0; // Padrão: início (página 1)
+        const limite = parseInt(req.query.limite) || 6;
+        const offset = parseInt(req.query.offset) || 0;
         if (isNaN(limite) || limite <= 0) {
             return res.status(400).json({ success: false, error: 'Limite deve ser um número positivo' });
         }
@@ -647,20 +668,20 @@ app.get('/list-imoveis/disponiveis', async (req, res) => {
         const result = await pool.query(query, params);
 
         // Calcula o total de imóveis disponíveis com os mesmos filtros (sem LIMIT/OFFSET)
-        let totalQuery = 'SELECT COUNT(*) FROM imoveis WHERE disponivel = TRUE';
+        let totalQuery = 'SELECT COUNT(*) FROM imoveis i WHERE i.disponivel = TRUE';
         let totalParams = [];
 
         if (req.query.cidade) {
-            totalQuery += ' AND cidade = $1';
+            totalQuery += ' AND i.cidade = $1';
             totalParams.push(parseInt(req.query.cidade));
         }
         if (req.query.precoMin || req.query.precoMax) {
             if (req.query.precoMin) {
-                totalQuery += ' AND valor >= $' + (totalParams.length + 1);
+                totalQuery += ' AND i.valor >= $' + (totalParams.length + 1);
                 totalParams.push(parseFloat(req.query.precoMin));
             }
             if (req.query.precoMax) {
-                totalQuery += ' AND valor <= $' + (totalParams.length + 1);
+                totalQuery += ' AND i.valor <= $' + (totalParams.length + 1);
                 totalParams.push(parseFloat(req.query.precoMax));
             }
         }
@@ -681,7 +702,7 @@ app.get('/list-imoveis/disponiveis', async (req, res) => {
         res.json({
             success: true,
             imoveis: result.rows,
-            total: total // Total para paginação
+            total: total
         });
     } catch (err) {
         console.error('Erro no servidor (disponíveis):', err.message, err.stack);
@@ -1078,7 +1099,7 @@ app.get('/list-imoveis/:id', async (req, res) => {
         // Consulta para obter os arrays de IDs de imóveis comprados e afiliados do corretor
         const corretorResult = await pool.query(
             'SELECT imoveis_comprados, imoveis_afiliados FROM corretores WHERE id = $1',
-            [corretorId]  // Passando o ID do corretor como parâmetro
+            [corretorId]
         );
         console.log('Resultado da consulta de corretores:', corretorResult.rows);
 
@@ -1098,10 +1119,30 @@ app.get('/list-imoveis/:id', async (req, res) => {
             return res.status(404).json({ success: false, message: 'Nenhum imóvel associado a este corretor' });
         }
 
-        // Consulta para obter os imóveis com base nos IDs
+        // Consulta para obter os imóveis com base nos IDs, incluindo a primeira imagem com livre = true
         const imoveisResult = await pool.query(
-            'SELECT * FROM imoveis WHERE id = ANY($1)',
-            [todosImoveisIds]  // Passando o array combinado de IDs de imóveis
+            `
+            SELECT 
+                i.*, 
+                COALESCE(
+                    (SELECT json_build_object(
+                        'id', images.id,
+                        'url', images.url,
+                        'livre', images.livre,
+                        'afiliados', images.afiliados,
+                        'compradores', images.compradores
+                    )
+                     FROM images 
+                     WHERE images.imovel = i.id 
+                     AND images.livre = true 
+                     ORDER BY images.id 
+                     LIMIT 1), 
+                    NULL
+                ) AS imagem
+            FROM imoveis i
+            WHERE i.id = ANY($1)
+            `,
+            [todosImoveisIds]
         );
         console.log('Resultado da consulta de imóveis:', imoveisResult.rows);
 
