@@ -460,13 +460,34 @@ app.get('/list-imoveis1', async (req, res) => {
 
 app.get('/list-imoveis', async (req, res) => {
     try {
-        let query = 'SELECT * FROM imoveis WHERE 1=1';
+        // Query principal para buscar imóveis com a primeira imagem onde livre = true
+        let query = `
+            SELECT 
+                i.*, 
+                COALESCE(
+                    (SELECT json_build_object(
+                        'id', images.id,
+                        'url', images.url,
+                        'livre', images.livre,
+                        'afiliados', images.afiliados,
+                        'compradores', images.compradores
+                    )
+                     FROM images 
+                     WHERE images.imovel = i.id 
+                     AND images.livre = true 
+                     ORDER BY images.id 
+                     LIMIT 1), 
+                    NULL
+                ) AS imagem
+            FROM imoveis i
+            WHERE 1=1
+        `;
         const params = [];
 
         // Filtro por disponibilidade (opcional)
         if (req.query.disponivel !== undefined) {
             const disponivel = req.query.disponivel.toLowerCase() === 'true';
-            query += ' AND disponivel = $' + (params.length + 1);
+            query += ' AND i.disponivel = $' + (params.length + 1);
             params.push(disponivel);
         }
 
@@ -476,7 +497,7 @@ app.get('/list-imoveis', async (req, res) => {
             if (isNaN(cidade)) {
                 return res.status(400).json({ success: false, error: 'Cidade deve ser um número válido' });
             }
-            query += ' AND cidade = $' + (params.length + 1);
+            query += ' AND i.cidade = $' + (params.length + 1);
             params.push(cidade);
         }
 
@@ -487,7 +508,7 @@ app.get('/list-imoveis', async (req, res) => {
                 if (isNaN(precoMin)) {
                     return res.status(400).json({ success: false, error: 'Preço mínimo deve ser um número válido' });
                 }
-                query += ' AND valor >= $' + (params.length + 1);
+                query += ' AND i.valor >= $' + (params.length + 1);
                 params.push(precoMin);
             }
             if (req.query.precoMax) {
@@ -495,14 +516,14 @@ app.get('/list-imoveis', async (req, res) => {
                 if (isNaN(precoMax)) {
                     return res.status(400).json({ success: false, error: 'Preço máximo deve ser um número válido' });
                 }
-                query += ' AND valor <= $' + (params.length + 1);
+                query += ' AND i.valor <= $' + (params.length + 1);
                 params.push(precoMax);
             }
         }
 
         // Paginação
-        const limite = parseInt(req.query.limite) || 6; // Padrão: 6 itens por página
-        const offset = parseInt(req.query.offset) || 0; // Padrão: início (página 1)
+        const limite = parseInt(req.query.limite) || 6;
+        const offset = parseInt(req.query.offset) || 0;
         if (isNaN(limite) || limite <= 0) {
             return res.status(400).json({ success: false, error: 'Limite deve ser um número positivo' });
         }
@@ -519,26 +540,26 @@ app.get('/list-imoveis', async (req, res) => {
         const result = await pool.query(query, params);
 
         // Calcula o total de imóveis com os mesmos filtros (sem LIMIT/OFFSET)
-        let totalQuery = 'SELECT COUNT(*) FROM imoveis WHERE 1=1';
+        let totalQuery = 'SELECT COUNT(*) FROM imoveis i WHERE 1=1';
         let totalParams = [];
 
         if (req.query.disponivel !== undefined) {
             const disponivel = req.query.disponivel.toLowerCase() === 'true';
-            totalQuery += ' AND disponivel = $' + (totalParams.length + 1);
+            totalQuery += ' AND i.disponivel = $' + (totalParams.length + 1);
             totalParams.push(disponivel);
         }
 
         if (req.query.cidade) {
-            totalQuery += ' AND cidade = $' + (totalParams.length + 1);
+            totalQuery += ' AND i.cidade = $' + (totalParams.length + 1);
             totalParams.push(parseInt(req.query.cidade));
         }
         if (req.query.precoMin || req.query.precoMax) {
             if (req.query.precoMin) {
-                totalQuery += ' AND valor >= $' + (totalParams.length + 1);
+                totalQuery += ' AND i.valor >= $' + (totalParams.length + 1);
                 totalParams.push(parseFloat(req.query.precoMin));
             }
             if (req.query.precoMax) {
-                totalQuery += ' AND valor <= $' + (totalParams.length + 1);
+                totalQuery += ' AND i.valor <= $' + (totalParams.length + 1);
                 totalParams.push(parseFloat(req.query.precoMax));
             }
         }
@@ -546,7 +567,7 @@ app.get('/list-imoveis', async (req, res) => {
         const totalResult = await pool.query(totalQuery, totalParams);
         const total = parseInt(totalResult.rows[0].count);
 
-        // Retorna os resultados ou uma resposta sem erro quando não há resultados
+        // Retorna os resultados
         if (result.rowCount === 0) {
             return res.status(200).json({
                 success: false,
@@ -556,16 +577,20 @@ app.get('/list-imoveis', async (req, res) => {
             });
         }
 
+        // Log para verificar os dados retornados
+        console.log('Imóveis retornados:', result.rows);
+
         res.json({
             success: true,
             imoveis: result.rows,
-            total: total // Total para paginação
+            total: total
         });
     } catch (err) {
         console.error('Erro no servidor:', err.message, err.stack);
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
 
 // Rota para listar apenas imóveis disponíveis
 app.get('/list-imoveis/disponiveis', async (req, res) => {
