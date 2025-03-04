@@ -1628,3 +1628,30 @@ app.put('/imoveis/toggles/:id', async (req, res) => {
         if (client) client.release();
     }
 });
+
+
+// Adicione esta rota ao seu arquivo de servidor (ex.: app.js ou routes.js)
+app.delete('/imoveis/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Verifica se o imóvel existe antes de tentar excluí-lo
+        const checkResult = await pool.query('SELECT * FROM imoveis WHERE id = $1', [id]);
+        if (checkResult.rowCount === 0) {
+            return res.status(404).json({ success: false, message: 'Imóvel não encontrado' });
+        }
+
+        // Exclui o imóvel
+        const deleteResult = await pool.query('DELETE FROM imoveis WHERE id = $1', [id]);
+        console.log(`Imóvel ${id} excluído com sucesso`);
+
+        // Opcional: Excluir imagens associadas ao imóvel (se necessário)
+        await pool.query('DELETE FROM images WHERE imovel = $1', [id]);
+        console.log(`Imagens do imóvel ${id} excluídas`);
+
+        res.json({ success: true, message: 'Imóvel excluído com sucesso' });
+    } catch (err) {
+        console.error('Erro ao excluir imóvel:', err.message, err.stack);
+        res.status(500).json({ success: false, error: 'Erro no servidor ao excluir imóvel' });
+    }
+});
