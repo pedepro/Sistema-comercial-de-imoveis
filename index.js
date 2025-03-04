@@ -592,10 +592,8 @@ app.get('/list-imoveis', async (req, res) => {
 });
 
 
-// Rota para listar apenas imóveis disponíveis
 app.get('/list-imoveis/disponiveis', async (req, res) => {
     try {
-        // Query ajustada para incluir a primeira imagem com livre = true
         let query = `
             SELECT 
                 i.*, 
@@ -649,6 +647,14 @@ app.get('/list-imoveis/disponiveis', async (req, res) => {
             }
         }
 
+        // Filtro por destaque (se fornecido)
+        if (req.query.destaque) {
+            const destaque = req.query.destaque === 'true'; // Converte string 'true' para booleano
+            query += ' AND i.destaque = $' + (params.length + 1);
+            params.push(destaque);
+            console.log(`📌 Filtro destaque: ${destaque}`);
+        }
+
         // Paginação
         const limite = parseInt(req.query.limite) || 6;
         const offset = parseInt(req.query.offset) || 0;
@@ -661,13 +667,12 @@ app.get('/list-imoveis/disponiveis', async (req, res) => {
         query += ' LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
         params.push(limite, offset);
 
-        // Log para depuração
         console.log('Query executada (disponíveis):', query);
         console.log('Parâmetros:', params);
 
         const result = await pool.query(query, params);
 
-        // Calcula o total de imóveis disponíveis com os mesmos filtros (sem LIMIT/OFFSET)
+        // Calcula o total de imóveis disponíveis com os mesmos filtros
         let totalQuery = 'SELECT COUNT(*) FROM imoveis i WHERE i.disponivel = TRUE';
         let totalParams = [];
 
@@ -685,11 +690,14 @@ app.get('/list-imoveis/disponiveis', async (req, res) => {
                 totalParams.push(parseFloat(req.query.precoMax));
             }
         }
+        if (req.query.destaque) {
+            totalQuery += ' AND i.destaque = $' + (totalParams.length + 1);
+            totalParams.push(req.query.destaque === 'true');
+        }
 
         const totalResult = await pool.query(totalQuery, totalParams);
         const total = parseInt(totalResult.rows[0].count);
 
-        // Retorna os resultados ou uma resposta sem erro quando não há resultados
         if (result.rowCount === 0) {
             return res.status(200).json({
                 success: false,
