@@ -2,9 +2,9 @@ const express = require('express');
 const { Pool } = require('pg');
 const WebSocket = require('ws');
 const crypto = require('crypto');
+const axios = require('axios'); // Adicionado o módulo axios
 require('dotenv').config();
-const cors = require('cors');  // Adicionei a importação do cors
-
+const cors = require('cors');
 
 const app = express();
 const portHttp = 3000;
@@ -51,11 +51,9 @@ wsServer.on('connection', async (ws) => {
             return;
         }
 
-        // 🔥 Armazena a inscrição corretamente
         ws.subscription = { table, column, value };
         console.log(`✅ Cliente inscrito para ouvir ${table} onde ${column} = ${value}`);
 
-        // 🔍 Buscar os dados iniciais no banco de dados
         try {
             const result = await pool.query(`SELECT * FROM ${table} WHERE ${column} = $1`, [value]);
             if (result.rows.length > 0) {
@@ -74,7 +72,6 @@ wsServer.on('connection', async (ws) => {
     });
 });
 
-// 🔔 Função para escutar as notificações do PostgreSQL
 const listenForNotifications = () => {
     pool.connect((err, client) => {
         if (err) {
@@ -96,7 +93,6 @@ const listenForNotifications = () => {
                 const filterColumn = "id";
                 const filterValue = data[filterColumn];
 
-                // 🔥 Enviar atualização apenas para clientes inscritos corretamente
                 wsServer.clients.forEach(client => {
                     if (
                         client.readyState === WebSocket.OPEN &&
@@ -109,7 +105,6 @@ const listenForNotifications = () => {
                         client.send(JSON.stringify({ table, data: [data] }));
                     }
                 });
-
             } catch (err) {
                 console.warn('⚠️ Notificação não era JSON válido. Ignorando:', msg.payload);
             }
@@ -117,7 +112,6 @@ const listenForNotifications = () => {
     });
 };
 
-// Inicia a escuta de notificações
 listenForNotifications();
 
 
@@ -1702,5 +1696,110 @@ app.delete('/imoveis/:id', async (req, res) => {
     } catch (err) {
         console.error('Erro ao excluir imóvel:', err.message, err.stack);
         res.status(500).json({ success: false, error: 'Erro no servidor ao excluir imóvel' });
+    }
+});
+
+
+
+
+
+// Rota para criar um pedido com integração ao Asaas
+app.post('/criar-pedido', async (req, res) => {
+    try {
+        console.log("🚀 Recebendo requisição em /criar-pedido");
+        console.log("📥 Dados recebidos:", req.body);
+
+        const { corretor, entregue, pago, imoveis_id, leads_id } = req.body;
+
+        if (!corretor) {
+            return res.status(400).json({ success: false, error: "O campo 'corretor' é obrigatório" });
+        }
+
+        let total_value = 0;
+
+        if (imoveis_id && Array.isArray(imoveis_id) && imoveis_id.length > 0) {
+            const imoveisQuery = `
+                SELECT SUM(CAST(price_contato AS DECIMAL)) AS total_imoveis
+                FROM imoveis
+                WHERE id = ANY($1::integer[])
+            `;
+            const imoveisResult = await pool.query(imoveisQuery, [imoveis_id]);
+            const totalImoveis = imoveisResult.rows[0].total_imoveis || 0;
+            total_value += parseFloat(totalImoveis);
+            console.log(`📌 Total dos imóveis (price_contato): ${totalImoveis}`);
+        } else {
+            console.log("📌 Nenhum imóvel fornecido (imoveis_id vazio ou nulo)");
+        }
+
+        if (leads_id && Array.isArray(leads_id) && leads_id.length > 0) {
+            const leadsQuery = `
+                SELECT SUM(CAST(valor_lead AS DECIMAL)) AS total_leads
+                FROM clientes
+                WHERE id = ANY($1::integer[])
+            `;
+            const leadsResult = await pool.query(leadsQuery, [leads_id]);
+            const totalLeads = leadsResult.rows[0].total_leads || 0;
+            total_value += parseFloat(totalLeads);
+            console.log(`📌 Total dos leads (valor_lead): ${totalLeads}`);
+        } else {
+            console.log("📌 Nenhum lead fornecido (leads_id vazio ou nulo)");
+        }
+
+        total_value = isNaN(total_value) ? 0 : total_value;
+
+        // Criação da cobrança no Asaas
+        const asaasResponse = await axios.post(
+            `${process.env.ASAAS_API_URL}/charges`,
+            {
+                billingType: "BOLETO", // Ou "PIX", "CREDIT_CARD", etc., conforme necessário
+                customer: "cus_000005737255", // Substitua pelo ID do cliente no Asaas (pode vir do corretor)
+                value: total_value,
+                dueDate: new Date().toISOString().split('T')[0], // Data de vencimento (hoje como exemplo)
+                description: `Pedido de imóveis e leads - Corretor ${corretor}`
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${process.env.ASAAS_API_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        const cobranca_id = asaasResponse.data.id;
+        console.log(`💳 Cobrança criada no Asaas. ID: ${cobranca_id}`);
+
+        // Insere o pedido na tabela com o cobranca_id gerado
+        const insertQuery = `
+            INSERT INTO pedido (total_value, corretor, entregue, pago, cobranca_id, imoveis_id, leads_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id
+        `;
+        const values = [
+            total_value,
+            corretor,
+            entregue !== undefined ? entregue : false,
+            pago !== undefined ? pago : false,
+            cobranca_id,
+            imoveis_id && imoveis_id.length > 0 ? imoveis_id : null,
+            leads_id && leads_id.length > 0 ? leads_id : null
+        ];
+
+        console.log("📝 Query gerada:", insertQuery);
+        console.log("📊 Valores utilizados:", values);
+
+        const result = await pool.query(insertQuery, values);
+        const pedidoId = result.rows[0].id;
+
+        console.log(`✅ Pedido criado com sucesso. ID: ${pedidoId}, Total: ${total_value}`);
+
+        res.status(201).json({
+            success: true,
+            pedido_id: pedidoId,
+            total_value: total_value,
+            cobranca_id: cobranca_id
+        });
+    } catch (error) {
+        console.error("❌ Erro ao criar pedido:", error.message);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
