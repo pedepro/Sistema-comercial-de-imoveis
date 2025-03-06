@@ -1290,13 +1290,18 @@ app.post('/login', async (req, res) => {
 
 // 📌 Rota para criar um corretor
 app.post('/corretores', async (req, res) => {
-    const { email, password, phone, creci, name } = req.body;
+    const { email, password, phone, creci, name, cpfCnpj } = req.body;
 
     console.log("🚀 Iniciando criação de corretor - Dados recebidos:", req.body);
 
     if (!email || !password) {
         console.log("❌ Erro: Email ou senha ausentes");
         return res.status(400).json({ error: "Email e senha são obrigatórios." });
+    }
+
+    if (!cpfCnpj) {
+        console.log("❌ Erro: CPF/CNPJ ausente");
+        return res.status(400).json({ error: "CPF ou CNPJ é obrigatório para o cadastro no Asaas." });
     }
 
     try {
@@ -1318,7 +1323,7 @@ app.post('/corretores', async (req, res) => {
             `${process.env.ASAAS_API_URL}/customers`,
             {
                 name: name || "Corretor sem nome",
-                cpfCnpj: creci || "00000000000",
+                cpfCnpj: cpfCnpj, // Usa o cpfCnpj recebido do frontend
                 email,
                 mobilePhone: phone || null
             },
@@ -1369,7 +1374,6 @@ app.post('/corretores', async (req, res) => {
         res.status(500).json({ error: "Erro interno do servidor." });
     }
 });
-
 
 
 
