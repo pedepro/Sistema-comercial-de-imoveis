@@ -1289,6 +1289,7 @@ app.post('/login', async (req, res) => {
 
 
 // 📌 Rota para criar um corretor
+// 📌 Rota para criar um corretor
 app.post('/corretores', async (req, res) => {
     const { email, password, phone, creci, name } = req.body;
 
@@ -1311,11 +1312,14 @@ app.post('/corretores', async (req, res) => {
 
         // Etapa 2: Cria o customer no Asaas
         console.log("💳 Criando customer no Asaas...");
+        console.log("🔑 Usando ASAAS_API_URL:", process.env.ASAAS_API_URL);
+        console.log("🔑 Usando ASAAS_API_KEY (primeiros 5 caracteres):", process.env.ASAAS_API_KEY?.substring(0, 5) + "...");
+        
         const asaasResponse = await axios.post(
             `${process.env.ASAAS_API_URL}/customers`,
             {
                 name: name || "Corretor sem nome",
-                cpfCnpj: creci || "00000000000", // Ajuste conforme necessário
+                cpfCnpj: creci || "00000000000",
                 email,
                 mobilePhone: phone || null
             },
@@ -1357,8 +1361,9 @@ app.post('/corretores', async (req, res) => {
         if (error.response) {
             console.error("   - Detalhes do erro do Asaas:", error.response.data);
             console.error("   - Status HTTP:", error.response.status);
+            console.error("   - Headers enviados:", error.response.config.headers);
         } else {
-            console.error("   - Erro interno:", error.message);
+            console.error("   - Erro interno (não relacionado ao Asaas):", error.message);
         }
         res.status(500).json({ error: "Erro interno do servidor." });
     }
