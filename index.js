@@ -1323,7 +1323,7 @@ app.post('/corretores', async (req, res) => {
             `${process.env.ASAAS_API_URL}/customers`,
             {
                 name: name || "Corretor sem nome",
-                cpfCnpj: cpfCnpj, // Usa o cpfCnpj recebido do frontend
+                cpfCnpj: cpfCnpj,
                 email,
                 mobilePhone: phone || null
             },
@@ -1331,7 +1331,7 @@ app.post('/corretores', async (req, res) => {
                 headers: {
                     'accept': 'application/json',
                     'content-type': 'application/json',
-                    'access_token': process.env.ASAAS_API_KEY // Usando access_token como no n8n
+                    'access_token': process.env.ASAAS_API_KEY
                 }
             }
         );
@@ -1344,10 +1344,10 @@ app.post('/corretores', async (req, res) => {
         const token = gerarToken();
         console.log(`✅ Token gerado: ${token}`);
 
-        // Etapa 4: Insere o corretor no banco com o asaas_id
+        // Etapa 4: Insere o corretor no banco com o assas_id (corrigido)
         console.log("📝 Inserindo corretor no banco de dados...");
         const result = await pool.query(
-            "INSERT INTO corretores (email, password, phone, creci, name, token, asaas_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, token",
+            "INSERT INTO corretores (email, password, phone, creci, name, token, assas_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, token",
             [email, password, phone || null, creci || null, name || null, token, asaasId]
         );
         console.log(`✅ Corretor inserido no banco. ID: ${result.rows[0].id}`);
@@ -1357,7 +1357,7 @@ app.post('/corretores', async (req, res) => {
         res.status(201).json({
             id: result.rows[0].id,
             token: result.rows[0].token,
-            asaas_id: asaasId
+            assas_id: asaasId // Corrigido aqui também para consistência na resposta
         });
         console.log("✅ Resposta enviada com sucesso");
 
