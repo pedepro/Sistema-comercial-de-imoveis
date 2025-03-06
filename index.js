@@ -1289,7 +1289,6 @@ app.post('/login', async (req, res) => {
 
 
 // 📌 Rota para criar um corretor
-// 📌 Rota para criar um corretor
 app.post('/corretores', async (req, res) => {
     const { email, password, phone, creci, name } = req.body;
 
@@ -1359,9 +1358,10 @@ app.post('/corretores', async (req, res) => {
     } catch (error) {
         console.error("❌ Erro ao criar corretor:");
         if (error.response) {
-            console.error("   - Detalhes do erro do Asaas:", error.response.data);
+            console.error("   - Detalhes do erro do Asaas:", JSON.stringify(error.response.data, null, 2));
             console.error("   - Status HTTP:", error.response.status);
             console.error("   - Headers enviados:", error.response.config.headers);
+            console.error("   - Dados enviados:", error.response.config.data);
         } else {
             console.error("   - Erro interno (não relacionado ao Asaas):", error.message);
         }
