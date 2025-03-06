@@ -1280,34 +1280,104 @@ app.post('/login', async (req, res) => {
     }
 });
 
+
+
+
+
+
+
+
+
 // 📌 Rota para criar um corretor
 app.post('/corretores', async (req, res) => {
     const { email, password, phone, creci, name } = req.body;
 
+    console.log("🚀 Iniciando criação de corretor - Dados recebidos:", req.body);
+
     if (!email || !password) {
+        console.log("❌ Erro: Email ou senha ausentes");
         return res.status(400).json({ error: "Email e senha são obrigatórios." });
     }
 
     try {
-        // Verifica se o email já está cadastrado
+        // Etapa 1: Verifica se o email já está cadastrado
+        console.log("🔍 Verificando se o email já existe no banco...");
         const checkEmail = await pool.query("SELECT id FROM corretores WHERE email = $1", [email]);
         if (checkEmail.rows.length > 0) {
+            console.log("❌ Erro: Email já está em uso -", email);
             return res.status(400).json({ error: "Email já está em uso." });
         }
+        console.log("✅ Email disponível:", email);
 
-        const token = gerarToken();
-
-        const result = await pool.query(
-            "INSERT INTO corretores (email, password, phone, creci, name, token) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, token",
-            [email, password, phone || null, creci || null, name || null, token]
+        // Etapa 2: Cria o customer no Asaas
+        console.log("💳 Criando customer no Asaas...");
+        const asaasResponse = await axios.post(
+            `${process.env.ASAAS_API_URL}/customers`,
+            {
+                name: name || "Corretor sem nome",
+                cpfCnpj: creci || "00000000000", // Ajuste conforme necessário
+                email,
+                mobilePhone: phone || null
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${process.env.ASAAS_API_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            }
         );
 
-        res.status(201).json({ id: result.rows[0].id, token: result.rows[0].token });
+        const asaasId = asaasResponse.data.id;
+        console.log(`✅ Customer criado no Asaas com sucesso. ID: ${asaasId}`);
+
+        // Etapa 3: Gera o token
+        console.log("🔑 Gerando token para o corretor...");
+        const token = gerarToken();
+        console.log(`✅ Token gerado: ${token}`);
+
+        // Etapa 4: Insere o corretor no banco com o asaas_id
+        console.log("📝 Inserindo corretor no banco de dados...");
+        const result = await pool.query(
+            "INSERT INTO corretores (email, password, phone, creci, name, token, asaas_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, token",
+            [email, password, phone || null, creci || null, name || null, token, asaasId]
+        );
+        console.log(`✅ Corretor inserido no banco. ID: ${result.rows[0].id}`);
+
+        // Etapa 5: Retorna a resposta
+        console.log("📤 Enviando resposta ao cliente...");
+        res.status(201).json({
+            id: result.rows[0].id,
+            token: result.rows[0].token,
+            asaas_id: asaasId
+        });
+        console.log("✅ Resposta enviada com sucesso");
+
     } catch (error) {
-        console.error("Erro ao criar corretor:", error);
+        console.error("❌ Erro ao criar corretor:");
+        if (error.response) {
+            console.error("   - Detalhes do erro do Asaas:", error.response.data);
+            console.error("   - Status HTTP:", error.response.status);
+        } else {
+            console.error("   - Erro interno:", error.message);
+        }
         res.status(500).json({ error: "Erro interno do servidor." });
     }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // 📌 Rota para obter informações do corretor
