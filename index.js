@@ -1313,7 +1313,7 @@ app.post('/corretores', async (req, res) => {
         console.log("💳 Criando customer no Asaas...");
         console.log("🔑 Usando ASAAS_API_URL:", process.env.ASAAS_API_URL);
         console.log("🔑 Usando ASAAS_API_KEY (primeiros 5 caracteres):", process.env.ASAAS_API_KEY?.substring(0, 5) + "...");
-        
+
         const asaasResponse = await axios.post(
             `${process.env.ASAAS_API_URL}/customers`,
             {
@@ -1324,8 +1324,9 @@ app.post('/corretores', async (req, res) => {
             },
             {
                 headers: {
-                    'Authorization': `Bearer ${process.env.ASAAS_API_KEY}`,
-                    'Content-Type': 'application/json'
+                    'accept': 'application/json',
+                    'content-type': 'application/json',
+                    'access_token': process.env.ASAAS_API_KEY // Usando access_token como no n8n
                 }
             }
         );
