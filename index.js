@@ -1929,7 +1929,7 @@ app.get("/get-imovel/:id", async (req, res) => {
         console.log(`Imagens do imóvel ${id}:`, imovel.imagens);
 
         const imagens = Array.isArray(imovel.imagens) ? imovel.imagens : [];
-        const primeiraImagem = imagens.length > 0 ? imagens[0].url : 'https://meuleaditapema.com.br/assets/default-image.jpg';
+        const primeiraImagem = imagens.length > 0 ? imagens[0].url : 'https://meuleaditapema.com.br/assets/icon.ico';
 
         // Gera o HTML com metatags Open Graph
         const html = `
