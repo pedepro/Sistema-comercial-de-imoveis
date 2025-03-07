@@ -3055,7 +3055,6 @@ app.get("/:id", async (req, res) => {
 
 
 
-
 // Rota raiz para lead.meuleaditapema.com.br
 appLead.get("/", (req, res) => {
     console.log("[Lead] Raiz acessada via lead.meuleaditapema.com.br");
