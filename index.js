@@ -2511,7 +2511,6 @@ app.get("/", (req, res) => {
     }
 });
 
-// Rota para capturar o ID diretamente no subdomínio (ex.: /1)
 app.get("/:id", async (req, res) => {
     const { id } = req.params;
 
@@ -2522,7 +2521,9 @@ app.get("/:id", async (req, res) => {
                 SELECT 
                     c.disponivel,
                     c.interesse,
-                    c.valor_lead
+                    c.valor_lead,
+                    c.categoria,
+                    c.valor
                 FROM clientes c
                 WHERE c.id = $1
                 `,
@@ -2539,201 +2540,273 @@ app.get("/:id", async (req, res) => {
 
             const logoUrl = 'http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico';
             const disponibilidadeTexto = lead.disponivel ? "Disponível" : "Indisponível";
-            const disponibilidadeClasse = lead.disponivel ? "disponivel" : "indisponivel";
+            const categoriaTexto = lead.categoria === 1 ? "Médio Padrão" : "Alto Padrão";
+            const categoriaClasse = lead.categoria === 1 ? "medio-padrao" : "alto-padrao";
+            const valorBuscado = parseFloat(lead.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
             const html = `
                 <!DOCTYPE html>
                 <html lang="pt-BR">
                 <head>
-                  <meta charset="UTF-8">
-                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                  <title>${lead.interesse || "Detalhes do Lead"}</title>
-                  <meta name="description" content="Veja lead: ${lead.interesse || 'Sem interesse especificado'}, preço de ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}">
-                  <meta property="og:title" content="${lead.interesse || "Lead sem título"}">
-                  <meta property="og:description" content="Veja lead: ${lead.interesse || 'Sem interesse especificado'}, preço de ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}">
-                  <meta property="og:image" content="${logoUrl}">
-                  <meta property="og:url" content="https://lead.meuleaditapema.com.br/${id}">
-                  <meta property="og:type" content="article">
-                  <link rel="icon" type="image/x-icon" href="${logoUrl}">
-                  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-                  <style>
-                    * { box-sizing: border-box; margin: 0; padding: 0; }
-                    body { 
-                        font-family: 'Inter', sans-serif; 
-                        background: #f8fafc; 
-                        color: #1e293b; 
-                        line-height: 1.6; 
-                        min-height: 100vh; 
-                        display: flex; 
-                        flex-direction: column; 
-                    }
-                    .header { 
-                        background: #ffffff; 
-                        padding: 1.5rem; 
-                        text-align: center; 
-                        border-bottom: 1px solid #e2e8f0;
-                    }
-                    .header img { 
-                        width: 70px; 
-                        transition: transform 0.3s ease; 
-                    }
-                    .header img:hover { 
-                        transform: scale(1.05); 
-                    }
-                    .container { 
-                        max-width: 640px; 
-                        margin: 2rem auto; 
-                        background: #ffffff; 
-                        border-radius: 16px; 
-                        padding: 2rem; 
-                        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-                        flex: 1;
-                    }
-                    .titulo-lead { 
-                        font-size: 1.875rem; 
-                        font-weight: 700; 
-                        color: #1e293b; 
-                        text-align: center; 
-                        margin-bottom: 1.5rem;
-                        line-height: 1.2;
-                    }
-                    .status { 
-                        font-size: 1.125rem; 
-                        font-weight: 500; 
-                        text-align: center; 
-                        padding: 0.75rem 1.5rem; 
-                        border-radius: 50px; 
-                        margin-bottom: 2rem; 
-                        display: inline-block;
-                        width: auto;
-                        min-width: 160px;
-                    }
-                    .disponivel { 
-                        background: #ecfdf5; 
-                        color: #059669; 
-                        border: 1px solid #6ee7b7;
-                    }
-                    .indisponivel { 
-                        background: #fef2f2; 
-                        color: #dc2626; 
-                        border: 1px solid #f87171;
-                        animation: subtlePulse 2s infinite;
-                    }
-                    @keyframes subtlePulse { 
-                        0% { transform: scale(1); } 
-                        50% { transform: scale(1.02); } 
-                        100% { transform: scale(1); } 
-                    }
-                    .btn-comprar { 
-                        display: flex; 
-                        align-items: center; 
-                        justify-content: center; 
-                        width: 100%; 
-                        max-width: 320px; 
-                        margin: 0 auto; 
-                        padding: 1rem 2rem; 
-                        font-size: 1.125rem; 
-                        font-weight: 600; 
-                        color: #ffffff; 
-                        background: #2563eb; 
-                        border: none; 
-                        border-radius: 12px; 
-                        cursor: pointer; 
-                        transition: all 0.3s ease;
-                        box-shadow: 0 4px 6px rgb(37 99 235 / 0.2);
-                    }
-                    .btn-comprar:hover:not(:disabled) { 
-                        background: #1d4ed8; 
-                        transform: translateY(-2px); 
-                        box-shadow: 0 7px 14px rgb(37 99 235 / 0.3);
-                    }
-                    .btn-comprar:disabled { 
-                        background: #94a3b8; 
-                        cursor: not-allowed; 
-                        opacity: 0.7;
-                        box-shadow: none;
-                    }
-                    .overlay-card {
-                        background: #ffffff;
-                        padding: 1.5rem;
-                        border-radius: 12px;
-                        max-width: 400px;
-                        width: 90%;
-                        box-shadow: 0 4px 6px rgb(0 0 0 / 0.1);
-                    }
-                    .overlay-buttons {
-                        display: flex;
-                        gap: 0.75rem;
-                        margin-top: 1.25rem;
-                    }
-                    .overlay-btn {
-                        flex: 1;
-                        padding: 0.75rem;
-                        border-radius: 8px;
-                        border: none;
-                        font-weight: 500;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                    }
-                    .btn-login {
-                        background: #2563eb;
-                        color: #ffffff;
-                    }
-                    .btn-cancel {
-                        background: #f1f5f9;
-                        color: #475569;
-                    }
-                    .overlay-btn:hover:not(:disabled) {
-                        opacity: 0.9;
-                        transform: translateY(-1px);
-                    }
-                    @media (max-width: 768px) { 
-                        .container { margin: 1rem; padding: 1.5rem; } 
-                        .titulo-lead { font-size: 1.5rem; } 
-                        .status { font-size: 1rem; } 
-                        .btn-comprar { font-size: 1rem; padding: 0.875rem 1.5rem; } 
-                    }
-                    @media (max-width: 480px) { 
-                        .header img { width: 50px; } 
-                        .titulo-lead { font-size: 1.25rem; } 
-                        .status { font-size: 0.875rem; } 
-                        .btn-comprar { font-size: 0.875rem; padding: 0.75rem 1rem; } 
-                    }
-                  </style>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>${lead.interesse || "Lead Imobiliário"}</title>
+                    <meta name="description" content="${categoriaTexto} - ${lead.interesse || 'Sem interesse especificado'} por ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}">
+                    <meta property="og:title" content="${lead.interesse || "Lead Imobiliário"}">
+                    <meta property="og:description" content="${categoriaTexto} - Buscando imóvel até ${valorBuscado}">
+                    <meta property="og:image" content="${logoUrl}">
+                    <meta property="og:url" content="https://lead.meuleaditapema.com.br/${id}">
+                    <meta property="og:type" content="article">
+                    <link rel="icon" type="image/x-icon" href="${logoUrl}">
+                    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+                    <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body {
+                            font-family: 'Poppins', sans-serif;
+                            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+                            color: #ffffff;
+                            min-height: 100vh;
+                            overflow-x: hidden;
+                        }
+                        .header {
+                            padding: 2rem 1rem;
+                            text-align: center;
+                            background: rgba(255, 255, 255, 0.1);
+                            backdrop-filter: blur(10px);
+                        }
+                        .header img {
+                            width: 80px;
+                            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+                            transition: transform 0.3s ease;
+                        }
+                        .header img:hover {
+                            transform: rotate(10deg) scale(1.1);
+                        }
+                        .container {
+                            max-width: 800px;
+                            margin: 2rem auto;
+                            padding: 2rem;
+                            background: rgba(255, 255, 255, 0.95);
+                            border-radius: 20px;
+                            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                            position: relative;
+                            overflow: hidden;
+                        }
+                        .container::before {
+                            content: '';
+                            position: absolute;
+                            top: -50%;
+                            left: -50%;
+                            width: 200%;
+                            height: 200%;
+                            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+                            transform: rotate(30deg);
+                            pointer-events: none;
+                        }
+                        .titulo-lead {
+                            font-size: 2.5rem;
+                            font-weight: 700;
+                            color: #1e3a8a;
+                            text-align: center;
+                            margin-bottom: 1rem;
+                            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                        }
+                        .categoria {
+                            display: inline-block;
+                            font-size: 1.25rem;
+                            font-weight: 600;
+                            padding: 0.5rem 1.5rem;
+                            border-radius: 50px;
+                            margin: 0 auto 1.5rem;
+                            text-align: center;
+                            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                            position: relative;
+                            overflow: hidden;
+                        }
+                        .medio-padrao {
+                            background: linear-gradient(45deg, #f97316, #fb923c);
+                            color: #fff;
+                        }
+                        .alto-padrao {
+                            background: linear-gradient(45deg, #d4af37, #ffd700);
+                            color: #1a1a1a;
+                        }
+                        .categoria::after {
+                            content: '';
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+                            opacity: 0;
+                            transition: opacity 0.3s ease;
+                        }
+                        .categoria:hover::after {
+                            opacity: 1;
+                        }
+                        .info-box {
+                            background: rgba(255, 255, 255, 0.9);
+                            border-radius: 15px;
+                            padding: 1.5rem;
+                            margin-bottom: 2rem;
+                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+                            border: 1px solid rgba(255, 255, 255, 0.2);
+                        }
+                        .info-box p {
+                            font-size: 1.1rem;
+                            color: #1e40af;
+                            margin-bottom: 0.75rem;
+                        }
+                        .info-box .valor {
+                            font-size: 1.5rem;
+                            font-weight: 600;
+                            color: #2563eb;
+                        }
+                        .status {
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 0.5rem;
+                            font-size: 1.2rem;
+                            font-weight: 600;
+                            padding: 0.75rem 2rem;
+                            border-radius: 50px;
+                            background: ${lead.disponivel ? '#22c55e' : '#ef4444'};
+                            margin-bottom: 2rem;
+                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+                            animation: ${lead.disponivel ? 'none' : 'pulse 1.5s infinite'};
+                        }
+                        @keyframes pulse {
+                            0% { transform: scale(1); }
+                            50% { transform: scale(1.05); }
+                            100% { transform: scale(1); }
+                        }
+                        .btn-comprar {
+                            display: block;
+                            width: 100%;
+                            max-width: 400px;
+                            margin: 0 auto;
+                            padding: 1.25rem;
+                            font-size: 1.25rem;
+                            font-weight: 600;
+                            color: #ffffff;
+                            background: linear-gradient(45deg, #3b82f6, #1e3a8a);
+                            border: none;
+                            border-radius: 50px;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+                        }
+                        .btn-comprar:hover:not(:disabled) {
+                            transform: translateY(-3px);
+                            box-shadow: 0 15px 30px rgba(59, 130, 246, 0.5);
+                            background: linear-gradient(45deg, #2563eb, #1e40af);
+                        }
+                        .btn-comprar:disabled {
+                            background: #64748b;
+                            cursor: not-allowed;
+                            opacity: 0.6;
+                            box-shadow: none;
+                        }
+                        .overlay {
+                            position: fixed;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            background: rgba(0, 0, 0, 0.7);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            z-index: 1000;
+                        }
+                        .overlay-card {
+                            background: #ffffff;
+                            padding: 2rem;
+                            border-radius: 20px;
+                            max-width: 450px;
+                            width: 90%;
+                            text-align: center;
+                            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                        }
+                        .overlay-buttons {
+                            display: flex;
+                            gap: 1rem;
+                            margin-top: 1.5rem;
+                        }
+                        .overlay-btn {
+                            flex: 1;
+                            padding: 0.75rem;
+                            border-radius: 10px;
+                            border: none;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                        }
+                        .btn-login {
+                            background: #2563eb;
+                            color: #ffffff;
+                        }
+                        .btn-cancel {
+                            background: #e2e8f0;
+                            color: #475569;
+                        }
+                        @media (max-width: 768px) {
+                            .container { margin: 1rem; padding: 1.5rem; }
+                            .titulo-lead { font-size: 2rem; }
+                            .btn-comprar { font-size: 1.1rem; padding: 1rem; }
+                        }
+                        @media (max-width: 480px) {
+                            .titulo-lead { font-size: 1.5rem; }
+                            .categoria { font-size: 1rem; }
+                            .info-box .valor { font-size: 1.2rem; }
+                            .status { font-size: 1rem; padding: 0.5rem 1.5rem; }
+                        }
+                    </style>
                 </head>
                 <body>
-                  <header class="header">
-                    <img src="${logoUrl}" alt="Meu Lead Itapema Logo">
-                  </header>
-                  <main class="container">
-                    <h1 class="titulo-lead">${lead.interesse || "Lead sem título"}</h1>
-                    <p class="status ${disponibilidadeClasse}">${disponibilidadeTexto}</p>
-                    <button class="btn-comprar" ${lead.disponivel ? '' : 'disabled'} onclick="comprarLead()">
-                      Comprar por ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </button>
-                  </main>
-                  <script>
-                    function comprarLead() {
-                      const token = localStorage.getItem("token");
-                      if (!token) {
-                        const overlay = document.createElement("div");
-                        overlay.id = "notificacao-overlay";
-                        overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;";
-                        overlay.innerHTML = \`
-                          <div class="overlay-card">
-                            <p style="font-size: 1rem; margin-bottom: 1rem; color: #1e293b;">Faça login para comprar este lead</p>
-                            <div class="overlay-buttons">
-                              <button class="overlay-btn btn-login" onclick="window.location.href='/login?id=${id}'">Fazer Login</button>
-                              <button class="overlay-btn btn-cancel" onclick="document.body.removeChild(document.getElementById('notificacao-overlay'))">Cancelar</button>
-                            </div>
-                          </div>
-                        \`;
-                        document.body.appendChild(overlay);
-                      } else {
-                        alert("Lead comprado com sucesso! (Funcionalidade a implementar)");
-                      }
-                    }
-                  </script>
+                    <header class="header">
+                        <img src="${logoUrl}" alt="Meu Lead Itapema Logo">
+                    </header>
+                    <main class="container">
+                        <h1 class="titulo-lead">${lead.interesse || "Lead Imobiliário"}</h1>
+                        <div class="categoria ${categoriaClasse}">${categoriaTexto}</div>
+                        <div class="info-box">
+                            <p>Buscando imóvel até:</p>
+                            <p class="valor">${valorBuscado}</p>
+                        </div>
+                        <p class="status">${disponibilidadeTexto}</p>
+                        <button class="btn-comprar" ${lead.disponivel ? '' : 'disabled'} onclick="comprarLead()">
+                            Comprar por ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </button>
+                    </main>
+                    <script>
+                        function comprarLead() {
+                            const token = localStorage.getItem("token");
+                            if (!token) {
+                                const overlay = document.createElement("div");
+                                overlay.className = "overlay";
+                                overlay.innerHTML = \`
+                                    <div class="overlay-card">
+                                        <p style="font-size: 1.1rem; color: #1e3a8a; margin-bottom: 1rem;">
+                                            Faça login para adquirir este lead
+                                        </p>
+                                        <div class="overlay-buttons">
+                                            <button class="overlay-btn btn-login" onclick="window.location.href='/login?id=${id}'">
+                                                Login
+                                            </button>
+                                            <button class="overlay-btn btn-cancel" onclick="this.parentElement.parentElement.parentElement.remove()">
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                \`;
+                                document.body.appendChild(overlay);
+                            } else {
+                                alert("Lead comprado com sucesso! (Funcionalidade a implementar)");
+                            }
+                        }
+                    </script>
                 </body>
                 </html>
             `;
