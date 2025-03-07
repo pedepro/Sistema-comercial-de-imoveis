@@ -2517,7 +2517,6 @@ app.get("/:id", async (req, res) => {
 
     try {
         if (req.isLeadDomain && !req.isImovelDomain) {
-            // Lógica para leads
             const result = await pool.query(
                 `
                 SELECT 
@@ -2556,34 +2555,163 @@ app.get("/:id", async (req, res) => {
                   <meta property="og:url" content="https://lead.meuleaditapema.com.br/${id}">
                   <meta property="og:type" content="article">
                   <link rel="icon" type="image/x-icon" href="${logoUrl}">
-                  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+                  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
                   <style>
                     * { box-sizing: border-box; margin: 0; padding: 0; }
-                    body { font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); color: #333; line-height: 1.6; display: flex; flex-direction: column; min-height: 100vh; }
-                    .header { text-align: center; padding: 20px 0; background: #fff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }
-                    .header img { width: 80px; height: auto; }
-                    .container { max-width: 600px; margin: 40px auto; padding: 20px; background: #fff; border-radius: 15px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); flex: 1; display: flex; flex-direction: column; justify-content: center; }
-                    .titulo-lead { font-size: 28px; font-weight: 700; color: #2c3e50; text-align: center; margin-bottom: 20px; }
-                    .status { font-size: 20px; font-weight: 500; text-align: center; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
-                    .disponivel { background: #e6ffe6; color: #2ecc71; border: 2px solid #2ecc71; }
-                    .indisponivel { background: #ffe6e6; color: #e74c3c; border: 2px solid #e74c3c; animation: pulse 2s infinite; }
-                    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-                    .btn-comprar { display: block; width: 100%; max-width: 300px; margin: 0 auto; padding: 15px; font-size: 18px; font-weight: 600; color: #fff; background: #3498db; border: none; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3); }
-                    .btn-comprar:hover { background: #2980b9; transform: translateY(-3px); box-shadow: 0 6px 20px rgba(52, 152, 219, 0.5); }
-                    .btn-comprar:disabled { background: #bdc3c7; cursor: not-allowed; box-shadow: none; }
-                    @media (max-width: 768px) { .container { margin: 20px; padding: 15px; } .titulo-lead { font-size: 24px; } .status { font-size: 18px; } .btn-comprar { font-size: 16px; padding: 12px; } }
-                    @media (max-width: 480px) { .header img { width: 60px; } .titulo-lead { font-size: 20px; } .status { font-size: 16px; } .btn-comprar { font-size: 14px; padding: 10px; } }
+                    body { 
+                        font-family: 'Inter', sans-serif; 
+                        background: #f8fafc; 
+                        color: #1e293b; 
+                        line-height: 1.6; 
+                        min-height: 100vh; 
+                        display: flex; 
+                        flex-direction: column; 
+                    }
+                    .header { 
+                        background: #ffffff; 
+                        padding: 1.5rem; 
+                        text-align: center; 
+                        border-bottom: 1px solid #e2e8f0;
+                    }
+                    .header img { 
+                        width: 70px; 
+                        transition: transform 0.3s ease; 
+                    }
+                    .header img:hover { 
+                        transform: scale(1.05); 
+                    }
+                    .container { 
+                        max-width: 640px; 
+                        margin: 2rem auto; 
+                        background: #ffffff; 
+                        border-radius: 16px; 
+                        padding: 2rem; 
+                        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+                        flex: 1;
+                    }
+                    .titulo-lead { 
+                        font-size: 1.875rem; 
+                        font-weight: 700; 
+                        color: #1e293b; 
+                        text-align: center; 
+                        margin-bottom: 1.5rem;
+                        line-height: 1.2;
+                    }
+                    .status { 
+                        font-size: 1.125rem; 
+                        font-weight: 500; 
+                        text-align: center; 
+                        padding: 0.75rem 1.5rem; 
+                        border-radius: 50px; 
+                        margin-bottom: 2rem; 
+                        display: inline-block;
+                        width: auto;
+                        min-width: 160px;
+                    }
+                    .disponivel { 
+                        background: #ecfdf5; 
+                        color: #059669; 
+                        border: 1px solid #6ee7b7;
+                    }
+                    .indisponivel { 
+                        background: #fef2f2; 
+                        color: #dc2626; 
+                        border: 1px solid #f87171;
+                        animation: subtlePulse 2s infinite;
+                    }
+                    @keyframes subtlePulse { 
+                        0% { transform: scale(1); } 
+                        50% { transform: scale(1.02); } 
+                        100% { transform: scale(1); } 
+                    }
+                    .btn-comprar { 
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: center; 
+                        width: 100%; 
+                        max-width: 320px; 
+                        margin: 0 auto; 
+                        padding: 1rem 2rem; 
+                        font-size: 1.125rem; 
+                        font-weight: 600; 
+                        color: #ffffff; 
+                        background: #2563eb; 
+                        border: none; 
+                        border-radius: 12px; 
+                        cursor: pointer; 
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 6px rgb(37 99 235 / 0.2);
+                    }
+                    .btn-comprar:hover:not(:disabled) { 
+                        background: #1d4ed8; 
+                        transform: translateY(-2px); 
+                        box-shadow: 0 7px 14px rgb(37 99 235 / 0.3);
+                    }
+                    .btn-comprar:disabled { 
+                        background: #94a3b8; 
+                        cursor: not-allowed; 
+                        opacity: 0.7;
+                        box-shadow: none;
+                    }
+                    .overlay-card {
+                        background: #ffffff;
+                        padding: 1.5rem;
+                        border-radius: 12px;
+                        max-width: 400px;
+                        width: 90%;
+                        box-shadow: 0 4px 6px rgb(0 0 0 / 0.1);
+                    }
+                    .overlay-buttons {
+                        display: flex;
+                        gap: 0.75rem;
+                        margin-top: 1.25rem;
+                    }
+                    .overlay-btn {
+                        flex: 1;
+                        padding: 0.75rem;
+                        border-radius: 8px;
+                        border: none;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    }
+                    .btn-login {
+                        background: #2563eb;
+                        color: #ffffff;
+                    }
+                    .btn-cancel {
+                        background: #f1f5f9;
+                        color: #475569;
+                    }
+                    .overlay-btn:hover:not(:disabled) {
+                        opacity: 0.9;
+                        transform: translateY(-1px);
+                    }
+                    @media (max-width: 768px) { 
+                        .container { margin: 1rem; padding: 1.5rem; } 
+                        .titulo-lead { font-size: 1.5rem; } 
+                        .status { font-size: 1rem; } 
+                        .btn-comprar { font-size: 1rem; padding: 0.875rem 1.5rem; } 
+                    }
+                    @media (max-width: 480px) { 
+                        .header img { width: 50px; } 
+                        .titulo-lead { font-size: 1.25rem; } 
+                        .status { font-size: 0.875rem; } 
+                        .btn-comprar { font-size: 0.875rem; padding: 0.75rem 1rem; } 
+                    }
                   </style>
                 </head>
                 <body>
                   <header class="header">
                     <img src="${logoUrl}" alt="Meu Lead Itapema Logo">
                   </header>
-                  <div class="container">
+                  <main class="container">
                     <h1 class="titulo-lead">${lead.interesse || "Lead sem título"}</h1>
                     <p class="status ${disponibilidadeClasse}">${disponibilidadeTexto}</p>
-                    <button class="btn-comprar" ${lead.disponivel ? '' : 'disabled'} onclick="comprarLead()">Comprar por ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</button>
-                  </div>
+                    <button class="btn-comprar" ${lead.disponivel ? '' : 'disabled'} onclick="comprarLead()">
+                      Comprar por ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </button>
+                  </main>
                   <script>
                     function comprarLead() {
                       const token = localStorage.getItem("token");
@@ -2592,11 +2720,11 @@ app.get("/:id", async (req, res) => {
                         overlay.id = "notificacao-overlay";
                         overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;";
                         overlay.innerHTML = \`
-                          <div style="background: #fff; padding: 20px; border-radius: 10px; text-align: center; max-width: 400px; width: 90%; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">
-                            <p style="font-size: 16px; margin-bottom: 15px;">Efetue login para comprar este lead.</p>
-                            <div style="display: flex; justify-content: space-between; gap: 10px;">
-                              <button onclick="window.location.href='/login?id=${id}'" style="background: #3498db; color: #fff; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; width: 48%;">Fazer Login</button>
-                              <button onclick="document.body.removeChild(document.getElementById('notificacao-overlay'))" style="background: #ecf0f1; color: #333; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; width: 48%;">Cancelar</button>
+                          <div class="overlay-card">
+                            <p style="font-size: 1rem; margin-bottom: 1rem; color: #1e293b;">Faça login para comprar este lead</p>
+                            <div class="overlay-buttons">
+                              <button class="overlay-btn btn-login" onclick="window.location.href='/login?id=${id}'">Fazer Login</button>
+                              <button class="overlay-btn btn-cancel" onclick="document.body.removeChild(document.getElementById('notificacao-overlay'))">Cancelar</button>
                             </div>
                           </div>
                         \`;
