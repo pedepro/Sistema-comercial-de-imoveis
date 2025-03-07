@@ -2486,28 +2486,29 @@ app.get("/:id", async (req, res) => {
 
 
 
-// Middleware para verificar o domínio
+// Middleware para verificar o domínio e adicionar logs
 app.use((req, res, next) => {
     const host = req.headers.host || '';
+    console.log(`Host recebido: ${host}`); // Log para depurar o domínio recebido
     req.isLeadDomain = host.includes('lead.meuleaditapema.com.br');
     req.isImovelDomain = host.includes('imovel.meuleaditapema.com.br');
+    console.log(`isLeadDomain: ${req.isLeadDomain}, isImovelDomain: ${req.isImovelDomain}`);
     next();
 });
 
-// Rota para a raiz do subdomínio (opcional, caso acesse sem ID)
+// Rota para a raiz do subdomínio
 app.get("/", (req, res) => {
     if (req.isLeadDomain) {
-        console.log("Acessando raiz do subdomínio de leads");
+        console.log("Raiz acessada via lead.meuleaditapema.com.br");
         res.send("Por favor, forneça o ID do lead na URL, ex.: https://lead.meuleaditapema.com.br/1");
     } else if (req.isImovelDomain) {
-        console.log("Acessando raiz do subdomínio de imóveis");
+        console.log("Raiz acessada via imovel.meuleaditapema.com.br");
         res.send("Por favor, forneça o ID do imóvel na URL, ex.: https://imovel.meuleaditapema.com.br/1");
     } else {
-        console.log("Acessando domínio não reconhecido na raiz");
+        console.log("Raiz acessada via domínio não reconhecido");
         res.send("Bem-vindo ao Meu Lead Itapema! Use imovel.meuleaditapema.com.br ou lead.meuleaditapema.com.br");
     }
 });
-
 // Rota para capturar o ID diretamente no subdomínio (ex.: /1)
 app.get("/:id", async (req, res) => {
     const { id } = req.params;
