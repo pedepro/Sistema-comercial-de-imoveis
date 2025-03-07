@@ -2546,7 +2546,7 @@ app.get("/:id", async (req, res) => {
             console.log(`Imagens do imóvel ${id}:`, imovel.imagens);
 
             const imagens = Array.isArray(imovel.imagens) ? imovel.imagens : [];
-            const primeiraImagem = imagens.length > 0 ? imagens[0].url : 'http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico';
+            const primeiraImagem = imagens.length > 0 ? imagens[0].url : 'http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098adfa.ico';
 
             const html = `
                 <!DOCTYPE html>
