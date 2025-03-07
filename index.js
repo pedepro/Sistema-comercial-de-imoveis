@@ -1906,7 +1906,7 @@ app.get("eu/", (req, res) => {
 });
 
 // Rota para capturar o ID diretamente no subdomínio (ex.: /1)
-app.get("/:id", async (req, res) => {
+app.get("eu/:id", async (req, res) => {
     const { id } = req.params;
 
     try {
