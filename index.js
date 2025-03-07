@@ -2498,19 +2498,6 @@ app.use((req, res, next) => {
 });
 
 // Rota para a raiz do subdomínio
-app.get("/", (req, res) => {
-    if (req.isLeadDomain) {
-        console.log("Raiz acessada via lead.meuleaditapema.com.br");
-        res.send("Por favor, forneça o ID do lead na URL, ex.: https://lead.meuleaditapema.com.br/1");
-    } else if (req.isImovelDomain) {
-        console.log("Raiz acessada via imovel.meuleaditapema.com.br");
-        res.send("Por favor, forneça o ID do imóvel na URL, ex.: https://imovel.meuleaditapema.com.br/1");
-    } else {
-        console.log("Raiz acessada via domínio não reconhecido");
-        res.send("Bem-vindo ao Meu Lead Itapema! Use imovel.meuleaditapema.com.br ou lead.meuleaditapema.com.br");
-    }
-});
-
 app.get("/:id", async (req, res) => {
     const { id } = req.params;
 
@@ -2551,129 +2538,141 @@ app.get("/:id", async (req, res) => {
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <title>${lead.interesse || "Lead Imobiliário"}</title>
-                    <meta name="description" content="${categoriaTexto} - ${lead.interesse || 'Sem interesse especificado'} por ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}">
+                    <meta name="description" content="${categoriaTexto} - ${lead.interesse || 'Sem interesse especificado'}">
                     <meta property="og:title" content="${lead.interesse || "Lead Imobiliário"}">
-                    <meta property="og:description" content="${categoriaTexto} - Buscando imóvel até ${valorBuscado}">
+                    <meta property="og:description" content="${categoriaTexto} - Buscando até ${valorBuscado}">
                     <meta property="og:image" content="${logoUrl}">
                     <meta property="og:url" content="https://lead.meuleaditapema.com.br/${id}">
                     <meta property="og:type" content="article">
                     <link rel="icon" type="image/x-icon" href="${logoUrl}">
-                    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+                    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
                     <style>
                         * { margin: 0; padding: 0; box-sizing: border-box; }
                         body {
-                            font-family: 'Poppins', sans-serif;
-                            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
-                            color: #ffffff;
+                            font-family: 'Montserrat', sans-serif;
+                            background: #f5f5f5;
+                            color: #0f172a;
                             min-height: 100vh;
                             overflow-x: hidden;
-                        }
-                        .header {
-                            padding: 2rem 1rem;
-                            text-align: center;
-                            background: rgba(255, 255, 255, 0.1);
-                            backdrop-filter: blur(10px);
-                        }
-                        .header img {
-                            width: 80px;
-                            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
-                            transition: transform 0.3s ease;
-                        }
-                        .header img:hover {
-                            transform: rotate(10deg) scale(1.1);
-                        }
-                        .container {
-                            max-width: 800px;
-                            margin: 2rem auto;
-                            padding: 2rem;
-                            background: rgba(255, 255, 255, 0.95);
-                            border-radius: 20px;
-                            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
                             position: relative;
-                            overflow: hidden;
                         }
-                        .container::before {
-                            content: '';
-                            position: absolute;
-                            top: -50%;
-                            left: -50%;
-                            width: 200%;
-                            height: 200%;
-                            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
-                            transform: rotate(30deg);
-                            pointer-events: none;
-                        }
-                        .titulo-lead {
-                            font-size: 2.5rem;
-                            font-weight: 700;
-                            color: #1e3a8a;
-                            text-align: center;
-                            margin-bottom: 1rem;
-                            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                        }
-                        .categoria {
-                            display: inline-block;
-                            font-size: 1.25rem;
-                            font-weight: 600;
-                            padding: 0.5rem 1.5rem;
-                            border-radius: 50px;
-                            margin: 0 auto 1.5rem;
-                            text-align: center;
-                            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-                            position: relative;
-                            overflow: hidden;
-                        }
-                        .medio-padrao {
-                            background: linear-gradient(45deg, #f97316, #fb923c);
-                            color: #fff;
-                        }
-                        .alto-padrao {
-                            background: linear-gradient(45deg, #d4af37, #ffd700);
-                            color: #1a1a1a;
-                        }
-                        .categoria::after {
+                        body::before {
                             content: '';
                             position: absolute;
                             top: 0;
                             left: 0;
                             width: 100%;
                             height: 100%;
-                            background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
-                            opacity: 0;
-                            transition: opacity 0.3s ease;
+                            background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"%3E%3Cpath fill="%23e2e8f0" fill-opacity="0.3" d="M0,224L48,213.3C96,203,192,181,288,160C384,139,480,117,576,122.7C672,128,768,160,864,170.7C960,181,1056,171,1152,149.3C1248,128,1344,96,1392,80L1440,64L1440,0L1392,0C1344,0,1296,0,1248,0C1200,0,1152,0,1104,0C1056,0,1008,0,960,0C912,0,864,0,816,0C768,0,720,0,672,0C624,0,576,0,528,0C480,0,432,0,384,0C336,0,288,0,240,0C192,0,144,0,96,0C48,0,0,0,0,0Z"%3E%3C/path%3E%3C/svg%3E') no-repeat top;
+                            z-index: -1;
                         }
-                        .categoria:hover::after {
-                            opacity: 1;
+                        .header {
+                            padding: 1.5rem;
+                            text-align: center;
+                            background: #ffffff;
+                            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+                        }
+                        .header img {
+                            width: 60px;
+                            transition: transform 0.3s ease;
+                        }
+                        .header img:hover {
+                            transform: scale(1.1);
+                        }
+                        .container {
+                            max-width: 900px;
+                            margin: 3rem auto;
+                            padding: 3rem;
+                            background: #ffffff;
+                            border-radius: 30px;
+                            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+                            position: relative;
+                            overflow: hidden;
+                        }
+                        .lead-id {
+                            font-size: 1.2rem;
+                            font-weight: 400;
+                            color: #64748b;
+                            text-align: center;
+                            margin-bottom: 0.5rem;
+                            letter-spacing: 1px;
+                        }
+                        .titulo-lead {
+                            font-size: 2.8rem;
+                            font-weight: 900;
+                            color: #0f172a;
+                            text-align: center;
+                            margin-bottom: 1.5rem;
+                            background: linear-gradient(90deg, #3b82f6, #10b981);
+                            -webkit-background-clip: text;
+                            background-clip: text;
+                            color: transparent;
+                        }
+                        .categoria {
+                            display: flex;
+                            justify-content: center;
+                            font-size: 1.5rem;
+                            font-weight: 700;
+                            padding: 0.75rem 2rem;
+                            border-radius: 12px;
+                            margin-bottom: 2rem;
+                            position: relative;
+                            z-index: 1;
+                            overflow: hidden;
+                            transition: transform 0.3s ease;
+                        }
+                        .categoria:hover {
+                            transform: scale(1.05);
+                        }
+                        .medio-padrao {
+                            background: linear-gradient(135deg, #f97316, #fb923c);
+                            color: #ffffff;
+                            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
+                        }
+                        .alto-padrao {
+                            background: linear-gradient(135deg, #9333ea, #c084fc);
+                            color: #ffffff;
+                            box-shadow: 0 8px 20px rgba(147, 51, 234, 0.4);
+                        }
+                        .info-grid {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 2rem;
+                            margin-bottom: 2rem;
                         }
                         .info-box {
-                            background: rgba(255, 255, 255, 0.9);
-                            border-radius: 15px;
+                            background: #f8fafc;
                             padding: 1.5rem;
-                            margin-bottom: 2rem;
-                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-                            border: 1px solid rgba(255, 255, 255, 0.2);
+                            border-radius: 15px;
+                            text-align: center;
+                            transition: all 0.3s ease;
+                        }
+                        .info-box:hover {
+                            transform: translateY(-5px);
+                            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
                         }
                         .info-box p {
-                            font-size: 1.1rem;
-                            color: #1e40af;
-                            margin-bottom: 0.75rem;
+                            font-size: 1rem;
+                            color: #64748b;
+                            margin-bottom: 0.5rem;
                         }
                         .info-box .valor {
-                            font-size: 1.5rem;
-                            font-weight: 600;
-                            color: #2563eb;
+                            font-size: 1.8rem;
+                            font-weight: 700;
+                            color: #0f172a;
                         }
                         .status {
                             display: inline-flex;
                             align-items: center;
-                            gap: 0.5rem;
-                            font-size: 1.2rem;
-                            font-weight: 600;
+                            font-size: 1.3rem;
+                            font-weight: 700;
                             padding: 0.75rem 2rem;
                             border-radius: 50px;
-                            background: ${lead.disponivel ? '#22c55e' : '#ef4444'};
-                            margin-bottom: 2rem;
-                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+                            margin: 0 auto 2rem;
+                            text-align: center;
+                            color: #ffffff;
+                            background: ${lead.disponivel ? 'linear-gradient(45deg, #10b981, #34d399)' : 'linear-gradient(45deg, #ef4444, #f87171)'};
+                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
                             animation: ${lead.disponivel ? 'none' : 'pulse 1.5s infinite'};
                         }
                         @keyframes pulse {
@@ -2684,28 +2683,45 @@ app.get("/:id", async (req, res) => {
                         .btn-comprar {
                             display: block;
                             width: 100%;
-                            max-width: 400px;
+                            max-width: 500px;
                             margin: 0 auto;
-                            padding: 1.25rem;
-                            font-size: 1.25rem;
-                            font-weight: 600;
+                            padding: 1.5rem;
+                            font-size: 1.5rem;
+                            font-weight: 700;
                             color: #ffffff;
-                            background: linear-gradient(45deg, #3b82f6, #1e3a8a);
+                            background: linear-gradient(45deg, #3b82f6, #1e40af);
                             border: none;
-                            border-radius: 50px;
+                            border-radius: 15px;
                             cursor: pointer;
-                            transition: all 0.3s ease;
-                            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+                            transition: all 0.4s ease;
+                            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+                            position: relative;
+                            overflow: hidden;
+                        }
+                        .btn-comprar::after {
+                            content: '';
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            width: 0;
+                            height: 0;
+                            background: rgba(255, 255, 255, 0.2);
+                            border-radius: 50%;
+                            transform: translate(-50%, -50%);
+                            transition: width 0.6s ease, height 0.6s ease;
+                        }
+                        .btn-comprar:hover:not(:disabled)::after {
+                            width: 200%;
+                            height: 200%;
                         }
                         .btn-comprar:hover:not(:disabled) {
-                            transform: translateY(-3px);
-                            box-shadow: 0 15px 30px rgba(59, 130, 246, 0.5);
-                            background: linear-gradient(45deg, #2563eb, #1e40af);
+                            transform: translateY(-5px);
+                            box-shadow: 0 15px 40px rgba(59, 130, 246, 0.5);
                         }
                         .btn-comprar:disabled {
-                            background: #64748b;
+                            background: #94a3b8;
                             cursor: not-allowed;
-                            opacity: 0.6;
+                            opacity: 0.7;
                             box-shadow: none;
                         }
                         .overlay {
@@ -2714,7 +2730,7 @@ app.get("/:id", async (req, res) => {
                             left: 0;
                             width: 100%;
                             height: 100%;
-                            background: rgba(0, 0, 0, 0.7);
+                            background: rgba(0, 0, 0, 0.8);
                             display: flex;
                             align-items: center;
                             justify-content: center;
@@ -2722,45 +2738,55 @@ app.get("/:id", async (req, res) => {
                         }
                         .overlay-card {
                             background: #ffffff;
-                            padding: 2rem;
+                            padding: 2.5rem;
                             border-radius: 20px;
-                            max-width: 450px;
+                            max-width: 500px;
                             width: 90%;
                             text-align: center;
-                            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+                        }
+                        .overlay-card p {
+                            font-size: 1.2rem;
+                            color: #0f172a;
+                            margin-bottom: 1.5rem;
                         }
                         .overlay-buttons {
                             display: flex;
                             gap: 1rem;
-                            margin-top: 1.5rem;
                         }
                         .overlay-btn {
                             flex: 1;
-                            padding: 0.75rem;
-                            border-radius: 10px;
+                            padding: 1rem;
+                            border-radius: 12px;
                             border: none;
-                            font-weight: 600;
+                            font-size: 1.1rem;
+                            font-weight: 700;
                             cursor: pointer;
                             transition: all 0.3s ease;
                         }
                         .btn-login {
-                            background: #2563eb;
+                            background: #3b82f6;
                             color: #ffffff;
                         }
                         .btn-cancel {
                             background: #e2e8f0;
-                            color: #475569;
+                            color: #64748b;
+                        }
+                        .overlay-btn:hover:not(:disabled) {
+                            transform: translateY(-3px);
+                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
                         }
                         @media (max-width: 768px) {
-                            .container { margin: 1rem; padding: 1.5rem; }
-                            .titulo-lead { font-size: 2rem; }
-                            .btn-comprar { font-size: 1.1rem; padding: 1rem; }
+                            .container { margin: 1.5rem; padding: 2rem; }
+                            .titulo-lead { font-size: 2.2rem; }
+                            .info-grid { grid-template-columns: 1fr; }
+                            .btn-comprar { font-size: 1.3rem; padding: 1.2rem; }
                         }
                         @media (max-width: 480px) {
-                            .titulo-lead { font-size: 1.5rem; }
-                            .categoria { font-size: 1rem; }
-                            .info-box .valor { font-size: 1.2rem; }
-                            .status { font-size: 1rem; padding: 0.5rem 1.5rem; }
+                            .titulo-lead { font-size: 1.8rem; }
+                            .categoria { font-size: 1.2rem; padding: 0.5rem 1.5rem; }
+                            .info-box .valor { font-size: 1.5rem; }
+                            .status { font-size: 1.1rem; }
                         }
                     </style>
                 </head>
@@ -2769,15 +2795,22 @@ app.get("/:id", async (req, res) => {
                         <img src="${logoUrl}" alt="Meu Lead Itapema Logo">
                     </header>
                     <main class="container">
+                        <p class="lead-id">Lead ${id}</p>
                         <h1 class="titulo-lead">${lead.interesse || "Lead Imobiliário"}</h1>
                         <div class="categoria ${categoriaClasse}">${categoriaTexto}</div>
-                        <div class="info-box">
-                            <p>Buscando imóvel até:</p>
-                            <p class="valor">${valorBuscado}</p>
+                        <div class="info-grid">
+                            <div class="info-box">
+                                <p>Buscando imóvel até</p>
+                                <p class="valor">${valorBuscado}</p>
+                            </div>
+                            <div class="info-box">
+                                <p>Preço do Lead</p>
+                                <p class="valor">${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                            </div>
                         </div>
                         <p class="status">${disponibilidadeTexto}</p>
                         <button class="btn-comprar" ${lead.disponivel ? '' : 'disabled'} onclick="comprarLead()">
-                            Comprar por ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            Comprar Lead
                         </button>
                     </main>
                     <script>
@@ -2788,9 +2821,7 @@ app.get("/:id", async (req, res) => {
                                 overlay.className = "overlay";
                                 overlay.innerHTML = \`
                                     <div class="overlay-card">
-                                        <p style="font-size: 1.1rem; color: #1e3a8a; margin-bottom: 1rem;">
-                                            Faça login para adquirir este lead
-                                        </p>
+                                        <p>Faça login para adquirir este lead</p>
                                         <div class="overlay-buttons">
                                             <button class="overlay-btn btn-login" onclick="window.location.href='/login?id=${id}'">
                                                 Login
