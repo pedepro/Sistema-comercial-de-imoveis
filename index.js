@@ -10,6 +10,10 @@ const app = express();
 const portHttp = 3000;
 const portWs = 3001;
 
+// Instância para lead.meuleaditapema.com.br (porta 3002)
+const appLead = express();
+const portLead = 3002;
+
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: false
@@ -17,8 +21,10 @@ const pool = new Pool({
 
 // Permite todas as origens
 app.use(cors());
+appLead.use(cors());
 
 app.use(express.json());
+appLead.use(express.json());
 
 const httpServer = app.listen(portHttp, () => {
     console.log(`Servidor HTTP rodando em http://localhost:${portHttp}`);
@@ -2804,4 +2810,139 @@ app.get("/:id", async (req, res) => {
         console.error("Erro na consulta:", err);
         res.status(500).send("Erro interno do servidor");
     }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Rota raiz para lead.meuleaditapema.com.br
+appLead.get("/", (req, res) => {
+    console.log("[Lead] Raiz acessada via lead.meuleaditapema.com.br");
+    res.send("Por favor, forneça o ID do lead na URL, ex.: https://lead.meuleaditapema.com.br/1");
+});
+
+// Rota para capturar ID em lead.meuleaditapema.com.br (porta 3002)
+appLead.get("/:id", async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const result = await pool.query(
+            `
+            SELECT 
+                c.disponivel,
+                c.interesse,
+                c.valor_lead
+            FROM clientes c
+            WHERE c.id = $1
+            `,
+            [id]
+        );
+
+        if (result.rowCount === 0) {
+            console.log(`[Lead] Lead ${id} não encontrado`);
+            return res.status(404).send("Lead não encontrado");
+        }
+
+        const lead = result.rows[0];
+        console.log(`[Lead] Dados do lead ${id}:`, lead);
+
+        const logoUrl = 'http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico';
+        const disponibilidadeTexto = lead.disponivel ? "Disponível" : "Indisponível";
+        const disponibilidadeClasse = lead.disponivel ? "disponivel" : "indisponivel";
+
+        const html = `
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>${lead.interesse || "Detalhes do Lead"}</title>
+              <meta name="description" content="Veja lead: ${lead.interesse || 'Sem interesse especificado'}, preço de ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}">
+              <meta property="og:title" content="${lead.interesse || "Lead sem título"}">
+              <meta property="og:description" content="Veja lead: ${lead.interesse || 'Sem interesse especificado'}, preço de ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}">
+              <meta property="og:image" content="${logoUrl}">
+              <meta property="og:url" content="https://lead.meuleaditapema.com.br/${id}">
+              <meta property="og:type" content="article">
+              <link rel="icon" type="image/x-icon" href="${logoUrl}">
+              <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+              <style>
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                body { font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); color: #333; line-height: 1.6; display: flex; flex-direction: column; min-height: 100vh; }
+                .header { text-align: center; padding: 20px 0; background: #fff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }
+                .header img { width: 80px; height: auto; }
+                .container { max-width: 600px; margin: 40px auto; padding: 20px; background: #fff; border-radius: 15px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); flex: 1; display: flex; flex-direction: column; justify-content: center; }
+                .titulo-lead { font-size: 28px; font-weight: 700; color: #2c3e50; text-align: center; margin-bottom: 20px; }
+                .status { font-size: 20px; font-weight: 500; text-align: center; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
+                .disponivel { background: #e6ffe6; color: #2ecc71; border: 2px solid #2ecc71; }
+                .indisponivel { background: #ffe6e6; color: #e74c3c; border: 2px solid #e74c3c; animation: pulse 2s infinite; }
+                @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+                .btn-comprar { display: block; width: 100%; max-width: 300px; margin: 0 auto; padding: 15px; font-size: 18px; font-weight: 600; color: #fff; background: #3498db; border: none; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3); }
+                .btn-comprar:hover { background: #2980b9; transform: translateY(-3px); box-shadow: 0 6px 20px rgba(52, 152, 219, 0.5); }
+                .btn-comprar:disabled { background: #bdc3c7; cursor: not-allowed; box-shadow: none; }
+                @media (max-width: 768px) { .container { margin: 20px; padding: 15px; } .titulo-lead { font-size: 24px; } .status { font-size: 18px; } .btn-comprar { font-size: 16px; padding: 12px; } }
+                @media (max-width: 480px) { .header img { width: 60px; } .titulo-lead { font-size: 20px; } .status { font-size: 16px; } .btn-comprar { font-size: 14px; padding: 10px; } }
+              </style>
+            </head>
+            <body>
+              <header class="header">
+                <img src="${logoUrl}" alt="Meu Lead Itapema Logo">
+              </header>
+              <div class="container">
+                <h1 class="titulo-lead">${lead.interesse || "Lead sem título"}</h1>
+                <p class="status ${disponibilidadeClasse}">${disponibilidadeTexto}</p>
+                <button class="btn-comprar" ${lead.disponivel ? '' : 'disabled'} onclick="comprarLead()">Comprar por ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</button>
+              </div>
+              <script>
+                function comprarLead() {
+                  const token = localStorage.getItem("token");
+                  if (!token) {
+                    const overlay = document.createElement("div");
+                    overlay.id = "notificacao-overlay";
+                    overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;";
+                    overlay.innerHTML = \`
+                      <div style="background: #fff; padding: 20px; border-radius: 10px; text-align: center; max-width: 400px; width: 90%; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">
+                        <p style="font-size: 16px; margin-bottom: 15px;">Efetue login para comprar este lead.</p>
+                        <div style="display: flex; justify-content: space-between; gap: 10px;">
+                          <button onclick="window.location.href='/login?id=${id}'" style="background: #3498db; color: #fff; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; width: 48%;">Fazer Login</button>
+                          <button onclick="document.body.removeChild(document.getElementById('notificacao-overlay'))" style="background: #ecf0f1; color: #333; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; width: 48%;">Cancelar</button>
+                        </div>
+                      </div>
+                    \`;
+                    document.body.appendChild(overlay);
+                  } else {
+                    alert("Lead comprado com sucesso! (Funcionalidade a implementar)");
+                  }
+                }
+              </script>
+            </body>
+            </html>
+        `;
+        res.send(html);
+    } catch (err) {
+        console.error("[Lead] Erro na consulta:", err);
+        res.status(500).send("Erro interno do servidor");
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+const httpServerLead = appLead.listen(portLead, () => {
+    console.log(`Servidor Lead rodando em http://localhost:${portLead}`);
 });
