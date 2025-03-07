@@ -1894,7 +1894,7 @@ app.post('/criar-pedido', async (req, res) => {
 
 
 // Rota para a raiz do subdomínio (opcional, caso acesse sem ID)
-app.get("/", (req, res) => {
+app.get("eu/", (req, res) => {
     console.log("Acessando raiz do subdomínio, redirecionando para uma página padrão ou instrução");
     res.send("Por favor, forneça o ID do imóvel na URL, ex.: https://imovel.meuleaditapema.com.br/1");
 });
@@ -2461,6 +2461,382 @@ app.get("/:id", async (req, res) => {
         res.send(html);
     } catch (err) {
         console.error("Erro na consulta do imóvel:", err);
+        res.status(500).send("Erro interno do servidor");
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Middleware para verificar o domínio
+app.use((req, res, next) => {
+    const host = req.headers.host || '';
+    req.isLeadDomain = host.includes('lead.meuleaditapema.com.br');
+    req.isImovelDomain = host.includes('imovel.meuleaditapema.com.br');
+    next();
+});
+
+// Rota para a raiz do subdomínio (opcional, caso acesse sem ID)
+app.get("/", (req, res) => {
+    if (req.isLeadDomain) {
+        console.log("Acessando raiz do subdomínio de leads");
+        res.send("Por favor, forneça o ID do lead na URL, ex.: https://lead.meuleaditapema.com.br/1");
+    } else if (req.isImovelDomain) {
+        console.log("Acessando raiz do subdomínio de imóveis");
+        res.send("Por favor, forneça o ID do imóvel na URL, ex.: https://imovel.meuleaditapema.com.br/1");
+    } else {
+        console.log("Acessando domínio não reconhecido na raiz");
+        res.send("Bem-vindo ao Meu Lead Itapema! Use imovel.meuleaditapema.com.br ou lead.meuleaditapema.com.br");
+    }
+});
+
+// Rota para capturar o ID diretamente no subdomínio (ex.: /1)
+app.get("/:id", async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        if (req.isImovelDomain) {
+            // Lógica para imóveis
+            const result = await pool.query(
+                `
+                SELECT 
+                    i.*, 
+                    COALESCE(
+                        (SELECT json_agg(json_build_object(
+                            'id', images.id,
+                            'url', url,
+                            'livre', livre,
+                            'afiliados', afiliados,
+                            'compradores', compradores
+                        ))
+                         FROM images 
+                         WHERE images.imovel = i.id), 
+                        '[]'::json
+                    ) AS imagens
+                FROM imoveis i
+                WHERE i.id = $1
+                `,
+                [id]
+            );
+
+            if (result.rowCount === 0) {
+                return res.status(404).send("Imóvel não encontrado");
+            }
+
+            const imovel = result.rows[0];
+            console.log(`Dados do imóvel ${id}:`, imovel);
+            console.log(`Imagens do imóvel ${id}:`, imovel.imagens);
+
+            const imagens = Array.isArray(imovel.imagens) ? imovel.imagens : [];
+            const primeiraImagem = imagens.length > 0 ? imagens[0].url : 'http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico';
+
+            const html = `
+                <!DOCTYPE html>
+                <html lang="pt-BR">
+                <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>${imovel.texto_principal || "Detalhes do Imóvel"}</title>
+                  <meta property="og:title" content="${imovel.texto_principal || "Imóvel sem título"}">
+                  <meta property="og:description" content="${imovel.descricao || "Sem descrição disponível"}">
+                  <meta property="og:image" content="${primeiraImagem}">
+                  <meta property="og:url" content="https://imovel.meuleaditapema.com.br/${id}">
+                  <meta property="og:type" content="article">
+                  <link rel="icon" type="image/x-icon" href="http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico">
+                  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+                  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+                  <style>
+                    * { box-sizing: border-box; margin: 0; padding: 0; }
+                    body { font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif; background-color: #F0F2F5; color: #1C1E21; line-height: 1.6; }
+                    .slider-container { position: relative; width: 100%; max-height: 60vh; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
+                    .slider { display: flex; transition: transform 0.3s ease; width: 100%; }
+                    .slider img { width: 100vw; height: 60vh; object-fit: cover; flex-shrink: 0; }
+                    .slider-arrow { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0, 0, 0, 0.5); color: white; border: none; padding: 15px; font-size: 30px; cursor: pointer; z-index: 10; transition: background 0.2s ease; display: none; }
+                    .slider-arrow:hover { background: rgba(0, 0, 0, 0.8); }
+                    .slider-arrow.left { left: 10px; }
+                    .slider-arrow.right { right: 10px; }
+                    .slider-dots { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
+                    .dot { width: 10px; height: 10px; background: rgba(255, 255, 255, 0.5); border-radius: 50%; cursor: pointer; transition: background 0.2s ease; }
+                    .dot.active { background: white; }
+                    .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+                    .detalhes-imovel { border-radius: 8px; transition: all 0.2s ease; }
+                    .titulo-imovel { font-size: 32px; color: #1C1E21; margin-bottom: 16px; font-weight: 600; }
+                    .preco-imovel { font-size: 24px; font-weight: 600; color: #1877F2; margin: 12px 0; }
+                    .tipo-imovel { font-size: 16px; color: #60697B; margin: 8px 0; font-weight: 500; }
+                    .localizacao-imovel { font-size: 16px; color: #60697B; margin: 16px 0 20px; font-weight: 500; }
+                    .descricao-imovel, .negociacao-imovel { margin: 20px 0; font-size: 16px; color: #60697B; line-height: 1.8; }
+                    .descricao-imovel strong, .negociacao-imovel strong { font-weight: 700; color: #1C1E21; }
+                    .detalhes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 16px; margin: 20px 0; }
+                    .detalhe-item { background-color: #FFFFFF; border: 1px solid #E9ECEF; border-radius: 6px; padding: 12px; text-align: center; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+                    .detalhe-item:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+                    .material-icons { font-size: 24px; color: #1877F2; margin-bottom: 4px; display: block; }
+                    .detalhe-descricao { font-size: 12px; color: #60697B; margin-bottom: 4px; font-weight: 500; }
+                    .detalhe-valor { font-size: 16px; color: #1C1E21; font-weight: 500; }
+                    .botoes-container { display: flex; flex-direction: column; gap: 16px; margin-top: 24px; text-align: center; }
+                    .btn { display: inline-block; padding: 12px 24px; font-size: 16px; font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif; color: #FFFFFF; background-color: #1877F2; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s ease, transform 0.2s ease; width: 100%; max-width: 350px; align-self: center; }
+                    .btn:hover { background-color: #166FE5; transform: translateY(-2px); }
+                    .btn-secundario { background-color: #42B72A; }
+                    .btn-secundario:hover { background-color: #36A420; }
+                    .info-conectar, .info-afiliar { font-size: 14px; color: #60697B; margin-top: 8px; font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif; line-height: 1.5; }
+                    #notificacao-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+                    .notificacao { background: #FFFFFF; padding: 24px; border-radius: 8px; text-align: center; max-width: 400px; width: 90%; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+                    .notificacao p { font-size: 16px; margin-bottom: 16px; color: #1C1E21; font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif; }
+                    .botoes { display: flex; justify-content: space-between; gap: 12px; }
+                    .notificacao-btn-azul { background: #1877F2; color: white; padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; width: 48%; transition: background-color 0.2s ease, transform 0.2s ease; }
+                    .notificacao-btn-azul:hover { background-color: #166FE5; transform: translateY(-2px); }
+                    .notificacao-btn-cinza { background: #E9ECEF; color: #1C1E21; padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; width: 48%; transition: background-color 0.2s ease, transform 0.2s ease; }
+                    .notificacao-btn-cinza:hover { background-color: #D1D5DB; transform: translateY(-2px); }
+                    @media (max-width: 768px) {
+                      .slider-container { max-height: 50vh; }
+                      .slider img { height: 50vh; }
+                      .container { margin: 16px auto; padding: 0 16px; }
+                      .detalhes-imovel { padding: 16px; }
+                      .titulo-imovel { font-size: 28px; }
+                      .preco-imovel { font-size: 20px; }
+                      .tipo-imovel, .localizacao-imovel, .descricao-imovel, .negociacao-imovel { font-size: 14px; }
+                      .detalhes-grid { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; }
+                      .btn { padding: 10px 20px; font-size: 14px; max-width: 100%; }
+                      .notificacao { padding: 16px; max-width: 350px; }
+                      .notificacao p { font-size: 14px; }
+                    }
+                    @media (max-width: 480px) {
+                      .slider-container { max-height: 40vh; }
+                      .slider img { height: 40vh; }
+                      .titulo-imovel { font-size: 24px; }
+                      .preco-imovel { font-size: 18px; }
+                      .tipo-imovel, .localizacao-imovel, .descricao-imovel, .negociacao-imovel { font-size: 12px; }
+                      .detalhes-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+                      .detalhe-item { padding: 10px; }
+                      .material-icons { font-size: 20px; }
+                      .detalhe-descricao { font-size: 10px; }
+                      .detalhe-valor { font-size: 14px; }
+                      .btn { padding: 8px 16px; font-size: 12px; }
+                      .info-conectar, .info-afiliar { font-size: 12px; }
+                    }
+                  </style>
+                </head>
+                <body>
+                  <div class="slider-container" id="slider-container">
+                    <button class="slider-arrow left" id="prev-arrow">‹</button>
+                    <div class="slider" id="slider-imagens">
+                      ${imagens.length > 0 ? imagens.map(img => `<img src="${img.url}" alt="Imagem do Imóvel" loading="lazy">`).join('') : '<img src="https://source.unsplash.com/400x300/?house" alt="Imagem padrão" loading="lazy">'}
+                    </div>
+                    <button class="slider-arrow right" id="next-arrow">›</button>
+                    <div class="slider-dots" id="slider-dots">${imagens.length > 0 ? imagens.map((_, i) => `<div class="dot${i === 0 ? ' active' : ''}"></div>`).join('') : '<div class="dot active"></div>'}</div>
+                  </div>
+                  <div class="container" id="detalhes-imovel-container">
+                    <div class="detalhes-imovel" id="detalhes-imovel">
+                      <h1 class="titulo-imovel">${imovel.texto_principal || "Imóvel sem título"}</h1>
+                      <p class="preco-imovel">${parseFloat(imovel.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                      <p class="tipo-imovel">${imovel.tipo || 'Não informado'}</p>
+                      <p class="localizacao-imovel">Localização: ${imovel.endereco || 'Não informado'}</p>
+                      <p class="descricao-imovel"><strong>Descrição:</strong> ${imovel.descricao || 'Sem descrição'}</p>
+                      <p class="negociacao-imovel"><strong>Descrição da negociação:</strong> ${imovel.descricao_negociacao || 'Sem descrição de negociação'}</p>
+                      <div class="detalhes-grid">
+                        <div class="detalhe-item"><span class="material-icons">square_foot</span><span class="detalhe-descricao">Área</span><span class="detalhe-valor">${imovel.metros_quadrados || 0} m²</span></div>
+                        <div class="detalhe-item"><span class="material-icons">king_bed</span><span class="detalhe-descricao">Quartos</span><span class="detalhe-valor">${imovel.quartos || 0}</span></div>
+                        <div class="detalhe-item"><span class="material-icons">bathtub</span><span class="detalhe-descricao">Banheiros</span><span class="detalhe-valor">${imovel.banheiros || 0}</span></div>
+                        <div class="detalhe-item"><span class="material-icons">directions_car</span><span class="detalhe-descricao">Vagas</span><span class="detalhe-valor">${imovel.vagas_garagem || 0}</span></div>
+                        <div class="detalhe-item"><span class="material-icons">layers</span><span class="detalhe-descricao">Andar</span><span class="detalhe-valor">${imovel.andar || 'Não informado'}</span></div>
+                        <div class="detalhe-item"><span class="material-icons">chair</span><span class="detalhe-descricao">Mobiliado</span><span class="detalhe-valor">${imovel.mobiliado ? "Sim" : "Não"}</span></div>
+                      </div>
+                      <div class="botoes-container">
+                        <button id="btn-conectar" class="btn btn-secundario">Conectar-se por R$ ${Number(imovel.price_contato || 39.90).toFixed(2).replace('.', ',')}</button>
+                        <p class="info-conectar">Ao pagar R$ ${Number(imovel.price_contato || 39.90).toFixed(2).replace('.', ',')}, você será conectado diretamente com o proprietário.</p>
+                        <button id="btn-afiliar" class="btn">Afiliar-se</button>
+                        <p class="info-afiliar">Receba atualizações sobre este imóvel.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <script>
+                    document.addEventListener("DOMContentLoaded", () => {
+                      const slider = document.getElementById("slider-imagens");
+                      const prevArrow = document.getElementById("prev-arrow");
+                      const nextArrow = document.getElementById("next-arrow");
+                      const dotsContainer = document.getElementById("slider-dots");
+                      const totalSlides = ${imagens.length || 1};
+                      let currentSlide = 0;
+
+                      function updateSlider() {
+                        slider.style.transform = \`translateX(-\${currentSlide * 100}vw)\`;
+                        document.querySelectorAll(".dot").forEach((dot, index) => dot.classList.toggle("active", index === currentSlide));
+                        prevArrow.style.display = currentSlide === 0 ? "none" : "block";
+                        nextArrow.style.display = currentSlide === totalSlides - 1 ? "none" : "block";
+                      }
+
+                      function goToSlide(index) {
+                        currentSlide = Math.max(0, Math.min(index, totalSlides - 1));
+                        updateSlider();
+                      }
+
+                      prevArrow.addEventListener("click", () => { if (currentSlide > 0) { currentSlide--; updateSlider(); } });
+                      nextArrow.addEventListener("click", () => { if (currentSlide < totalSlides - 1) { currentSlide++; updateSlider(); } });
+                      dotsContainer.addEventListener("click", (e) => {
+                        const dot = e.target.closest(".dot");
+                        if (dot) goToSlide(Array.from(dotsContainer.children).indexOf(dot));
+                      });
+
+                      updateSlider();
+
+                      function verificarLogin(acao) {
+                        const token = localStorage.getItem("token");
+                        if (!token) { exibirNotificacao(acao); return false; }
+                        return true;
+                      }
+
+                      function exibirNotificacao(acao) {
+                        const mensagem = acao === "afiliar-se" ? "Efetue Login para afiliar-se." : "Efetue Login para conectar-se.";
+                        const overlay = document.createElement("div");
+                        overlay.id = "notificacao-overlay";
+                        overlay.innerHTML = \`
+                          <div class="notificacao">
+                            <p>\${mensagem}</p>
+                            <div class="botoes">
+                              <button id="notificacao-btn-login" class="notificacao-btn-azul">Fazer Login</button>
+                              <button id="notificacao-btn-cancelar" class="notificacao-btn-cinza">Cancelar</button>
+                            </div>
+                          </div>
+                        \`;
+                        document.body.appendChild(overlay);
+
+                        document.getElementById("notificacao-btn-login").addEventListener("click", () => window.location.href = "/login?id=${id}");
+                        document.getElementById("notificacao-btn-cancelar").addEventListener("click", () => document.body.removeChild(overlay));
+                      }
+
+                      document.getElementById("btn-afiliar").addEventListener("click", () => { if (verificarLogin("afiliar-se")) console.log("Afiliado com sucesso!"); });
+                      document.getElementById("btn-conectar").addEventListener("click", () => { if (verificarLogin("conectar")) console.log("Conectado com sucesso!"); });
+                    });
+                  </script>
+                </body>
+                </html>
+            `;
+            res.send(html);
+        } else if (req.isLeadDomain) {
+            // Lógica para leads
+            const result = await pool.query(
+                `
+                SELECT 
+                    c.disponivel,
+                    c.interesse,
+                    c.valor_lead
+                FROM clientes c
+                WHERE c.id = $1
+                `,
+                [id]
+            );
+
+            if (result.rowCount === 0) {
+                return res.status(404).send("Lead não encontrado");
+            }
+
+            const lead = result.rows[0];
+            console.log(`Dados do lead ${id}:`, lead);
+
+            const logoUrl = 'http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico';
+            const disponibilidadeTexto = lead.disponivel ? "Disponível" : "Indisponível";
+            const disponibilidadeClasse = lead.disponivel ? "disponivel" : "indisponivel";
+
+            const html = `
+                <!DOCTYPE html>
+                <html lang="pt-BR">
+                <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>${lead.interesse || "Detalhes do Lead"}</title>
+                  <meta name="description" content="Veja lead: ${lead.interesse || 'Sem interesse especificado'}, preço de ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}">
+                  <meta property="og:title" content="${lead.interesse || "Lead sem título"}">
+                  <meta property="og:description" content="Veja lead: ${lead.interesse || 'Sem interesse especificado'}, preço de ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}">
+                  <meta property="og:image" content="${logoUrl}">
+                  <meta property="og:url" content="https://lead.meuleaditapema.com.br/${id}">
+                  <meta property="og:type" content="article">
+                  <link rel="icon" type="image/x-icon" href="${logoUrl}">
+                  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+                  <style>
+                    * { box-sizing: border-box; margin: 0; padding: 0; }
+                    body { font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); color: #333; line-height: 1.6; display: flex; flex-direction: column; min-height: 100vh; }
+                    .header { text-align: center; padding: 20px 0; background: #fff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }
+                    .header img { width: 80px; height: auto; }
+                    .container { max-width: 600px; margin: 40px auto; padding: 20px; background: #fff; border-radius: 15px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); flex: 1; display: flex; flex-direction: column; justify-content: center; }
+                    .titulo-lead { font-size: 28px; font-weight: 700; color: #2c3e50; text-align: center; margin-bottom: 20px; }
+                    .status { font-size: 20px; font-weight: 500; text-align: center; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
+                    .disponivel { background: #e6ffe6; color: #2ecc71; border: 2px solid #2ecc71; }
+                    .indisponivel { background: #ffe6e6; color: #e74c3c; border: 2px solid #e74c3c; animation: pulse 2s infinite; }
+                    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+                    .btn-comprar { display: block; width: 100%; max-width: 300px; margin: 0 auto; padding: 15px; font-size: 18px; font-weight: 600; color: #fff; background: #3498db; border: none; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3); }
+                    .btn-comprar:hover { background: #2980b9; transform: translateY(-3px); box-shadow: 0 6px 20px rgba(52, 152, 219, 0.5); }
+                    .btn-comprar:disabled { background: #bdc3c7; cursor: not-allowed; box-shadow: none; }
+                    @media (max-width: 768px) {
+                      .container { margin: 20px; padding: 15px; }
+                      .titulo-lead { font-size: 24px; }
+                      .status { font-size: 18px; }
+                      .btn-comprar { font-size: 16px; padding: 12px; }
+                    }
+                    @media (max-width: 480px) {
+                      .header img { width: 60px; }
+                      .titulo-lead { font-size: 20px; }
+                      .status { font-size: 16px; }
+                      .btn-comprar { font-size: 14px; padding: 10px; }
+                    }
+                  </style>
+                </head>
+                <body>
+                  <header class="header">
+                    <img src="${logoUrl}" alt="Meu Lead Itapema Logo">
+                  </header>
+                  <div class="container">
+                    <h1 class="titulo-lead">${lead.interesse || "Lead sem título"}</h1>
+                    <p class="status ${disponibilidadeClasse}">${disponibilidadeTexto}</p>
+                    <button class="btn-comprar" ${lead.disponivel ? '' : 'disabled'} onclick="comprarLead()">Comprar por ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</button>
+                  </div>
+                  <script>
+                    function comprarLead() {
+                      const token = localStorage.getItem("token");
+                      if (!token) {
+                        const overlay = document.createElement("div");
+                        overlay.id = "notificacao-overlay";
+                        overlay.style.cssText = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;";
+                        overlay.innerHTML = \`
+                          <div style="background: #fff; padding: 20px; border-radius: 10px; text-align: center; max-width: 400px; width: 90%; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">
+                            <p style="font-size: 16px; margin-bottom: 15px;">Efetue login para comprar este lead.</p>
+                            <div style="display: flex; justify-content: space-between; gap: 10px;">
+                              <button onclick="window.location.href='/login?id=${id}'" style="background: #3498db; color: #fff; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; width: 48%;">Fazer Login</button>
+                              <button onclick="document.body.removeChild(document.getElementById('notificacao-overlay'))" style="background: #ecf0f1; color: #333; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; width: 48%;">Cancelar</button>
+                            </div>
+                          </div>
+                        \`;
+                        document.body.appendChild(overlay);
+                      } else {
+                        alert("Lead comprado com sucesso! (Funcionalidade a implementar)");
+                      }
+                    }
+                  </script>
+                </body>
+                </html>
+            `;
+            res.send(html);
+        } else {
+            res.status(400).send("Domínio não reconhecido");
+        }
+    } catch (err) {
+        console.error("Erro na consulta:", err);
         res.status(500).send("Erro interno do servidor");
     }
 });
