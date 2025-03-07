@@ -2545,23 +2545,27 @@ app.get("/:id", async (req, res) => {
                     <meta property="og:url" content="https://lead.meuleaditapema.com.br/${id}">
                     <meta property="og:type" content="article">
                     <link rel="icon" type="image/x-icon" href="${logoUrl}">
-                    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+                    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
                     <style>
                         * { margin: 0; padding: 0; box-sizing: border-box; }
                         body {
-                            font-family: 'Roboto', sans-serif;
-                            background: #f9fafb;
+                            font-family: 'Poppins', sans-serif;
+                            background: linear-gradient(135deg, #f3f4f6, #e0e7ff);
                             color: #1e293b;
                             min-height: 100vh;
-                            padding: 1rem;
+                            display: flex;
+                            flex-direction: column;
+                            padding: 0 1rem;
                         }
                         .header {
                             display: flex;
                             align-items: center;
-                            padding: 1rem;
-                            background: #ffffff;
+                            padding: 1.5rem 1rem;
+                            background: rgba(255, 255, 255, 0.9);
                             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-                            margin-bottom: 2rem;
+                            margin-bottom: 1rem;
+                            border-bottom-left-radius: 15px;
+                            border-bottom-right-radius: 15px;
                         }
                         .header img {
                             width: 40px;
@@ -2571,73 +2575,93 @@ app.get("/:id", async (req, res) => {
                             font-size: 1.5rem;
                             font-weight: 700;
                             color: #3b82f6;
+                            text-transform: uppercase;
                         }
                         .container {
+                            flex: 1;
                             max-width: 600px;
                             margin: 0 auto;
                             background: #ffffff;
-                            border-radius: 15px;
-                            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-                            padding: 1.5rem;
+                            border-radius: 20px;
+                            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+                            padding: 2rem;
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: space-between;
+                            min-height: 80vh;
                         }
                         .lead-id {
                             font-size: 1rem;
                             color: #64748b;
                             margin-bottom: 0.5rem;
+                            text-align: center;
                         }
                         .titulo-lead {
-                            font-size: 1.8rem;
+                            font-size: 2.2rem;
                             font-weight: 700;
                             color: #1e293b;
-                            margin-bottom: 1rem;
+                            text-align: center;
+                            margin-bottom: 1.5rem;
+                            line-height: 1.2;
                         }
                         .categoria {
                             display: inline-block;
-                            font-size: 0.9rem;
-                            font-weight: 700;
-                            padding: 0.25rem 0.75rem;
-                            border-radius: 10px;
+                            font-size: 1rem;
+                            font-weight: 600;
+                            padding: 0.5rem 1rem;
+                            border-radius: 12px;
                             background: ${categoriaCor};
                             color: #ffffff;
-                            margin-bottom: 1rem;
+                            margin-bottom: 1.5rem;
+                            text-align: center;
+                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
                         }
                         .valor-buscado {
-                            font-size: 1.2rem;
-                            font-weight: 700;
+                            font-size: 1.5rem;
+                            font-weight: 600;
                             color: #3b82f6;
-                            margin-bottom: 1rem;
+                            text-align: center;
+                            margin-bottom: 1.5rem;
                         }
                         .status {
-                            font-size: 1rem;
-                            font-weight: 700;
-                            padding: 0.5rem 1rem;
-                            border-radius: 10px;
+                            font-size: 1.1rem;
+                            font-weight: 600;
+                            padding: 0.75rem 1.5rem;
+                            border-radius: 12px;
                             background: ${lead.disponivel ? '#22c55e' : '#ef4444'};
                             color: #ffffff;
                             display: inline-block;
-                            margin-bottom: 1.5rem;
+                            text-align: center;
+                            margin-bottom: 2rem;
+                            transition: transform 0.3s ease;
+                        }
+                        .status:hover {
+                            transform: scale(1.05);
                         }
                         .btn-comprar {
                             display: block;
                             width: 100%;
-                            padding: 0.75rem;
-                            font-size: 1.1rem;
+                            padding: 1rem;
+                            font-size: 1.2rem;
                             font-weight: 700;
                             color: #ffffff;
-                            background: #3b82f6;
+                            background: linear-gradient(90deg, #3b82f6, #2563eb);
                             border: none;
-                            border-radius: 10px;
+                            border-radius: 12px;
                             cursor: pointer;
-                            transition: background 0.3s ease;
-                            margin-bottom: 1rem;
+                            transition: all 0.3s ease;
+                            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+                            margin-top: auto;
                         }
                         .btn-comprar:hover:not(:disabled) {
-                            background: #2563eb;
+                            transform: translateY(-3px);
+                            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.5);
                         }
                         .btn-comprar:disabled {
                             background: #94a3b8;
                             cursor: not-allowed;
                             opacity: 0.7;
+                            box-shadow: none;
                         }
                         .overlay {
                             position: fixed;
@@ -2645,7 +2669,7 @@ app.get("/:id", async (req, res) => {
                             left: 0;
                             width: 100%;
                             height: 100%;
-                            background: rgba(0, 0, 0, 0.5);
+                            background: rgba(0, 0, 0, 0.7);
                             display: flex;
                             align-items: center;
                             justify-content: center;
@@ -2653,26 +2677,30 @@ app.get("/:id", async (req, res) => {
                         }
                         .overlay-card {
                             background: #ffffff;
-                            padding: 1.5rem;
+                            padding: 2rem;
                             border-radius: 15px;
                             max-width: 400px;
                             width: 90%;
                             text-align: center;
-                            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+                            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                        }
+                        .overlay-card p {
+                            font-size: 1.1rem;
+                            color: #1e293b;
+                            margin-bottom: 1.5rem;
                         }
                         .overlay-buttons {
                             display: flex;
                             gap: 1rem;
-                            margin-top: 1rem;
                         }
                         .overlay-btn {
                             flex: 1;
                             padding: 0.75rem;
                             border-radius: 10px;
                             border: none;
-                            font-weight: 700;
+                            font-weight: 600;
                             cursor: pointer;
-                            transition: background 0.3s ease;
+                            transition: all 0.3s ease;
                         }
                         .btn-login {
                             background: #3b82f6;
@@ -2683,12 +2711,15 @@ app.get("/:id", async (req, res) => {
                             color: #64748b;
                         }
                         .overlay-btn:hover:not(:disabled) {
-                            opacity: 0.9;
+                            transform: translateY(-2px);
+                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
                         }
                         @media (max-width: 480px) {
-                            .container { padding: 1rem; }
-                            .titulo-lead { font-size: 1.5rem; }
-                            .btn-comprar { font-size: 1rem; }
+                            .container { padding: 1.5rem; min-height: 90vh; }
+                            .titulo-lead { font-size: 1.8rem; }
+                            .valor-buscado { font-size: 1.3rem; }
+                            .status { font-size: 1rem; padding: 0.5rem 1rem; }
+                            .btn-comprar { font-size: 1.1rem; }
                         }
                     </style>
                 </head>
