@@ -2510,7 +2510,13 @@ app.get("/:id", async (req, res) => {
                     c.interesse,
                     c.valor_lead,
                     c.categoria,
-                    c.valor
+                    c.valor,
+                    c.area_m2,
+                    c.quartos,
+                    c.banheiros,
+                    c.vagas,
+                    c.andar,
+                    c.mobiliado
                 FROM clientes c
                 WHERE c.id = $1
                 `,
@@ -2526,10 +2532,10 @@ app.get("/:id", async (req, res) => {
             console.log(`Dados do lead ${id}:`, lead);
 
             const logoUrl = 'http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico';
-            const disponibilidadeTexto = lead.disponivel ? "Disponível" : "Indisponível";
             const categoriaTexto = lead.categoria === 1 ? "Médio Padrão" : "Alto Padrão";
-            const categoriaClasse = lead.categoria === 1 ? "medio-padrao" : "alto-padrao";
+            const categoriaCor = lead.categoria === 1 ? '#60a5fa' : '#f59e0b';
             const valorBuscado = parseFloat(lead.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            const disponibilidadeTexto = lead.disponivel ? "Disponível" : "Indisponível";
 
             const html = `
                 <!DOCTYPE html>
@@ -2545,184 +2551,118 @@ app.get("/:id", async (req, res) => {
                     <meta property="og:url" content="https://lead.meuleaditapema.com.br/${id}">
                     <meta property="og:type" content="article">
                     <link rel="icon" type="image/x-icon" href="${logoUrl}">
-                    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+                    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
                     <style>
                         * { margin: 0; padding: 0; box-sizing: border-box; }
                         body {
-                            font-family: 'Montserrat', sans-serif;
-                            background: #f5f5f5;
-                            color: #0f172a;
+                            font-family: 'Roboto', sans-serif;
+                            background: #f9fafb;
+                            color: #1e293b;
                             min-height: 100vh;
-                            overflow-x: hidden;
-                            position: relative;
-                        }
-                        body::before {
-                            content: '';
-                            position: absolute;
-                            top: 0;
-                            left: 0;
-                            width: 100%;
-                            height: 100%;
-                            background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"%3E%3Cpath fill="%23e2e8f0" fill-opacity="0.3" d="M0,224L48,213.3C96,203,192,181,288,160C384,139,480,117,576,122.7C672,128,768,160,864,170.7C960,181,1056,171,1152,149.3C1248,128,1344,96,1392,80L1440,64L1440,0L1392,0C1344,0,1296,0,1248,0C1200,0,1152,0,1104,0C1056,0,1008,0,960,0C912,0,864,0,816,0C768,0,720,0,672,0C624,0,576,0,528,0C480,0,432,0,384,0C336,0,288,0,240,0C192,0,144,0,96,0C48,0,0,0,0,0Z"%3E%3C/path%3E%3C/svg%3E') no-repeat top;
-                            z-index: -1;
+                            padding: 1rem;
                         }
                         .header {
-                            padding: 1.5rem;
-                            text-align: center;
+                            display: flex;
+                            align-items: center;
+                            padding: 1rem;
                             background: #ffffff;
                             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+                            margin-bottom: 2rem;
                         }
                         .header img {
-                            width: 60px;
-                            transition: transform 0.3s ease;
+                            width: 40px;
+                            margin-right: 0.5rem;
                         }
-                        .header img:hover {
-                            transform: scale(1.1);
-                        }
-                        .container {
-                            max-width: 900px;
-                            margin: 3rem auto;
-                            padding: 3rem;
-                            background: #ffffff;
-                            border-radius: 30px;
-                            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
-                            position: relative;
-                            overflow: hidden;
-                        }
-                        .lead-id {
-                            font-size: 1.2rem;
-                            font-weight: 400;
-                            color: #64748b;
-                            text-align: center;
-                            margin-bottom: 0.5rem;
-                            letter-spacing: 1px;
-                        }
-                        .titulo-lead {
-                            font-size: 2.8rem;
-                            font-weight: 900;
-                            color: #0f172a;
-                            text-align: center;
-                            margin-bottom: 1.5rem;
-                            background: linear-gradient(90deg, #3b82f6, #10b981);
-                            -webkit-background-clip: text;
-                            background-clip: text;
-                            color: transparent;
-                        }
-                        .categoria {
-                            display: flex;
-                            justify-content: center;
+                        .header h1 {
                             font-size: 1.5rem;
                             font-weight: 700;
-                            padding: 0.75rem 2rem;
-                            border-radius: 12px;
-                            margin-bottom: 2rem;
-                            position: relative;
-                            z-index: 1;
-                            overflow: hidden;
-                            transition: transform 0.3s ease;
+                            color: #3b82f6;
                         }
-                        .categoria:hover {
-                            transform: scale(1.05);
-                        }
-                        .medio-padrao {
-                            background: linear-gradient(135deg, #f97316, #fb923c);
-                            color: #ffffff;
-                            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
-                        }
-                        .alto-padrao {
-                            background: linear-gradient(135deg, #9333ea, #c084fc);
-                            color: #ffffff;
-                            box-shadow: 0 8px 20px rgba(147, 51, 234, 0.4);
-                        }
-                        .info-grid {
-                            display: grid;
-                            grid-template-columns: 1fr 1fr;
-                            gap: 2rem;
-                            margin-bottom: 2rem;
-                        }
-                        .info-box {
-                            background: #f8fafc;
-                            padding: 1.5rem;
+                        .container {
+                            max-width: 600px;
+                            margin: 0 auto;
+                            background: #ffffff;
                             border-radius: 15px;
-                            text-align: center;
-                            transition: all 0.3s ease;
+                            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                            padding: 1.5rem;
                         }
-                        .info-box:hover {
-                            transform: translateY(-5px);
-                            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
-                        }
-                        .info-box p {
+                        .lead-id {
                             font-size: 1rem;
                             color: #64748b;
                             margin-bottom: 0.5rem;
                         }
-                        .info-box .valor {
+                        .titulo-lead {
                             font-size: 1.8rem;
                             font-weight: 700;
-                            color: #0f172a;
+                            color: #1e293b;
+                            margin-bottom: 1rem;
+                        }
+                        .categoria {
+                            display: inline-block;
+                            font-size: 0.9rem;
+                            font-weight: 700;
+                            padding: 0.25rem 0.75rem;
+                            border-radius: 10px;
+                            background: ${categoriaCor};
+                            color: #ffffff;
+                            margin-bottom: 1rem;
+                        }
+                        .info-grid {
+                            display: grid;
+                            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+                            gap: 0.5rem;
+                            margin-bottom: 1rem;
+                        }
+                        .info-card {
+                            background: #f1f5f9;
+                            border-radius: 10px;
+                            padding: 0.5rem;
+                            text-align: center;
+                            font-size: 0.9rem;
+                            color: #1e293b;
+                        }
+                        .info-card i {
+                            font-size: 1.2rem;
+                            margin-bottom: 0.25rem;
+                            color: #3b82f6;
+                        }
+                        .valor-buscado {
+                            font-size: 1.2rem;
+                            font-weight: 700;
+                            color: #3b82f6;
+                            margin-bottom: 1rem;
                         }
                         .status {
-                            display: inline-flex;
-                            align-items: center;
-                            font-size: 1.3rem;
+                            font-size: 1rem;
                             font-weight: 700;
-                            padding: 0.75rem 2rem;
-                            border-radius: 50px;
-                            margin: 0 auto 2rem;
-                            text-align: center;
+                            padding: 0.5rem 1rem;
+                            border-radius: 10px;
+                            background: ${lead.disponivel ? '#22c55e' : '#ef4444'};
                             color: #ffffff;
-                            background: ${lead.disponivel ? 'linear-gradient(45deg, #10b981, #34d399)' : 'linear-gradient(45deg, #ef4444, #f87171)'};
-                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-                            animation: ${lead.disponivel ? 'none' : 'pulse 1.5s infinite'};
-                        }
-                        @keyframes pulse {
-                            0% { transform: scale(1); }
-                            50% { transform: scale(1.05); }
-                            100% { transform: scale(1); }
+                            display: inline-block;
+                            margin-bottom: 1.5rem;
                         }
                         .btn-comprar {
                             display: block;
                             width: 100%;
-                            max-width: 500px;
-                            margin: 0 auto;
-                            padding: 1.5rem;
-                            font-size: 1.5rem;
+                            padding: 0.75rem;
+                            font-size: 1.1rem;
                             font-weight: 700;
                             color: #ffffff;
-                            background: linear-gradient(45deg, #3b82f6, #1e40af);
+                            background: #3b82f6;
                             border: none;
-                            border-radius: 15px;
+                            border-radius: 10px;
                             cursor: pointer;
-                            transition: all 0.4s ease;
-                            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
-                            position: relative;
-                            overflow: hidden;
-                        }
-                        .btn-comprar::after {
-                            content: '';
-                            position: absolute;
-                            top: 50%;
-                            left: 50%;
-                            width: 0;
-                            height: 0;
-                            background: rgba(255, 255, 255, 0.2);
-                            border-radius: 50%;
-                            transform: translate(-50%, -50%);
-                            transition: width 0.6s ease, height 0.6s ease;
-                        }
-                        .btn-comprar:hover:not(:disabled)::after {
-                            width: 200%;
-                            height: 200%;
+                            transition: background 0.3s ease;
+                            margin-bottom: 1rem;
                         }
                         .btn-comprar:hover:not(:disabled) {
-                            transform: translateY(-5px);
-                            box-shadow: 0 15px 40px rgba(59, 130, 246, 0.5);
+                            background: #2563eb;
                         }
                         .btn-comprar:disabled {
                             background: #94a3b8;
                             cursor: not-allowed;
                             opacity: 0.7;
-                            box-shadow: none;
                         }
                         .overlay {
                             position: fixed;
@@ -2730,7 +2670,7 @@ app.get("/:id", async (req, res) => {
                             left: 0;
                             width: 100%;
                             height: 100%;
-                            background: rgba(0, 0, 0, 0.8);
+                            background: rgba(0, 0, 0, 0.5);
                             display: flex;
                             align-items: center;
                             justify-content: center;
@@ -2738,31 +2678,26 @@ app.get("/:id", async (req, res) => {
                         }
                         .overlay-card {
                             background: #ffffff;
-                            padding: 2.5rem;
-                            border-radius: 20px;
-                            max-width: 500px;
+                            padding: 1.5rem;
+                            border-radius: 15px;
+                            max-width: 400px;
                             width: 90%;
                             text-align: center;
-                            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
-                        }
-                        .overlay-card p {
-                            font-size: 1.2rem;
-                            color: #0f172a;
-                            margin-bottom: 1.5rem;
+                            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
                         }
                         .overlay-buttons {
                             display: flex;
                             gap: 1rem;
+                            margin-top: 1rem;
                         }
                         .overlay-btn {
                             flex: 1;
-                            padding: 1rem;
-                            border-radius: 12px;
+                            padding: 0.75rem;
+                            border-radius: 10px;
                             border: none;
-                            font-size: 1.1rem;
                             font-weight: 700;
                             cursor: pointer;
-                            transition: all 0.3s ease;
+                            transition: background 0.3s ease;
                         }
                         .btn-login {
                             background: #3b82f6;
@@ -2773,46 +2708,40 @@ app.get("/:id", async (req, res) => {
                             color: #64748b;
                         }
                         .overlay-btn:hover:not(:disabled) {
-                            transform: translateY(-3px);
-                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-                        }
-                        @media (max-width: 768px) {
-                            .container { margin: 1.5rem; padding: 2rem; }
-                            .titulo-lead { font-size: 2.2rem; }
-                            .info-grid { grid-template-columns: 1fr; }
-                            .btn-comprar { font-size: 1.3rem; padding: 1.2rem; }
+                            opacity: 0.9;
                         }
                         @media (max-width: 480px) {
-                            .titulo-lead { font-size: 1.8rem; }
-                            .categoria { font-size: 1.2rem; padding: 0.5rem 1.5rem; }
-                            .info-box .valor { font-size: 1.5rem; }
-                            .status { font-size: 1.1rem; }
+                            .container { padding: 1rem; }
+                            .titulo-lead { font-size: 1.5rem; }
+                            .info-grid { grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); }
+                            .btn-comprar { font-size: 1rem; }
                         }
                     </style>
                 </head>
                 <body>
                     <header class="header">
                         <img src="${logoUrl}" alt="Meu Lead Itapema Logo">
+                        <h1>meuLEAD</h1>
                     </header>
                     <main class="container">
                         <p class="lead-id">Lead ${id}</p>
                         <h1 class="titulo-lead">${lead.interesse || "Lead Imobiliário"}</h1>
-                        <div class="categoria ${categoriaClasse}">${categoriaTexto}</div>
+                        <span class="categoria">${categoriaTexto}</span>
                         <div class="info-grid">
-                            <div class="info-box">
-                                <p>Buscando imóvel até</p>
-                                <p class="valor">${valorBuscado}</p>
-                            </div>
-                            <div class="info-box">
-                                <p>Preço do Lead</p>
-                                <p class="valor">${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                            </div>
+                            <div class="info-card"><i class="fas fa-ruler"></i> ${lead.area_m2 || 0} m²</div>
+                            <div class="info-card"><i class="fas fa-bed"></i> ${lead.quartos || 0}</div>
+                            <div class="info-card"><i class="fas fa-bath"></i> ${lead.banheiros || 0}</div>
+                            <div class="info-card"><i class="fas fa-car"></i> ${lead.vagas || 0}</div>
+                            <div class="info-card"><i class="fas fa-sort-numeric-up"></i> ${lead.andar || "N/A"}</div>
+                            <div class="info-card"><i class="fas fa-couch"></i> ${lead.mobiliado ? "Sim" : "Não"}</div>
                         </div>
+                        <p class="valor-buscado">Buscando até: ${valorBuscado}</p>
                         <p class="status">${disponibilidadeTexto}</p>
                         <button class="btn-comprar" ${lead.disponivel ? '' : 'disabled'} onclick="comprarLead()">
-                            Comprar Lead
+                            Obter por ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </button>
                     </main>
+                    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
                     <script>
                         function comprarLead() {
                             const token = localStorage.getItem("token");
@@ -2834,7 +2763,7 @@ app.get("/:id", async (req, res) => {
                                 \`;
                                 document.body.appendChild(overlay);
                             } else {
-                                alert("Lead comprado com sucesso! (Funcionalidade a implementar)");
+                                alert("Lead obtido com sucesso! (Funcionalidade a implementar)");
                             }
                         }
                     </script>
