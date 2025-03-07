@@ -2510,13 +2510,7 @@ app.get("/:id", async (req, res) => {
                     c.interesse,
                     c.valor_lead,
                     c.categoria,
-                    c.valor,
-                    c.area_m2,
-                    c.quartos,
-                    c.banheiros,
-                    c.vagas,
-                    c.andar,
-                    c.mobiliado
+                    c.valor
                 FROM clientes c
                 WHERE c.id = $1
                 `,
@@ -2607,25 +2601,6 @@ app.get("/:id", async (req, res) => {
                             color: #ffffff;
                             margin-bottom: 1rem;
                         }
-                        .info-grid {
-                            display: grid;
-                            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-                            gap: 0.5rem;
-                            margin-bottom: 1rem;
-                        }
-                        .info-card {
-                            background: #f1f5f9;
-                            border-radius: 10px;
-                            padding: 0.5rem;
-                            text-align: center;
-                            font-size: 0.9rem;
-                            color: #1e293b;
-                        }
-                        .info-card i {
-                            font-size: 1.2rem;
-                            margin-bottom: 0.25rem;
-                            color: #3b82f6;
-                        }
                         .valor-buscado {
                             font-size: 1.2rem;
                             font-weight: 700;
@@ -2713,7 +2688,6 @@ app.get("/:id", async (req, res) => {
                         @media (max-width: 480px) {
                             .container { padding: 1rem; }
                             .titulo-lead { font-size: 1.5rem; }
-                            .info-grid { grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); }
                             .btn-comprar { font-size: 1rem; }
                         }
                     </style>
@@ -2727,21 +2701,12 @@ app.get("/:id", async (req, res) => {
                         <p class="lead-id">Lead ${id}</p>
                         <h1 class="titulo-lead">${lead.interesse || "Lead Imobiliário"}</h1>
                         <span class="categoria">${categoriaTexto}</span>
-                        <div class="info-grid">
-                            <div class="info-card"><i class="fas fa-ruler"></i> ${lead.area_m2 || 0} m²</div>
-                            <div class="info-card"><i class="fas fa-bed"></i> ${lead.quartos || 0}</div>
-                            <div class="info-card"><i class="fas fa-bath"></i> ${lead.banheiros || 0}</div>
-                            <div class="info-card"><i class="fas fa-car"></i> ${lead.vagas || 0}</div>
-                            <div class="info-card"><i class="fas fa-sort-numeric-up"></i> ${lead.andar || "N/A"}</div>
-                            <div class="info-card"><i class="fas fa-couch"></i> ${lead.mobiliado ? "Sim" : "Não"}</div>
-                        </div>
                         <p class="valor-buscado">Buscando até: ${valorBuscado}</p>
                         <p class="status">${disponibilidadeTexto}</p>
                         <button class="btn-comprar" ${lead.disponivel ? '' : 'disabled'} onclick="comprarLead()">
                             Obter por ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </button>
                     </main>
-                    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
                     <script>
                         function comprarLead() {
                             const token = localStorage.getItem("token");
