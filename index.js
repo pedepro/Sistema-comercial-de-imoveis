@@ -2554,6 +2554,7 @@ app.get("/:id", async (req, res) => {
                         }
 
                         body {
+                            background: #e6f0fa;
                             min-height: 100vh;
                             display: flex;
                             justify-content: center;
