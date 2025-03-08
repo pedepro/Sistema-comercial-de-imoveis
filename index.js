@@ -2525,7 +2525,9 @@ app.get("/:id", async (req, res) => {
             const lead = result.rows[0];
             console.log(`Dados do lead ${id}:`, lead);
 
-            const logoUrl = 'http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico';
+            // Use uma imagem maior em formato .jpg ou .png para o preview
+            const logoUrl = 'http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico'; // Logo usada na página
+            const previewImageUrl = 'http://cloud.meuleaditapema.com.br/uploads/3cbeb5c8-1937-40b0-8f03-765d7a5eba77.png'; // Substitua por uma imagem real de pelo menos 300x300px
             const categoriaTexto = lead.categoria === 1 ? "Médio Padrão" : "Alto Padrão";
             const valorBuscado = parseFloat(lead.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             const valorLead = parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -2542,9 +2544,12 @@ app.get("/:id", async (req, res) => {
                     <meta name="description" content="${categoriaTexto} - ${lead.interesse || 'Sem interesse especificado'}">
                     <meta property="og:title" content="${lead.interesse || "Lead Imobiliário"}">
                     <meta property="og:description" content="${categoriaTexto} - Valor Estimado: ${valorBuscado}">
-                    <meta property="og:image" content="${logoUrl}">
+                    <meta property="og:image" content="${previewImageUrl}"> <!-- Imagem otimizada para preview -->
+                    <meta property="og:image:width" content="300"> <!-- Largura mínima recomendada -->
+                    <meta property="og:image:height" content="300"> <!-- Altura mínima recomendada -->
                     <meta property="og:url" content="https://lead.meuleaditapema.com.br/${id}">
                     <meta property="og:type" content="article">
+                    <meta property="og:site_name" content="Meu Lead Itapema">
                     <link rel="icon" type="image/x-icon" href="${logoUrl}">
                     <style>
                         /* [Estilos mantidos, omitidos por brevidade] */
