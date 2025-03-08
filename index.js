@@ -2547,6 +2547,7 @@ app.get("/:id", async (req, res) => {
                     <meta property="og:type" content="article">
                     <link rel="icon" type="image/x-icon" href="${logoUrl}">
                     <style>
+                        /* [Estilos existentes mantidos, omitidos aqui por brevidade] */
                         * {
                             margin: 0;
                             padding: 0;
@@ -2814,7 +2815,6 @@ app.get("/:id", async (req, res) => {
                             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
                         }
 
-                        /* Checkout Overlay Styles */
                         .checkout-overlay {
                             position: fixed;
                             top: 0;
@@ -3045,9 +3045,24 @@ app.get("/:id", async (req, res) => {
                     </div>
 
                     <script>
+                        // Funções auxiliares para manipular cookies
+                        function setCookie(name, value, days) {
+                            const expires = new Date();
+                            expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+                            document.cookie = \`\${name}=\${value};expires=\${expires.toUTCString()};path=/;domain=.meuleaditapema.com.br;SameSite=Lax\`;
+                        }
+
+                        function getCookie(name) {
+                            const value = \`; \${document.cookie}\`;
+                            const parts = value.split(\`; \${name}=\`);
+                            if (parts.length === 2) return parts.pop().split(';').shift();
+                            return null;
+                        }
+
                         async function comprarLead() {
-                            const token = localStorage.getItem("token");
-                            if (!token) {
+                            const token = getCookie("token");
+                            const userId = getCookie("userid");
+                            if (!token || !userId) {
                                 const overlay = document.createElement("div");
                                 overlay.className = "overlay";
                                 overlay.innerHTML = \`
@@ -3160,6 +3175,24 @@ app.get("/:id", async (req, res) => {
                             alert(\`Compra confirmada para os leads: \${selectedLeads.join(", ")}. Redirecionando para o checkout...\`);
                             document.querySelector(".checkout-overlay").remove();
                         }
+
+                        // Sincroniza localStorage com cookies ao carregar a página
+                        (function syncAuth() {
+                            const token = getCookie("token");
+                            const userId = getCookie("userid");
+                            if (token && !localStorage.getItem("token")) {
+                                localStorage.setItem("token", token);
+                            }
+                            if (userId && !localStorage.getItem("userid")) {
+                                localStorage.setItem("userid", userId);
+                            }
+                            if (localStorage.getItem("token") && !token) {
+                                setCookie("token", localStorage.getItem("token"), 30);
+                            }
+                            if (localStorage.getItem("userid") && !userId) {
+                                setCookie("userid", localStorage.getItem("userid"), 30);
+                            }
+                        })();
                     </script>
                 </body>
                 </html>
