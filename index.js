@@ -2748,6 +2748,70 @@ app.get("/:id", async (req, res) => {
                             text-transform: uppercase;
                         }
                         ` : ''}
+
+                        .overlay {
+                            position: fixed;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            background: rgba(0, 0, 0, 0.7);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            z-index: 1000;
+                        }
+
+                        .overlay-card {
+                            background: #ffffff;
+                            padding: 2rem;
+                            border-radius: 20px;
+                            max-width: 450px;
+                            width: 90%;
+                            text-align: center;
+                            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                        }
+
+                        .overlay-card p {
+                            font-size: 1.2rem;
+                            color: #1e293b;
+                            margin-bottom: 1.5rem;
+                        }
+
+                        .overlay-buttons {
+                            display: flex;
+                            gap: 1rem;
+                        }
+
+                        .overlay-btn {
+                            flex: 1;
+                            padding: 1rem;
+                            border-radius: 12px;
+                            border: none;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                        }
+
+                        .btn-login {
+                            background: #3b82f6;
+                            color: #ffffff;
+                        }
+
+                        .btn-login:hover {
+                            transform: translateY(-3px);
+                            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+                        }
+
+                        .btn-cancel {
+                            background: #e2e8f0;
+                            color: #64748b;
+                        }
+
+                        .btn-cancel:hover {
+                            transform: translateY(-3px);
+                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+                        }
                     </style>
                 </head>
                 <body>
@@ -2781,7 +2845,7 @@ app.get("/:id", async (req, res) => {
                                     <div class="overlay-card">
                                         <p>Faça login para adquirir este lead</p>
                                         <div class="overlay-buttons">
-                                            <button class="overlay-btn btn-login" onclick="window.location.href='/login?id=${id}'">
+                                            <button class="overlay-btn btn-login" onclick="window.location.href='https://meuleaditapema.com.br/login?lead=${id}'">
                                                 Login
                                             </button>
                                             <button class="overlay-btn btn-cancel" onclick="this.parentElement.parentElement.parentElement.remove()">
@@ -2789,53 +2853,6 @@ app.get("/:id", async (req, res) => {
                                             </button>
                                         </div>
                                     </div>
-                                \`;
-                                overlay.style.cssText = \`
-                                    position: fixed;
-                                    top: 0;
-                                    left: 0;
-                                    width: 100%;
-                                    height: 100%;
-                                    background: rgba(0, 0, 0, 0.7);
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    z-index: 1000;
-                                \`;
-                                overlay.querySelector('.overlay-card').style.cssText = \`
-                                    background: #ffffff;
-                                    padding: 2rem;
-                                    border-radius: 20px;
-                                    max-width: 450px;
-                                    width: 90%;
-                                    text-align: center;
-                                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-                                \`;
-                                overlay.querySelector('.overlay-buttons').style.cssText = \`
-                                    display: flex;
-                                    gap: 1rem;
-                                \`;
-                                overlay.querySelector('.btn-login').style.cssText = \`
-                                    flex: 1;
-                                    padding: 1rem;
-                                    border-radius: 12px;
-                                    border: none;
-                                    font-weight: 600;
-                                    cursor: pointer;
-                                    background: #3b82f6;
-                                    color: #ffffff;
-                                    transition: all 0.3s ease;
-                                \`;
-                                overlay.querySelector('.btn-cancel').style.cssText = \`
-                                    flex: 1;
-                                    padding: 1rem;
-                                    border-radius: 12px;
-                                    border: none;
-                                    font-weight: 600;
-                                    cursor: pointer;
-                                    background: #e2e8f0;
-                                    color: #64748b;
-                                    transition: all 0.3s ease;
                                 \`;
                                 document.body.appendChild(overlay);
                             } else {
