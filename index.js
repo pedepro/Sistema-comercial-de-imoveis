@@ -2525,9 +2525,8 @@ app.get("/:id", async (req, res) => {
             const lead = result.rows[0];
             console.log(`Dados do lead ${id}:`, lead);
 
-            // Use uma imagem maior em formato .jpg ou .png para o preview
-            const logoUrl = 'http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico'; // Logo usada na página
-            const previewImageUrl = 'http://cloud.meuleaditapema.com.br/uploads/3cbeb5c8-1937-40b0-8f03-765d7a5eba77.png'; // Substitua por uma imagem real de pelo menos 300x300px
+            const logoUrl = 'http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico'; // Logo da página (favicon)
+            const previewImageUrl = 'http://cloud.meuleaditapema.com.br/uploads/3cbeb5c8-1937-40b0-8f03-765d7a5eba77.png'; // Imagem para preview (512x512px)
             const categoriaTexto = lead.categoria === 1 ? "Médio Padrão" : "Alto Padrão";
             const valorBuscado = parseFloat(lead.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             const valorLead = parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -2542,11 +2541,14 @@ app.get("/:id", async (req, res) => {
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <title>${lead.interesse || "Lead Imobiliário"}</title>
                     <meta name="description" content="${categoriaTexto} - ${lead.interesse || 'Sem interesse especificado'}">
+                    <!-- Open Graph Tags otimizadas para preview -->
                     <meta property="og:title" content="${lead.interesse || "Lead Imobiliário"}">
                     <meta property="og:description" content="${categoriaTexto} - Valor Estimado: ${valorBuscado}">
-                    <meta property="og:image" content="${previewImageUrl}"> <!-- Imagem otimizada para preview -->
-                    <meta property="og:image:width" content="300"> <!-- Largura mínima recomendada -->
-                    <meta property="og:image:height" content="300"> <!-- Altura mínima recomendada -->
+                    <meta property="og:image" content="${previewImageUrl}">
+                    <meta property="og:image:secure_url" content="${previewImageUrl}"> <!-- Adicionado para HTTPS -->
+                    <meta property="og:image:type" content="image/png"> <!-- Tipo da imagem -->
+                    <meta property="og:image:width" content="512"> <!-- Dimensões reais -->
+                    <meta property="og:image:height" content="512"> <!-- Dimensões reais -->
                     <meta property="og:url" content="https://lead.meuleaditapema.com.br/${id}">
                     <meta property="og:type" content="article">
                     <meta property="og:site_name" content="Meu Lead Itapema">
@@ -2559,7 +2561,6 @@ app.get("/:id", async (req, res) => {
                             box-sizing: border-box;
                             font-family: 'Arial', sans-serif;
                         }
-
                         body {
                             background: #e6f0fa;
                             min-height: 100vh;
@@ -2570,7 +2571,6 @@ app.get("/:id", async (req, res) => {
                             overflow-x: hidden;
                             position: relative;
                         }
-
                         .container {
                             max-width: 650px;
                             width: 100%;
@@ -2586,12 +2586,10 @@ app.get("/:id", async (req, res) => {
                                 background: transparent;
                             `}
                         }
-
                         @keyframes slideIn {
                             from { opacity: 0; transform: translateX(-50px); }
                             to { opacity: 1; transform: translateX(0); }
                         }
-
                         .logo {
                             width: ${lead.categoria === 1 ? '90px' : '100px'};
                             height: ${lead.categoria === 1 ? '90px' : '100px'};
@@ -2600,11 +2598,9 @@ app.get("/:id", async (req, res) => {
                             filter: drop-shadow(0 0 8px rgba(${lead.categoria === 1 ? '52, 152, 219' : '255, 215, 0'}, 0.2));
                             transition: transform 0.3s ease;
                         }
-
                         .logo:hover {
                             transform: scale(1.05);
                         }
-
                         h1 {
                             color: #2c3e50;
                             text-align: center;
@@ -2614,7 +2610,6 @@ app.get("/:id", async (req, res) => {
                             position: relative;
                             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
                         }
-
                         h1::after {
                             content: '';
                             position: absolute;
@@ -2625,7 +2620,6 @@ app.get("/:id", async (req, res) => {
                             left: 50%;
                             transform: translateX(-50%);
                         }
-
                         .subtitle {
                             color: #7f8c8d;
                             text-align: center;
@@ -2633,14 +2627,12 @@ app.get("/:id", async (req, res) => {
                             font-size: 17px;
                             font-style: italic;
                         }
-
                         .info-box {
                             padding: 25px 0;
                             border-top: 1px solid rgba(${lead.categoria === 1 ? '52, 152, 219' : '255, 215, 0'}, 0.3);
                             border-bottom: 1px solid rgba(${lead.categoria === 1 ? '52, 152, 219' : '255, 215, 0'}, 0.3);
                             margin-bottom: 35px;
                         }
-
                         .info-box p {
                             color: #2c3e50;
                             line-height: 2;
@@ -2649,11 +2641,9 @@ app.get("/:id", async (req, res) => {
                             padding-left: 25px;
                             transition: transform 0.3s ease;
                         }
-
                         .info-box p:hover {
                             transform: translateX(5px);
                         }
-
                         .info-box p::before {
                             content: '✦';
                             color: ${lead.categoria === 1 ? '#3498db' : '#ffd700'};
@@ -2661,7 +2651,6 @@ app.get("/:id", async (req, res) => {
                             left: 0;
                             font-size: 14px;
                         }
-
                         .value-section {
                             text-align: center;
                             margin-bottom: 35px;
@@ -2675,7 +2664,6 @@ app.get("/:id", async (req, res) => {
                             `}
                             transition: all 0.3s ease;
                         }
-
                         .value-section:hover {
                             ${lead.categoria === 1 ? `
                                 background: rgba(52, 152, 219, 0.2);
@@ -2684,21 +2672,18 @@ app.get("/:id", async (req, res) => {
                             `}
                             transform: scale(1.02);
                         }
-
                         .value-label {
                             color: #7f8c8d;
                             font-size: 16px;
                             margin-bottom: 5px;
                             font-style: italic;
                         }
-
                         .value {
                             color: #2c3e50;
                             font-size: 38px;
                             font-weight: bold;
                             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
                         }
-
                         .buy-button {
                             display: block;
                             width: 100%;
@@ -2716,7 +2701,6 @@ app.get("/:id", async (req, res) => {
                             box-shadow: 0 5px 15px rgba(${lead.categoria === 1 ? '52, 152, 219' : '184, 134, 11'}, 0.3);
                             opacity: ${lead.disponivel ? '1' : '0.7'};
                         }
-
                         .buy-button::before {
                             content: '';
                             position: absolute;
@@ -2727,20 +2711,16 @@ app.get("/:id", async (req, res) => {
                             background: rgba(255, 255, 255, 0.2);
                             transition: all 0.4s ease;
                         }
-
                         .buy-button:hover::before {
                             left: ${lead.disponivel ? '100%' : '-100%'};
                         }
-
                         .buy-button:hover {
                             transform: ${lead.disponivel ? 'scale(1.05)' : 'none'};
                             box-shadow: ${lead.disponivel ? `0 10px 20px rgba(${lead.categoria === 1 ? '52, 152, 219' : '184, 134, 11'}, 0.4)` : 'none'};
                         }
-
                         .buy-button:active {
                             transform: scale(1);
                         }
-
                         ${lead.categoria !== 1 ? `
                         .premium-badge {
                             position: absolute;
@@ -2755,7 +2735,6 @@ app.get("/:id", async (req, res) => {
                             text-transform: uppercase;
                         }
                         ` : ''}
-
                         .overlay {
                             position: fixed;
                             top: 0;
@@ -2768,7 +2747,6 @@ app.get("/:id", async (req, res) => {
                             justify-content: center;
                             z-index: 1000;
                         }
-
                         .overlay-card {
                             background: #ffffff;
                             padding: 2rem;
@@ -2778,18 +2756,15 @@ app.get("/:id", async (req, res) => {
                             text-align: center;
                             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
                         }
-
                         .overlay-card p {
                             font-size: 1.2rem;
                             color: #1e293b;
                             margin-bottom: 1.5rem;
                         }
-
                         .overlay-buttons {
                             display: flex;
                             gap: 1rem;
                         }
-
                         .overlay-btn {
                             flex: 1;
                             padding: 1rem;
@@ -2799,27 +2774,22 @@ app.get("/:id", async (req, res) => {
                             cursor: pointer;
                             transition: all 0.3s ease;
                         }
-
                         .btn-login {
                             background: #3b82f6;
                             color: #ffffff;
                         }
-
                         .btn-login:hover {
                             transform: translateY(-3px);
                             box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
                         }
-
                         .btn-cancel {
                             background: #e2e8f0;
                             color: #64748b;
                         }
-
                         .btn-cancel:hover {
                             transform: translateY(-3px);
                             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
                         }
-
                         .checkout-overlay {
                             position: fixed;
                             top: 0;
@@ -2832,7 +2802,6 @@ app.get("/:id", async (req, res) => {
                             align-items: center;
                             z-index: 2000;
                         }
-
                         .checkout-modal {
                             background: #fff;
                             width: 100%;
@@ -2845,7 +2814,6 @@ app.get("/:id", async (req, res) => {
                             flex-direction: column;
                             overflow-y: auto;
                         }
-
                         .checkout-header {
                             position: relative;
                             margin-bottom: 20px;
@@ -2853,54 +2821,45 @@ app.get("/:id", async (req, res) => {
                             justify-content: space-between;
                             align-items: center;
                         }
-
                         .checkout-header h2 {
                             font-size: 24px;
                             color: #333;
                             margin: 0;
                         }
-
                         .close-icon {
                             font-size: 24px;
                             color: #555;
                             cursor: pointer;
                             transition: color 0.2s;
                         }
-
                         .close-icon:hover {
                             color: #f44336;
                         }
-
                         .lead-info {
                             padding: 15px;
                             border-bottom: 1px solid #ddd;
                         }
-
                         .lead-info .lead-interesse {
                             font-size: 16px;
                             color: #1c1e21;
                             margin: 5px 0;
                         }
-
                         .similar-leads {
                             margin-top: 20px;
                             flex-grow: 1;
                             overflow-y: auto;
                         }
-
                         .similar-leads h3 {
                             font-size: 18px;
                             color: #555;
                             margin-bottom: 10px;
                         }
-
                         .similar-leads-container {
                             display: flex;
                             gap: 10px;
                             overflow-x: auto;
                             padding-bottom: 10px;
                         }
-
                         .mini-lead-card {
                             flex: 0 0 200px;
                             background: #fff;
@@ -2910,38 +2869,31 @@ app.get("/:id", async (req, res) => {
                             cursor: pointer;
                             transition: border-color 0.3s;
                         }
-
                         .mini-lead-card.selected {
                             border-color: #1877f2;
                             box-shadow: 0 0 5px rgba(24, 119, 242, 0.5);
                         }
-
                         .mini-lead-card .lead-badge {
                             font-size: 12px;
                             padding: 3px 6px;
                             color: #fff;
                             border-radius: 4px;
                         }
-
                         .mini-lead-card.alto-padrao .lead-badge {
                             background-color: #d4af37;
                         }
-
                         .mini-lead-card.medio-padrao .lead-badge {
                             background-color: #4682b4;
                         }
-
                         .mini-lead-card .lead-sku {
                             font-size: 12px;
                             color: #65676b;
                             margin: 5px 0;
                         }
-
                         .mini-lead-card .lead-interesse {
                             font-size: 14px;
                             color: #1c1e21;
                         }
-
                         .checkout-footer {
                             margin-top: 20px;
                             display: flex;
@@ -2950,13 +2902,11 @@ app.get("/:id", async (req, res) => {
                             border-top: 1px solid #ddd;
                             padding-top: 15px;
                         }
-
                         .total-price {
                             font-size: 18px;
                             font-weight: 600;
                             color: #333;
                         }
-
                         .checkout-buttons button {
                             padding: 10px 20px;
                             border-radius: 6px;
@@ -2966,22 +2916,18 @@ app.get("/:id", async (req, res) => {
                             font-weight: 600;
                             transition: background-color 0.2s;
                         }
-
                         .checkout-buttons .confirm-btn {
                             background-color: #1877f2;
                             color: #fff;
                         }
-
                         .checkout-buttons .confirm-btn:hover {
                             background-color: #166fe5;
                         }
-
                         @media (max-width: 500px) {
                             .checkout-overlay {
                                 align-items: flex-start;
                                 background: rgba(0, 0, 0, 0.8);
                             }
-
                             .checkout-modal {
                                 width: 100%;
                                 height: 90vh;
@@ -2994,34 +2940,27 @@ app.get("/:id", async (req, res) => {
                                 bottom: 0;
                                 overflow-y: hidden;
                             }
-
                             .checkout-header {
                                 padding-right: 10px;
                             }
-
                             .lead-info {
                                 padding: 10px;
                                 border-bottom: 1px solid #ddd;
                             }
-
                             .checkout-header h2 {
                                 font-size: 18px;
                             }
-
                             .similar-leads {
                                 overflow-y: auto;
                                 max-height: calc(100% - 200px);
                             }
-
                             .mini-lead-card {
                                 flex: 0 0 160px;
                             }
-
                             .checkout-footer {
                                 gap: 10px;
                                 padding-bottom: 15px;
                             }
-
                             .checkout-buttons button {
                                 width: 100%;
                             }
@@ -3033,22 +2972,18 @@ app.get("/:id", async (req, res) => {
                         <img src="${logoUrl}" alt="Meu Lead Itapema" class="logo">
                         <h1>Lead ${id}</h1>
                         <p class="subtitle">${categoriaTexto}</p>
-                        
                         <div class="info-box">
                             <p>${lead.interesse || "Interesse não especificado"}</p>
                         </div>
-
                         <div class="value-section">
                             <div class="value-label">Valor Estimado de Interesse</div>
                             <div class="value">${valorBuscado}</div>
                         </div>
-
                         <button class="buy-button" ${lead.disponivel ? '' : 'disabled'} onclick="comprarLead()">
                             Obter por ${valorLead}
                         </button>
                         ${lead.categoria !== 1 ? '<div class="premium-badge">Alto Padrão</div>' : ''}
                     </div>
-
                     <script>
                         // Funções auxiliares para manipular cookies
                         function setCookie(name, value, days) {
@@ -3056,17 +2991,15 @@ app.get("/:id", async (req, res) => {
                             expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
                             document.cookie = \`\${name}=\${value};expires=\${expires.toUTCString()};path=/;domain=.meuleaditapema.com.br;SameSite=Lax\`;
                         }
-
                         function getCookie(name) {
                             const value = \`; \${document.cookie}\`;
                             const parts = value.split(\`; \${name}=\`);
                             if (parts.length === 2) return parts.pop().split(';').shift();
                             return null;
                         }
-
                         async function comprarLead() {
                             const token = getCookie("token");
-                            const userId = getCookie("userId"); // Corrigido para "userId"
+                            const userId = getCookie("userId");
                             if (!token || !userId) {
                                 const overlay = document.createElement("div");
                                 overlay.className = "overlay";
@@ -3088,7 +3021,6 @@ app.get("/:id", async (req, res) => {
                                 await mostrarCheckout('${id}', '${padrao}', '${valorLead}');
                             }
                         }
-
                         async function mostrarCheckout(leadId, padrao, valorFormatado) {
                             console.log("mostrarCheckout chamado com:", leadId, padrao, valorFormatado);
                             try {
@@ -3096,7 +3028,6 @@ app.get("/:id", async (req, res) => {
                                 const data = await response.json();
                                 console.log("Resposta da API:", data);
                                 const lead = data.clientes && data.clientes[0] ? data.clientes[0] : {};
-
                                 const overlay = document.createElement("div");
                                 overlay.className = "checkout-overlay";
                                 overlay.innerHTML = \`
@@ -3123,13 +3054,11 @@ app.get("/:id", async (req, res) => {
                                     </div>
                                 \`;
                                 document.body.appendChild(overlay);
-
                                 await carregarLeadsSemelhantes(leadId, padrao, valorFormatado);
                             } catch (error) {
                                 console.error("Erro em mostrarCheckout:", error);
                             }
                         }
-
                         async function carregarLeadsSemelhantes(leadId, padrao, valorFormatado) {
                             try {
                                 const response = await fetch(\`https://backand.meuleaditapema.com.br/list-clientes?limit=10&categoria=\${padrao === "alto-padrao" ? 2 : 1}\`);
@@ -3137,7 +3066,6 @@ app.get("/:id", async (req, res) => {
                                 const similarLeadsContainer = document.getElementById("similar-leads-container");
                                 const selectedLeads = [leadId];
                                 let totalPrice = parseFloat(valorFormatado.replace("R$", "").replace(".", "").replace(",", "."));
-
                                 if (data.clientes && Array.isArray(data.clientes)) {
                                     const filteredLeads = data.clientes.filter(lead => lead.id !== leadId);
                                     filteredLeads.forEach(lead => {
@@ -3173,28 +3101,25 @@ app.get("/:id", async (req, res) => {
                                 console.error("Erro ao carregar leads semelhantes:", error);
                             }
                         }
-
                         function confirmarCompra(leadId) {
                             const selectedLeads = window.selectedLeads || [leadId];
                             console.log("Leads a comprar:", selectedLeads);
                             alert(\`Compra confirmada para os leads: \${selectedLeads.join(", ")}. Redirecionando para o checkout...\`);
                             document.querySelector(".checkout-overlay").remove();
                         }
-
-                        // Sincroniza localStorage com cookies ao carregar a página
                         (function syncAuth() {
                             const token = getCookie("token");
-                            const userId = getCookie("userId"); // Corrigido para "userId"
+                            const userId = getCookie("userId");
                             if (token && !localStorage.getItem("token")) {
                                 localStorage.setItem("token", token);
                             }
-                            if (userId && !localStorage.getItem("userId")) { // Corrigido para "userId"
+                            if (userId && !localStorage.getItem("userId")) {
                                 localStorage.setItem("userId", userId);
                             }
                             if (localStorage.getItem("token") && !token) {
                                 setCookie("token", localStorage.getItem("token"), 30);
                             }
-                            if (localStorage.getItem("userId") && !userId) { // Corrigido para "userId"
+                            if (localStorage.getItem("userId") && !userId) {
                                 setCookie("userId", localStorage.getItem("userId"), 30);
                             }
                         })();
