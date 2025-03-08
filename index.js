@@ -2547,7 +2547,7 @@ app.get("/:id", async (req, res) => {
                     <meta property="og:type" content="article">
                     <link rel="icon" type="image/x-icon" href="${logoUrl}">
                     <style>
-                        /* [Estilos existentes mantidos, omitidos aqui por brevidade] */
+                        /* [Estilos mantidos, omitidos por brevidade] */
                         * {
                             margin: 0;
                             padding: 0;
@@ -3061,7 +3061,7 @@ app.get("/:id", async (req, res) => {
 
                         async function comprarLead() {
                             const token = getCookie("token");
-                            const userId = getCookie("userid");
+                            const userId = getCookie("userId"); // Corrigido para "userId"
                             if (!token || !userId) {
                                 const overlay = document.createElement("div");
                                 overlay.className = "overlay";
@@ -3179,18 +3179,18 @@ app.get("/:id", async (req, res) => {
                         // Sincroniza localStorage com cookies ao carregar a página
                         (function syncAuth() {
                             const token = getCookie("token");
-                            const userId = getCookie("userid");
+                            const userId = getCookie("userId"); // Corrigido para "userId"
                             if (token && !localStorage.getItem("token")) {
                                 localStorage.setItem("token", token);
                             }
-                            if (userId && !localStorage.getItem("userid")) {
-                                localStorage.setItem("userid", userId);
+                            if (userId && !localStorage.getItem("userId")) { // Corrigido para "userId"
+                                localStorage.setItem("userId", userId);
                             }
                             if (localStorage.getItem("token") && !token) {
                                 setCookie("token", localStorage.getItem("token"), 30);
                             }
-                            if (localStorage.getItem("userid") && !userId) {
-                                setCookie("userid", localStorage.getItem("userid"), 30);
+                            if (localStorage.getItem("userId") && !userId) { // Corrigido para "userId"
+                                setCookie("userId", localStorage.getItem("userId"), 30);
                             }
                         })();
                     </script>
