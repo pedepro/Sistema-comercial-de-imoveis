@@ -3163,7 +3163,7 @@ app.get("/:id", async (req, res) => {
             console.log(`Imagens do imóvel ${id}:`, imovel.imagens);
         
             const imagens = Array.isArray(imovel.imagens) ? imovel.imagens : [];
-            const primeiraImagem = imagens.length > 0 ? imagens[0].url : 'http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico';
+            const primeiraImagem = imagens.length > 0 ? imagens[0].url : 'https://cloud.meuleaditapema.com.br/uploads/3cbeb5c8-1937-40b0-8f03-765d7a5eba77.png';
         
             const html = `
                 <!DOCTYPE html>
@@ -3177,7 +3177,7 @@ app.get("/:id", async (req, res) => {
                     <meta property="og:image" content="${primeiraImagem}">
                     <meta property="og:url" content="https://imovel.meuleaditapema.com.br/${id}">
                     <meta property="og:type" content="article">
-                    <link rel="icon" type="image/x-icon" href="http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico">
+                    <link rel="icon" type="image/x-icon" href="https://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico">
                     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
                     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
                     <style>
