@@ -2525,8 +2525,9 @@ app.get("/:id", async (req, res) => {
             const lead = result.rows[0];
             console.log(`Dados do lead ${id}:`, lead);
 
-            const logoUrl = 'http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico'; // Logo da página (favicon)
-            const previewImageUrl = 'http://cloud.meuleaditapema.com.br/uploads/3cbeb5c8-1937-40b0-8f03-765d7a5eba77.png'; // Imagem para preview (512x512px)
+            // URLs ajustadas para HTTPS
+            const logoUrl = 'https://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico'; // Favicon da página
+            const previewImageUrl = 'https://cloud.meuleaditapema.com.br/uploads/3cbeb5c8-1937-40b0-8f03-765d7a5eba77.png'; // Imagem para preview (512x512px)
             const categoriaTexto = lead.categoria === 1 ? "Médio Padrão" : "Alto Padrão";
             const valorBuscado = parseFloat(lead.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             const valorLead = parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -2545,10 +2546,10 @@ app.get("/:id", async (req, res) => {
                     <meta property="og:title" content="${lead.interesse || "Lead Imobiliário"}">
                     <meta property="og:description" content="${categoriaTexto} - Valor Estimado: ${valorBuscado}">
                     <meta property="og:image" content="${previewImageUrl}">
-                    <meta property="og:image:secure_url" content="${previewImageUrl}"> <!-- Adicionado para HTTPS -->
-                    <meta property="og:image:type" content="image/png"> <!-- Tipo da imagem -->
-                    <meta property="og:image:width" content="512"> <!-- Dimensões reais -->
-                    <meta property="og:image:height" content="512"> <!-- Dimensões reais -->
+                    <meta property="og:image:secure_url" content="${previewImageUrl}">
+                    <meta property="og:image:type" content="image/png">
+                    <meta property="og:image:width" content="512">
+                    <meta property="og:image:height" content="512">
                     <meta property="og:url" content="https://lead.meuleaditapema.com.br/${id}">
                     <meta property="og:type" content="article">
                     <meta property="og:site_name" content="Meu Lead Itapema">
