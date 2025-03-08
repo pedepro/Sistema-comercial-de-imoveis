@@ -2527,8 +2527,8 @@ app.get("/:id", async (req, res) => {
 
             const logoUrl = 'http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico';
             const categoriaTexto = lead.categoria === 1 ? "Médio Padrão" : "Alto Padrão";
-            const categoriaCor = lead.categoria === 1 ? '#60a5fa' : '#f59e0b';
             const valorBuscado = parseFloat(lead.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            const valorLead = parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             const disponibilidadeTexto = lead.disponivel ? "Disponível" : "Indisponível";
 
             const html = `
@@ -2540,230 +2540,237 @@ app.get("/:id", async (req, res) => {
                     <title>${lead.interesse || "Lead Imobiliário"}</title>
                     <meta name="description" content="${categoriaTexto} - ${lead.interesse || 'Sem interesse especificado'}">
                     <meta property="og:title" content="${lead.interesse || "Lead Imobiliário"}">
-                    <meta property="og:description" content="${categoriaTexto} - Buscando até ${valorBuscado}">
+                    <meta property="og:description" content="${categoriaTexto} - Valor Estimado: ${valorBuscado}">
                     <meta property="og:image" content="${logoUrl}">
                     <meta property="og:url" content="https://lead.meuleaditapema.com.br/${id}">
                     <meta property="og:type" content="article">
                     <link rel="icon" type="image/x-icon" href="${logoUrl}">
-                    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
                     <style>
-                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        * {
+                            margin: 0;
+                            padding: 0;
+                            box-sizing: border-box;
+                            font-family: 'Arial', sans-serif;
+                        }
+
                         body {
-                            font-family: 'Roboto', sans-serif;
-                            background: linear-gradient(180deg, #f9fafb 0%, #e2e8f0 100%);
-                            color: #1e293b;
+                            background: #e6f0fa;
                             min-height: 100vh;
                             display: flex;
-                            flex-direction: column;
-                            padding: 0;
+                            justify-content: center;
+                            align-items: center;
+                            padding: 20px;
                             overflow-x: hidden;
+                            position: relative;
                         }
-                        .header {
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            padding: 2rem 1rem;
-                            background: #ffffff;
-                            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-                            border-bottom-left-radius: 30px;
-                            border-bottom-right-radius: 30px;
-                            margin-bottom: 2rem;
-                        }
-                        .header img {
-                            width: 50px;
-                            margin-right: 0.75rem;
-                        }
-                        .header h1 {
-                            font-family: 'Playfair Display', serif;
-                            font-size: 2rem;
-                            font-weight: 700;
-                            color: #3b82f6;
-                            letter-spacing: 1px;
-                        }
+
                         .container {
-                            flex: 1;
-                            max-width: 800px;
-                            margin: 0 auto;
-                            padding: 3rem 2rem;
-                            display: flex;
-                            flex-direction: column;
-                            justify-content: space-between;
-                            min-height: 90vh;
-                            background: rgba(255, 255, 255, 0.95);
-                            border-radius: 30px;
-                            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+                            max-width: 650px;
+                            width: 100%;
+                            padding: 40px;
+                            position: relative;
+                            animation: slideIn 0.8s ease-out;
+                            border-radius: 20px;
+                            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
+                            ${lead.categoria === 1 ? `
+                                background: rgba(255, 255, 255, 0.1);
+                                backdrop-filter: blur(5px);
+                            ` : `
+                                background: transparent;
+                            `}
                         }
-                        .content {
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            text-align: center;
-                            flex-grow: 1;
-                            justify-content: center;
+
+                        @keyframes slideIn {
+                            from { opacity: 0; transform: translateX(-50px); }
+                            to { opacity: 1; transform: translateX(0); }
                         }
-                        .lead-id {
-                            font-size: 1.2rem;
-                            font-weight: 400;
-                            color: #64748b;
-                            margin-bottom: 1rem;
-                            letter-spacing: 0.5px;
-                        }
-                        .titulo-lead {
-                            font-family: 'Playfair Display', serif;
-                            font-size: 3rem;
-                            font-weight: 700;
-                            color: #1e293b;
-                            margin-bottom: 1.5rem;
-                            line-height: 1.2;
-                            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-                        }
-                        .categoria {
-                            font-size: 1.2rem;
-                            font-weight: 500;
-                            padding: 0.75rem 2rem;
-                            border-radius: 15px;
-                            background: ${categoriaCor};
-                            color: #ffffff;
-                            margin-bottom: 2rem;
-                            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+
+                        .logo {
+                            width: ${lead.categoria === 1 ? '90px' : '100px'};
+                            height: ${lead.categoria === 1 ? '90px' : '100px'};
+                            display: block;
+                            margin: 0 auto 25px;
+                            filter: drop-shadow(0 0 8px rgba(${lead.categoria === 1 ? '52, 152, 219' : '255, 215, 0'}, 0.2));
                             transition: transform 0.3s ease;
                         }
-                        .categoria:hover {
-                            transform: translateY(-3px);
-                        }
-                        .valor-buscado {
-                            font-size: 1.8rem;
-                            font-weight: 500;
-                            color: #3b82f6;
-                            margin-bottom: 2rem;
-                            letter-spacing: 0.5px;
-                        }
-                        .status {
-                            font-size: 1.3rem;
-                            font-weight: 600;
-                            padding: 0.75rem 2rem;
-                            border-radius: 15px;
-                            background: ${lead.disponivel ? '#22c55e' : '#ef4444'};
-                            color: #ffffff;
-                            margin-bottom: 3rem;
-                            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-                            transition: transform 0.3s ease;
-                        }
-                        .status:hover {
+
+                        .logo:hover {
                             transform: scale(1.05);
                         }
-                        .btn-comprar {
-                            display: block;
-                            width: 80%;
-                            max-width: 400px;
-                            margin: 0 auto;
-                            padding: 1.25rem;
-                            font-size: 1.3rem;
-                            font-weight: 600;
-                            color: #ffffff;
-                            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
-                            border: none;
-                            border-radius: 15px;
-                            cursor: pointer;
-                            transition: all 0.3s ease;
-                            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+
+                        h1 {
+                            color: #2c3e50;
+                            text-align: center;
+                            margin-bottom: 15px;
+                            font-size: 34px;
+                            letter-spacing: 1.5px;
+                            position: relative;
+                            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
                         }
-                        .btn-comprar:hover:not(:disabled) {
-                            transform: translateY(-5px);
-                            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.5);
-                            background: linear-gradient(90deg, #2563eb, #1e40af);
+
+                        h1::after {
+                            content: '';
+                            position: absolute;
+                            width: 60px;
+                            height: 3px;
+                            background: linear-gradient(to right, ${lead.categoria === 1 ? '#3498db, #2980b9' : '#ffd700, #b8860b'});
+                            bottom: -10px;
+                            left: 50%;
+                            transform: translateX(-50%);
                         }
-                        .btn-comprar:disabled {
-                            background: #94a3b8;
-                            cursor: not-allowed;
-                            opacity: 0.7;
-                            box-shadow: none;
+
+                        .subtitle {
+                            color: #7f8c8d;
+                            text-align: center;
+                            margin-bottom: 35px;
+                            font-size: 17px;
+                            font-style: italic;
                         }
-                        .overlay {
-                            position: fixed;
-                            top: 0;
+
+                        .info-box {
+                            padding: 25px 0;
+                            border-top: 1px solid rgba(${lead.categoria === 1 ? '52, 152, 219' : '255, 215, 0'}, 0.3);
+                            border-bottom: 1px solid rgba(${lead.categoria === 1 ? '52, 152, 219' : '255, 215, 0'}, 0.3);
+                            margin-bottom: 35px;
+                        }
+
+                        .info-box p {
+                            color: #2c3e50;
+                            line-height: 2;
+                            font-size: 17px;
+                            position: relative;
+                            padding-left: 25px;
+                            transition: transform 0.3s ease;
+                        }
+
+                        .info-box p:hover {
+                            transform: translateX(5px);
+                        }
+
+                        .info-box p::before {
+                            content: '✦';
+                            color: ${lead.categoria === 1 ? '#3498db' : '#ffd700'};
+                            position: absolute;
                             left: 0;
+                            font-size: 14px;
+                        }
+
+                        .value-section {
+                            text-align: center;
+                            margin-bottom: 35px;
+                            padding: 15px;
+                            ${lead.categoria === 1 ? `
+                                background: rgba(52, 152, 219, 0.1);
+                                border-radius: 10px;
+                            ` : `
+                                background: rgba(255, 215, 0, 0.1);
+                                border-radius: 10px;
+                            `}
+                            transition: all 0.3s ease;
+                        }
+
+                        .value-section:hover {
+                            ${lead.categoria === 1 ? `
+                                background: rgba(52, 152, 219, 0.2);
+                            ` : `
+                                background: rgba(255, 215, 0, 0.2);
+                            `}
+                            transform: scale(1.02);
+                        }
+
+                        .value-label {
+                            color: #7f8c8d;
+                            font-size: 16px;
+                            margin-bottom: 5px;
+                            font-style: italic;
+                        }
+
+                        .value {
+                            color: #2c3e50;
+                            font-size: 38px;
+                            font-weight: bold;
+                            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                        }
+
+                        .buy-button {
+                            display: block;
+                            width: 100%;
+                            padding: 16px;
+                            background: linear-gradient(45deg, ${lead.categoria === 1 ? '#3498db, #2980b9' : '#ffd700, #b8860b'});
+                            color: ${lead.categoria === 1 ? 'white' : '#1a2d3f'};
+                            border: none;
+                            border-radius: 50px;
+                            font-size: 19px;
+                            font-weight: bold;
+                            cursor: ${lead.disponivel ? 'pointer' : 'not-allowed'};
+                            transition: all 0.4s ease;
+                            position: relative;
+                            overflow: hidden;
+                            box-shadow: 0 5px 15px rgba(${lead.categoria === 1 ? '52, 152, 219' : '184, 134, 11'}, 0.3);
+                            opacity: ${lead.disponivel ? '1' : '0.7'};
+                        }
+
+                        .buy-button::before {
+                            content: '';
+                            position: absolute;
+                            top: 0;
+                            left: -100%;
                             width: 100%;
                             height: 100%;
-                            background: rgba(0, 0, 0, 0.7);
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            z-index: 1000;
+                            background: rgba(255, 255, 255, 0.2);
+                            transition: all 0.4s ease;
                         }
-                        .overlay-card {
-                            background: #ffffff;
-                            padding: 2rem;
+
+                        .buy-button:hover::before {
+                            left: ${lead.disponivel ? '100%' : '-100%'};
+                        }
+
+                        .buy-button:hover {
+                            transform: ${lead.disponivel ? 'scale(1.05)' : 'none'};
+                            box-shadow: ${lead.disponivel ? `0 10px 20px rgba(${lead.categoria === 1 ? '52, 152, 219' : '184, 134, 11'}, 0.4)` : 'none'};
+                        }
+
+                        .buy-button:active {
+                            transform: scale(1);
+                        }
+
+                        ${lead.categoria !== 1 ? `
+                        .premium-badge {
+                            position: absolute;
+                            top: 10px;
+                            right: 10px;
+                            background: #ffd700;
+                            color: #1a2d3f;
+                            padding: 8px 15px;
                             border-radius: 20px;
-                            max-width: 450px;
-                            width: 90%;
-                            text-align: center;
-                            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                            font-size: 14px;
+                            font-weight: bold;
+                            text-transform: uppercase;
                         }
-                        .overlay-card p {
-                            font-size: 1.2rem;
-                            color: #1e293b;
-                            margin-bottom: 1.5rem;
-                        }
-                        .overlay-buttons {
-                            display: flex;
-                            gap: 1rem;
-                        }
-                        .overlay-btn {
-                            flex: 1;
-                            padding: 1rem;
-                            border-radius: 12px;
-                            border: none;
-                            font-weight: 600;
-                            cursor: pointer;
-                            transition: all 0.3s ease;
-                        }
-                        .btn-login {
-                            background: #3b82f6;
-                            color: #ffffff;
-                        }
-                        .btn-cancel {
-                            background: #e2e8f0;
-                            color: #64748b;
-                        }
-                        .overlay-btn:hover:not(:disabled) {
-                            transform: translateY(-3px);
-                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-                        }
-                        @media (max-width: 768px) {
-                            .container { padding: 2rem 1.5rem; min-height: 90vh; }
-                            .titulo-lead { font-size: 2.5rem; }
-                            .valor-buscado { font-size: 1.5rem; }
-                            .status { font-size: 1.1rem; padding: 0.5rem 1.5rem; }
-                            .btn-comprar { font-size: 1.2rem; width: 90%; }
-                        }
-                        @media (max-width: 480px) {
-                            .container { padding: 1.5rem 1rem; min-height: 95vh; }
-                            .titulo-lead { font-size: 2rem; }
-                            .valor-buscado { font-size: 1.3rem; }
-                            .status { font-size: 1rem; padding: 0.5rem 1rem; }
-                            .btn-comprar { font-size: 1.1rem; width: 100%; }
-                            .header h1 { font-size: 1.5rem; }
-                        }
+                        ` : ''}
                     </style>
                 </head>
                 <body>
-                    <header class="header">
-                        <img src="${logoUrl}" alt="Meu Lead Itapema Logo">
-                        <h1>meuLEAD</h1>
-                    </header>
-                    <main class="container">
-                        <div class="content">
-                            <p class="lead-id">Lead ${id}</p>
-                            <h1 class="titulo-lead">${lead.interesse || "Lead Imobiliário"}</h1>
-                            <span class="categoria">${categoriaTexto}</span>
-                            <p class="valor-buscado">Buscando até: ${valorBuscado}</p>
-                            <p class="status">${disponibilidadeTexto}</p>
+                    <div class="container">
+                        <img src="${logoUrl}" alt="Meu Lead Itapema" class="logo">
+                        <h1>Lead ${id}</h1>
+                        <p class="subtitle">${categoriaTexto}</p>
+                        
+                        <div class="info-box">
+                            <p>${lead.interesse || "Interesse não especificado"}</p>
                         </div>
-                        <button class="btn-comprar" ${lead.disponivel ? '' : 'disabled'} onclick="comprarLead()">
-                            Obter por ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+
+                        <div class="value-section">
+                            <div class="value-label">Valor Estimado de Interesse</div>
+                            <div class="value">${valorBuscado}</div>
+                        </div>
+
+                        <button class="buy-button" ${lead.disponivel ? '' : 'disabled'} onclick="comprarLead()">
+                            Obter por ${valorLead}
                         </button>
-                    </main>
+                        ${lead.categoria !== 1 ? '<div class="premium-badge">Alto Padrão</div>' : ''}
+                    </div>
+
                     <script>
                         function comprarLead() {
                             const token = localStorage.getItem("token");
@@ -2782,6 +2789,53 @@ app.get("/:id", async (req, res) => {
                                             </button>
                                         </div>
                                     </div>
+                                \`;
+                                overlay.style.cssText = \`
+                                    position: fixed;
+                                    top: 0;
+                                    left: 0;
+                                    width: 100%;
+                                    height: 100%;
+                                    background: rgba(0, 0, 0, 0.7);
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    z-index: 1000;
+                                \`;
+                                overlay.querySelector('.overlay-card').style.cssText = \`
+                                    background: #ffffff;
+                                    padding: 2rem;
+                                    border-radius: 20px;
+                                    max-width: 450px;
+                                    width: 90%;
+                                    text-align: center;
+                                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                                \`;
+                                overlay.querySelector('.overlay-buttons').style.cssText = \`
+                                    display: flex;
+                                    gap: 1rem;
+                                \`;
+                                overlay.querySelector('.btn-login').style.cssText = \`
+                                    flex: 1;
+                                    padding: 1rem;
+                                    border-radius: 12px;
+                                    border: none;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    background: #3b82f6;
+                                    color: #ffffff;
+                                    transition: all 0.3s ease;
+                                \`;
+                                overlay.querySelector('.btn-cancel').style.cssText = \`
+                                    flex: 1;
+                                    padding: 1rem;
+                                    border-radius: 12px;
+                                    border: none;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    background: #e2e8f0;
+                                    color: #64748b;
+                                    transition: all 0.3s ease;
                                 \`;
                                 document.body.appendChild(overlay);
                             } else {
