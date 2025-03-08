@@ -3163,7 +3163,8 @@ app.get("/:id", async (req, res) => {
             console.log(`Imagens do imóvel ${id}:`, imovel.imagens);
         
             const imagens = Array.isArray(imovel.imagens) ? imovel.imagens : [];
-            const primeiraImagem = imagens.length > 0 ? imagens[0].url : 'https://cloud.meuleaditapema.com.br/uploads/3cbeb5c8-1937-40b0-8f03-765d7a5eba77.png';
+            const logoUrl = 'https://cloud.meuleaditapema.com.br/uploads/3cbeb5c8-1937-40b0-8f03-765d7a5eba77.png'; // Logo padrão
+            const primeiraImagem = imagens.length > 0 ? imagens[0].url : logoUrl; // Para og:image
         
             const html = `
                 <!DOCTYPE html>
@@ -3175,6 +3176,10 @@ app.get("/:id", async (req, res) => {
                     <meta property="og:title" content="${imovel.texto_principal || "Imóvel sem título"}">
                     <meta property="og:description" content="${imovel.descricao || "Sem descrição disponível"}">
                     <meta property="og:image" content="${primeiraImagem}">
+                    <meta property="og:image:secure_url" content="${primeiraImagem}">
+                    <meta property="og:image:type" content="image/png">
+                    <meta property="og:image:width" content="512">
+                    <meta property="og:image:height" content="512">
                     <meta property="og:url" content="https://imovel.meuleaditapema.com.br/${id}">
                     <meta property="og:type" content="article">
                     <link rel="icon" type="image/x-icon" href="https://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico">
@@ -3229,7 +3234,7 @@ app.get("/:id", async (req, res) => {
                     <div class="slider-container" id="slider-container">
                         <button class="slider-arrow left" id="prev-arrow">‹</button>
                         <div class="slider" id="slider-imagens">
-                            ${imagens.length > 0 ? imagens.map(img => `<img src="${img.url}" alt="Imagem do Imóvel" loading="lazy">`).join('') : '<img src="https://source.unsplash.com/400x300/?house" alt="Imagem padrão" loading="lazy">'}
+                            ${imagens.length > 0 ? imagens.map(img => `<img src="${img.url}" alt="Imagem do Imóvel" loading="lazy">`).join('') : `<img src="${logoUrl}" alt="Logo Meu Lead Itapema" loading="lazy">`}
                         </div>
                         <button class="slider-arrow right" id="next-arrow">›</button>
                         <div class="slider-dots" id="slider-dots">${imagens.length > 0 ? imagens.map((_, i) => `<div class="dot${i === 0 ? ' active' : ''}"></div>`).join('') : '<div class="dot active"></div>'}</div>
@@ -3321,7 +3326,7 @@ app.get("/:id", async (req, res) => {
                             updateSlider();
         
                             function verificarLogin(acao) {
-                                const token = getCookie("token"); // Verifica cookies primeiro
+                                const token = getCookie("token");
                                 const userId = getCookie("userId");
                                 if (!token || !userId) {
                                     exibirNotificacao(acao);
