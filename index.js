@@ -2545,94 +2545,108 @@ app.get("/:id", async (req, res) => {
                     <meta property="og:url" content="https://lead.meuleaditapema.com.br/${id}">
                     <meta property="og:type" content="article">
                     <link rel="icon" type="image/x-icon" href="${logoUrl}">
-                    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+                    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
                     <style>
                         * { margin: 0; padding: 0; box-sizing: border-box; }
                         body {
-                            font-family: 'Poppins', sans-serif;
-                            background: linear-gradient(135deg, #f3f4f6, #e0e7ff);
+                            font-family: 'Roboto', sans-serif;
+                            background: linear-gradient(180deg, #f9fafb 0%, #e2e8f0 100%);
                             color: #1e293b;
                             min-height: 100vh;
                             display: flex;
                             flex-direction: column;
-                            padding: 0 1rem;
+                            padding: 0;
+                            overflow-x: hidden;
                         }
                         .header {
                             display: flex;
                             align-items: center;
-                            padding: 1.5rem 1rem;
-                            background: rgba(255, 255, 255, 0.9);
-                            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-                            margin-bottom: 1rem;
-                            border-bottom-left-radius: 15px;
-                            border-bottom-right-radius: 15px;
+                            justify-content: center;
+                            padding: 2rem 1rem;
+                            background: #ffffff;
+                            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+                            border-bottom-left-radius: 30px;
+                            border-bottom-right-radius: 30px;
+                            margin-bottom: 2rem;
                         }
                         .header img {
-                            width: 40px;
-                            margin-right: 0.5rem;
+                            width: 50px;
+                            margin-right: 0.75rem;
                         }
                         .header h1 {
-                            font-size: 1.5rem;
+                            font-family: 'Playfair Display', serif;
+                            font-size: 2rem;
                             font-weight: 700;
                             color: #3b82f6;
-                            text-transform: uppercase;
+                            letter-spacing: 1px;
                         }
                         .container {
                             flex: 1;
-                            max-width: 600px;
+                            max-width: 800px;
                             margin: 0 auto;
-                            background: #ffffff;
-                            border-radius: 20px;
-                            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-                            padding: 2rem;
+                            padding: 3rem 2rem;
                             display: flex;
                             flex-direction: column;
                             justify-content: space-between;
-                            min-height: 80vh;
+                            min-height: 90vh;
+                            background: rgba(255, 255, 255, 0.95);
+                            border-radius: 30px;
+                            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+                        }
+                        .content {
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            text-align: center;
+                            flex-grow: 1;
+                            justify-content: center;
                         }
                         .lead-id {
-                            font-size: 1rem;
+                            font-size: 1.2rem;
+                            font-weight: 400;
                             color: #64748b;
-                            margin-bottom: 0.5rem;
-                            text-align: center;
+                            margin-bottom: 1rem;
+                            letter-spacing: 0.5px;
                         }
                         .titulo-lead {
-                            font-size: 2.2rem;
+                            font-family: 'Playfair Display', serif;
+                            font-size: 3rem;
                             font-weight: 700;
                             color: #1e293b;
-                            text-align: center;
                             margin-bottom: 1.5rem;
                             line-height: 1.2;
+                            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
                         }
                         .categoria {
-                            display: inline-block;
-                            font-size: 1rem;
-                            font-weight: 600;
-                            padding: 0.5rem 1rem;
-                            border-radius: 12px;
+                            font-size: 1.2rem;
+                            font-weight: 500;
+                            padding: 0.75rem 2rem;
+                            border-radius: 15px;
                             background: ${categoriaCor};
                             color: #ffffff;
-                            margin-bottom: 1.5rem;
-                            text-align: center;
-                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                            margin-bottom: 2rem;
+                            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+                            transition: transform 0.3s ease;
+                        }
+                        .categoria:hover {
+                            transform: translateY(-3px);
                         }
                         .valor-buscado {
-                            font-size: 1.5rem;
-                            font-weight: 600;
+                            font-size: 1.8rem;
+                            font-weight: 500;
                             color: #3b82f6;
-                            text-align: center;
-                            margin-bottom: 1.5rem;
+                            margin-bottom: 2rem;
+                            letter-spacing: 0.5px;
                         }
                         .status {
-                            font-size: 1.1rem;
+                            font-size: 1.3rem;
                             font-weight: 600;
-                            padding: 0.75rem 1.5rem;
-                            border-radius: 12px;
+                            padding: 0.75rem 2rem;
+                            border-radius: 15px;
                             background: ${lead.disponivel ? '#22c55e' : '#ef4444'};
                             color: #ffffff;
-                            display: inline-block;
-                            text-align: center;
-                            margin-bottom: 2rem;
+                            margin-bottom: 3rem;
+                            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
                             transition: transform 0.3s ease;
                         }
                         .status:hover {
@@ -2640,22 +2654,24 @@ app.get("/:id", async (req, res) => {
                         }
                         .btn-comprar {
                             display: block;
-                            width: 100%;
-                            padding: 1rem;
-                            font-size: 1.2rem;
-                            font-weight: 700;
+                            width: 80%;
+                            max-width: 400px;
+                            margin: 0 auto;
+                            padding: 1.25rem;
+                            font-size: 1.3rem;
+                            font-weight: 600;
                             color: #ffffff;
-                            background: linear-gradient(90deg, #3b82f6, #2563eb);
+                            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
                             border: none;
-                            border-radius: 12px;
+                            border-radius: 15px;
                             cursor: pointer;
                             transition: all 0.3s ease;
-                            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
-                            margin-top: auto;
+                            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
                         }
                         .btn-comprar:hover:not(:disabled) {
-                            transform: translateY(-3px);
-                            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.5);
+                            transform: translateY(-5px);
+                            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.5);
+                            background: linear-gradient(90deg, #2563eb, #1e40af);
                         }
                         .btn-comprar:disabled {
                             background: #94a3b8;
@@ -2678,14 +2694,14 @@ app.get("/:id", async (req, res) => {
                         .overlay-card {
                             background: #ffffff;
                             padding: 2rem;
-                            border-radius: 15px;
-                            max-width: 400px;
+                            border-radius: 20px;
+                            max-width: 450px;
                             width: 90%;
                             text-align: center;
                             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
                         }
                         .overlay-card p {
-                            font-size: 1.1rem;
+                            font-size: 1.2rem;
                             color: #1e293b;
                             margin-bottom: 1.5rem;
                         }
@@ -2695,8 +2711,8 @@ app.get("/:id", async (req, res) => {
                         }
                         .overlay-btn {
                             flex: 1;
-                            padding: 0.75rem;
-                            border-radius: 10px;
+                            padding: 1rem;
+                            border-radius: 12px;
                             border: none;
                             font-weight: 600;
                             cursor: pointer;
@@ -2711,15 +2727,23 @@ app.get("/:id", async (req, res) => {
                             color: #64748b;
                         }
                         .overlay-btn:hover:not(:disabled) {
-                            transform: translateY(-2px);
-                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                            transform: translateY(-3px);
+                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+                        }
+                        @media (max-width: 768px) {
+                            .container { padding: 2rem 1.5rem; min-height: 90vh; }
+                            .titulo-lead { font-size: 2.5rem; }
+                            .valor-buscado { font-size: 1.5rem; }
+                            .status { font-size: 1.1rem; padding: 0.5rem 1.5rem; }
+                            .btn-comprar { font-size: 1.2rem; width: 90%; }
                         }
                         @media (max-width: 480px) {
-                            .container { padding: 1.5rem; min-height: 90vh; }
-                            .titulo-lead { font-size: 1.8rem; }
+                            .container { padding: 1.5rem 1rem; min-height: 95vh; }
+                            .titulo-lead { font-size: 2rem; }
                             .valor-buscado { font-size: 1.3rem; }
                             .status { font-size: 1rem; padding: 0.5rem 1rem; }
-                            .btn-comprar { font-size: 1.1rem; }
+                            .btn-comprar { font-size: 1.1rem; width: 100%; }
+                            .header h1 { font-size: 1.5rem; }
                         }
                     </style>
                 </head>
@@ -2729,11 +2753,13 @@ app.get("/:id", async (req, res) => {
                         <h1>meuLEAD</h1>
                     </header>
                     <main class="container">
-                        <p class="lead-id">Lead ${id}</p>
-                        <h1 class="titulo-lead">${lead.interesse || "Lead Imobiliário"}</h1>
-                        <span class="categoria">${categoriaTexto}</span>
-                        <p class="valor-buscado">Buscando até: ${valorBuscado}</p>
-                        <p class="status">${disponibilidadeTexto}</p>
+                        <div class="content">
+                            <p class="lead-id">Lead ${id}</p>
+                            <h1 class="titulo-lead">${lead.interesse || "Lead Imobiliário"}</h1>
+                            <span class="categoria">${categoriaTexto}</span>
+                            <p class="valor-buscado">Buscando até: ${valorBuscado}</p>
+                            <p class="status">${disponibilidadeTexto}</p>
+                        </div>
                         <button class="btn-comprar" ${lead.disponivel ? '' : 'disabled'} onclick="comprarLead()">
                             Obter por ${parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </button>
@@ -2767,7 +2793,7 @@ app.get("/:id", async (req, res) => {
                 </html>
             `;
             res.send(html);
-        } else if (req.isImovelDomain && !req.isLeadDomain) {
+    } else if (req.isImovelDomain && !req.isLeadDomain) {
             // Lógica para imóveis
             const result = await pool.query(
                 `
