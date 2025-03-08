@@ -2530,6 +2530,7 @@ app.get("/:id", async (req, res) => {
             const valorBuscado = parseFloat(lead.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             const valorLead = parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             const disponibilidadeTexto = lead.disponivel ? "Disponível" : "Indisponível";
+            const padrao = lead.categoria === 1 ? "medio-padrao" : "alto-padrao";
 
             const html = `
                 <!DOCTYPE html>
@@ -2812,6 +2813,214 @@ app.get("/:id", async (req, res) => {
                             transform: translateY(-3px);
                             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
                         }
+
+                        /* Checkout Overlay Styles */
+                        .checkout-overlay {
+                            position: fixed;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            background: rgba(0, 0, 0, 0.6);
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            z-index: 2000;
+                        }
+
+                        .checkout-modal {
+                            background: #fff;
+                            width: 100%;
+                            max-width: 800px;
+                            height: 80vh;
+                            border-radius: 12px;
+                            padding: 20px;
+                            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+                            display: flex;
+                            flex-direction: column;
+                            overflow-y: auto;
+                        }
+
+                        .checkout-header {
+                            position: relative;
+                            margin-bottom: 20px;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        }
+
+                        .checkout-header h2 {
+                            font-size: 24px;
+                            color: #333;
+                            margin: 0;
+                        }
+
+                        .close-icon {
+                            font-size: 24px;
+                            color: #555;
+                            cursor: pointer;
+                            transition: color 0.2s;
+                        }
+
+                        .close-icon:hover {
+                            color: #f44336;
+                        }
+
+                        .lead-info {
+                            padding: 15px;
+                            border-bottom: 1px solid #ddd;
+                        }
+
+                        .lead-info .lead-interesse {
+                            font-size: 16px;
+                            color: #1c1e21;
+                            margin: 5px 0;
+                        }
+
+                        .similar-leads {
+                            margin-top: 20px;
+                            flex-grow: 1;
+                            overflow-y: auto;
+                        }
+
+                        .similar-leads h3 {
+                            font-size: 18px;
+                            color: #555;
+                            margin-bottom: 10px;
+                        }
+
+                        .similar-leads-container {
+                            display: flex;
+                            gap: 10px;
+                            overflow-x: auto;
+                            padding-bottom: 10px;
+                        }
+
+                        .mini-lead-card {
+                            flex: 0 0 200px;
+                            background: #fff;
+                            border: 2px solid #ddd;
+                            border-radius: 8px;
+                            padding: 10px;
+                            cursor: pointer;
+                            transition: border-color 0.3s;
+                        }
+
+                        .mini-lead-card.selected {
+                            border-color: #1877f2;
+                            box-shadow: 0 0 5px rgba(24, 119, 242, 0.5);
+                        }
+
+                        .mini-lead-card .lead-badge {
+                            font-size: 12px;
+                            padding: 3px 6px;
+                            color: #fff;
+                            border-radius: 4px;
+                        }
+
+                        .mini-lead-card.alto-padrao .lead-badge {
+                            background-color: #d4af37;
+                        }
+
+                        .mini-lead-card.medio-padrao .lead-badge {
+                            background-color: #4682b4;
+                        }
+
+                        .mini-lead-card .lead-sku {
+                            font-size: 12px;
+                            color: #65676b;
+                            margin: 5px 0;
+                        }
+
+                        .mini-lead-card .lead-interesse {
+                            font-size: 14px;
+                            color: #1c1e21;
+                        }
+
+                        .checkout-footer {
+                            margin-top: 20px;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            border-top: 1px solid #ddd;
+                            padding-top: 15px;
+                        }
+
+                        .total-price {
+                            font-size: 18px;
+                            font-weight: 600;
+                            color: #333;
+                        }
+
+                        .checkout-buttons button {
+                            padding: 10px 20px;
+                            border-radius: 6px;
+                            border: none;
+                            cursor: pointer;
+                            font-size: 14px;
+                            font-weight: 600;
+                            transition: background-color 0.2s;
+                        }
+
+                        .checkout-buttons .confirm-btn {
+                            background-color: #1877f2;
+                            color: #fff;
+                        }
+
+                        .checkout-buttons .confirm-btn:hover {
+                            background-color: #166fe5;
+                        }
+
+                        @media (max-width: 500px) {
+                            .checkout-overlay {
+                                align-items: flex-start;
+                                background: rgba(0, 0, 0, 0.8);
+                            }
+
+                            .checkout-modal {
+                                width: 100%;
+                                height: 90vh;
+                                max-width: none;
+                                border-radius: 12px 12px 0 0;
+                                box-shadow: none;
+                                padding: 15px;
+                                position: absolute;
+                                top: 10%;
+                                bottom: 0;
+                                overflow-y: hidden;
+                            }
+
+                            .checkout-header {
+                                padding-right: 10px;
+                            }
+
+                            .lead-info {
+                                padding: 10px;
+                                border-bottom: 1px solid #ddd;
+                            }
+
+                            .checkout-header h2 {
+                                font-size: 18px;
+                            }
+
+                            .similar-leads {
+                                overflow-y: auto;
+                                max-height: calc(100% - 200px);
+                            }
+
+                            .mini-lead-card {
+                                flex: 0 0 160px;
+                            }
+
+                            .checkout-footer {
+                                gap: 10px;
+                                padding-bottom: 15px;
+                            }
+
+                            .checkout-buttons button {
+                                width: 100%;
+                            }
+                        }
                     </style>
                 </head>
                 <body>
@@ -2836,7 +3045,7 @@ app.get("/:id", async (req, res) => {
                     </div>
 
                     <script>
-                        function comprarLead() {
+                        async function comprarLead() {
                             const token = localStorage.getItem("token");
                             if (!token) {
                                 const overlay = document.createElement("div");
@@ -2856,8 +3065,100 @@ app.get("/:id", async (req, res) => {
                                 \`;
                                 document.body.appendChild(overlay);
                             } else {
-                                alert("Lead obtido com sucesso! (Funcionalidade a implementar)");
+                                await mostrarCheckout('${id}', '${padrao}', '${valorLead}');
                             }
+                        }
+
+                        async function mostrarCheckout(leadId, padrao, valorFormatado) {
+                            console.log("mostrarCheckout chamado com:", leadId, padrao, valorFormatado);
+                            try {
+                                const response = await fetch(\`https://backand.meuleaditapema.com.br/list-clientes?limit=1&offset=0&id=\${leadId}\`);
+                                const data = await response.json();
+                                console.log("Resposta da API:", data);
+                                const lead = data.clientes && data.clientes[0] ? data.clientes[0] : {};
+
+                                const overlay = document.createElement("div");
+                                overlay.className = "checkout-overlay";
+                                overlay.innerHTML = \`
+                                    <div class="checkout-modal">
+                                        <div class="checkout-header">
+                                            <h2>Confirmar Compra de Lead</h2>
+                                            <i class="close-icon" onclick="this.closest('.checkout-overlay').remove()">✖</i>
+                                        </div>
+                                        <div class="lead-info">
+                                            <div class="lead-interesse">SKU: \${lead.id || "N/A"}</div>
+                                            <div class="lead-interesse">Interesse: \${lead.interesse || "Não especificado"}</div>
+                                            <div class="lead-interesse">Valor do Lead: \${valorFormatado}</div>
+                                        </div>
+                                        <div class="similar-leads">
+                                            <h3>Leads Semelhantes</h3>
+                                            <div class="similar-leads-container" id="similar-leads-container"></div>
+                                        </div>
+                                        <div class="checkout-footer">
+                                            <div class="total-price">Total: \${valorFormatado}</div>
+                                            <div class="checkout-buttons">
+                                                <button class="confirm-btn" onclick="confirmarCompra('\${leadId}')">Confirmar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                \`;
+                                document.body.appendChild(overlay);
+
+                                await carregarLeadsSemelhantes(leadId, padrao, valorFormatado);
+                            } catch (error) {
+                                console.error("Erro em mostrarCheckout:", error);
+                            }
+                        }
+
+                        async function carregarLeadsSemelhantes(leadId, padrao, valorFormatado) {
+                            try {
+                                const response = await fetch(\`https://backand.meuleaditapema.com.br/list-clientes?limit=10&categoria=\${padrao === "alto-padrao" ? 2 : 1}\`);
+                                const data = await response.json();
+                                const similarLeadsContainer = document.getElementById("similar-leads-container");
+                                const selectedLeads = [leadId];
+                                let totalPrice = parseFloat(valorFormatado.replace("R$", "").replace(".", "").replace(",", "."));
+
+                                if (data.clientes && Array.isArray(data.clientes)) {
+                                    const filteredLeads = data.clientes.filter(lead => lead.id !== leadId);
+                                    filteredLeads.forEach(lead => {
+                                        const valorLead = parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { 
+                                            style: 'currency', 
+                                            currency: 'BRL' 
+                                        });
+                                        const miniCard = document.createElement("div");
+                                        miniCard.className = \`mini-lead-card \${padrao}\`;
+                                        miniCard.innerHTML = \`
+                                            <div class="lead-badge">\${padrao === "alto-padrao" ? "Alto Padrão" : "Médio Padrão"}</div>
+                                            <div class="lead-sku">SKU \${lead.id}</div>
+                                            <div class="lead-interesse">\${lead.interesse || "N/A"}</div>
+                                            <div class="lead-interesse">\${valorLead}</div>
+                                        \`;
+                                        miniCard.onclick = () => {
+                                            miniCard.classList.toggle("selected");
+                                            const leadValue = parseFloat(lead.valor_lead || 0);
+                                            if (miniCard.classList.contains("selected")) {
+                                                selectedLeads.push(lead.id);
+                                                totalPrice += leadValue;
+                                            } else {
+                                                selectedLeads.splice(selectedLeads.indexOf(lead.id), 1);
+                                                totalPrice -= leadValue;
+                                            }
+                                            document.querySelector(".total-price").textContent = \`Total: \${totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\`;
+                                            window.selectedLeads = selectedLeads;
+                                        };
+                                        similarLeadsContainer.appendChild(miniCard);
+                                    });
+                                }
+                            } catch (error) {
+                                console.error("Erro ao carregar leads semelhantes:", error);
+                            }
+                        }
+
+                        function confirmarCompra(leadId) {
+                            const selectedLeads = window.selectedLeads || [leadId];
+                            console.log("Leads a comprar:", selectedLeads);
+                            alert(\`Compra confirmada para os leads: \${selectedLeads.join(", ")}. Redirecionando para o checkout...\`);
+                            document.querySelector(".checkout-overlay").remove();
                         }
                     </script>
                 </body>
