@@ -1908,6 +1908,8 @@ app.post('/criar-pedido', async (req, res) => {
 
 
 
+const axios = require('axios'); // Certifique-se de ter o axios instalado (npm install axios)
+
 app.post('/webhook/asaas', async (req, res) => {
     try {
         console.log("🌐 Recebendo webhook do Asaas");
@@ -1959,17 +1961,39 @@ app.post('/webhook/asaas', async (req, res) => {
             const updatedPedidos = await pool.query(updatePedidosQuery, [paymentId]);
             console.log(`✅ Pedidos atualizados (pago = true): ${updatedPedidos.rowCount}`);
 
-            // Processa cada pedido para atualizar a tabela corretores
+            // Processa cada pedido
             for (const pedido of pedidos) {
-                const { corretor, imoveis_id, leads_id } = pedido;
+                const { id: pedidoId, corretor, imoveis_id, leads_id } = pedido;
 
                 // Converte os arrays para garantir que sejam válidos (podem vir como null)
                 const imoveisIds = Array.isArray(imoveis_id) ? imoveis_id.map(id => parseInt(id)) : [];
                 const leadsIds = Array.isArray(leads_id) ? leads_id.map(id => parseInt(id)) : [];
 
-                console.log(`📌 Processando pedido ${pedido.id} para corretor ${corretor}`);
+                console.log(`📌 Processando pedido ${pedidoId} para corretor ${corretor}`);
                 console.log(`   - Imóveis IDs: ${imoveisIds}`);
                 console.log(`   - Leads IDs: ${leadsIds}`);
+
+                // Atualiza a tabela clientes, incrementando cotas_compradas e ajustando disponivel
+                if (leadsIds.length > 0) {
+                    const updateClientesQuery = `
+                        UPDATE clientes
+                        SET cotas_compradas = COALESCE(cotas_compradas, 0) + 1,
+                            disponivel = CASE 
+                                WHEN (COALESCE(cotas_compradas, 0) + 1) >= 5 THEN false 
+                                ELSE disponivel 
+                            END
+                        WHERE id = ANY($1::integer[])
+                        RETURNING id, cotas_compradas, disponivel
+                    `;
+                    const updatedClientes = await pool.query(updateClientesQuery, [leadsIds]);
+
+                    console.log(`✅ Clientes atualizados: ${updatedClientes.rowCount}`);
+                    updatedClientes.rows.forEach(cliente => {
+                        console.log(`   - Cliente ${cliente.id}: cotas_compradas = ${cliente.cotas_compradas}, disponivel = ${cliente.disponivel}`);
+                    });
+                } else {
+                    console.log("📌 Nenhum lead para atualizar em cotas_compradas");
+                }
 
                 // Busca os valores atuais de imoveis_comprados e clientes do corretor
                 const corretorQuery = `
@@ -2012,6 +2036,36 @@ app.post('/webhook/asaas', async (req, res) => {
                 console.log(`✅ Corretor ${corretor} atualizado com sucesso`);
                 console.log(`   - Imóveis comprados: ${novosImoveisComprados}`);
                 console.log(`   - Clientes: ${novosClientes}`);
+
+                // Envia requisição para o N8N
+                const n8nUrl = process.env.n8n_entrega;
+                if (!n8nUrl) {
+                    console.log("⚠️ Variável n8n_entrega não definida no .env");
+                } else {
+                    const n8nPayload = {
+                        pedido_id: pedidoId,
+                        payment_id: paymentId,
+                        clientes_adquiridos: leadsIds,
+                        imoveis_adquiridos: imoveisIds,
+                        corretor_id: corretor,
+                        timestamp: new Date().toISOString(),
+                        webhook_data: webhookData.body // Inclui todos os dados do webhook para flexibilidade
+                    };
+
+                    console.log(`📤 Enviando dados para N8N (${n8nUrl}):`, JSON.stringify(n8nPayload, null, 2));
+
+                    try {
+                        const n8nResponse = await axios.post(n8nUrl, n8nPayload, {
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        console.log(`✅ Resposta do N8N: ${n8nResponse.status} - ${JSON.stringify(n8nResponse.data)}`);
+                    } catch (n8nError) {
+                        console.error(`❌ Erro ao enviar para N8N: ${n8nError.message}`);
+                        // Não falha a transação principal, apenas loga o erro
+                    }
+                }
             }
 
             // Confirma a transação
