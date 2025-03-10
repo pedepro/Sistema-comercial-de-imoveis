@@ -2641,8 +2641,8 @@ app.get("/:id", async (req, res) => {
                         })();
                     </script>
                 </body>
-                </html>
-            `;
+                </html>`;
+            res.send(html);
         } else if (req.isImovelDomain && !req.isLeadDomain) {
             // Lógica para imóveis
             const result = await pool.query(
