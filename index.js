@@ -1365,7 +1365,7 @@ app.get('/corretor', async (req, res) => {
 
     try {
         const result = await pool.query(
-            "SELECT email, phone, token, id, creci, imoveis, clientes, name FROM corretores WHERE id = $1 AND token = $2",
+            "SELECT email, phone, token, id, creci, imoveis, clientes, name, assas_id FROM corretores WHERE id = $1 AND token = $2",
             [id, token]
         );
 
@@ -1986,8 +1986,8 @@ app.get("/:id", async (req, res) => {
             console.log(`Dados do lead ${id}:`, lead);
 
             // URLs ajustadas para HTTPS
-            const logoUrl = 'https://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico'; // Favicon da página
-            const previewImageUrl = 'https://cloud.meuleaditapema.com.br/uploads/3cbeb5c8-1937-40b0-8f03-765d7a5eba77.png'; // Imagem para preview (512x512px)
+            const logoUrl = 'https://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico';
+            const previewImageUrl = 'https://cloud.meuleaditapema.com.br/uploads/3cbeb5c8-1937-40b0-8f03-765d7a5eba77.png';
             const categoriaTexto = lead.categoria === 1 ? "Médio Padrão" : "Alto Padrão";
             const valorBuscado = parseFloat(lead.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             const valorLead = parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -2259,7 +2259,7 @@ app.get("/:id", async (req, res) => {
                             height: 100%;
                             background: rgba(0, 0, 0, 0.6);
                             display: flex;
-                            justify-content: center;
+                            justify-content: center 
                             align-items: center;
                             z-index: 2000;
                         }
@@ -2459,8 +2459,8 @@ app.get("/:id", async (req, res) => {
                             return null;
                         }
                         async function comprarLead() {
-                            const token = getCookie("token");
-                            const userId = getCookie("userId");
+                            const token = localStorage.getItem("token");
+                            const userId = localStorage.getItem("userId");
                             if (!token || !userId) {
                                 const overlay = document.createElement("div");
                                 overlay.className = "overlay";
@@ -2562,11 +2562,75 @@ app.get("/:id", async (req, res) => {
                                 console.error("Erro ao carregar leads semelhantes:", error);
                             }
                         }
-                        function confirmarCompra(leadId) {
+                        async function confirmarCompra(leadId) {
                             const selectedLeads = window.selectedLeads || [leadId];
+                            const token = localStorage.getItem("token");
+                            const userId = localStorage.getItem("userId");
+
                             console.log("Leads a comprar:", selectedLeads);
-                            alert(\`Compra confirmada para os leads: \${selectedLeads.join(", ")}. Redirecionando para o checkout...\`);
-                            document.querySelector(".checkout-overlay").remove();
+
+                            try {
+                                // Busca o assas_id do corretor no backend
+                                const corretorResponse = await fetch(\`https://backand.meuleaditapema.com.br/corretor?id=\${userId}&token=\${token}\`, {
+                                    method: 'GET',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    }
+                                });
+
+                                if (!corretorResponse.ok) {
+                                    const errorData = await corretorResponse.json();
+                                    throw new Error(errorData.error || 'Erro ao buscar dados do corretor');
+                                }
+
+                                const corretorData = await corretorResponse.json();
+                                const assasId = corretorData.assas_id; // Assumindo que assas_id está no retorno, ajuste se necessário
+
+                                if (!assasId) {
+                                    throw new Error('ID do Asaas do corretor não encontrado');
+                                }
+
+                                // Dados do pedido para enviar à rota /criar-pedido
+                                const pedidoData = {
+                                    corretor: assasId, // Usa o assas_id do corretor
+                                    entregue: false,
+                                    pago: false,
+                                    imoveis_id: [], // Sem imóveis neste caso
+                                    leads_id: selectedLeads // Lista de IDs dos leads selecionados
+                                };
+
+                                console.log("Enviando pedido para o backend:", pedidoData);
+
+                                // Requisição para criar o pedido
+                                const response = await fetch('https://backand.meuleaditapema.com.br/criar-pedido', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify(pedidoData)
+                                });
+
+                                if (!response.ok) {
+                                    const errorData = await response.json();
+                                    throw new Error(errorData.error || 'Erro ao criar o pedido');
+                                }
+
+                                const result = await response.json();
+                                console.log("Resposta do backend:", result);
+
+                                // Remove o overlay de checkout
+                                document.querySelector(".checkout-overlay").remove();
+
+                                // Redireciona para a URL de pagamento (invoiceUrl)
+                                if (result.success && result.invoiceUrl) {
+                                    window.location.href = result.invoiceUrl;
+                                } else {
+                                    alert('Pedido criado com sucesso, mas não foi possível redirecionar para o pagamento.');
+                                }
+                            } catch (error) {
+                                console.error("Erro ao confirmar compra:", error);
+                                alert(\`Erro ao processar a compra: \${error.message}\`);
+                            }
                         }
                         (function syncAuth() {
                             const token = getCookie("token");
