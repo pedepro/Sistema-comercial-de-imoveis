@@ -2666,20 +2666,20 @@ app.get("/:id", async (req, res) => {
                 `,
                 [id]
             );
-        
+    
             if (result.rowCount === 0) {
                 console.log(`Imóvel ${id} não encontrado`);
                 return res.status(404).send("Imóvel não encontrado");
             }
-        
+    
             const imovel = result.rows[0];
             console.log(`Dados do imóvel ${id}:`, imovel);
             console.log(`Imagens do imóvel ${id}:`, imovel.imagens);
-        
+    
             const imagens = Array.isArray(imovel.imagens) ? imovel.imagens : [];
             const logoUrl = 'https://cloud.meuleaditapema.com.br/uploads/3cbeb5c8-1937-40b0-8f03-765d7a5eba77.png'; // Logo padrão
             const primeiraImagem = imagens.length > 0 ? imagens[0].url : logoUrl; // Para og:image
-        
+    
             const html = `
                 <!DOCTYPE html>
                 <html lang="pt-BR">
@@ -2784,14 +2784,14 @@ app.get("/:id", async (req, res) => {
                             expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
                             document.cookie = \`\${name}=\${value};expires=\${expires.toUTCString()};path=/;domain=.meuleaditapema.com.br;SameSite=Lax\`;
                         }
-        
+    
                         function getCookie(name) {
                             const value = \`; \${document.cookie}\`;
                             const parts = value.split(\`; \${name}=\`);
                             if (parts.length === 2) return parts.pop().split(';').shift();
                             return null;
                         }
-        
+    
                         // Sincroniza localStorage com cookies ao carregar a página
                         (function syncAuth() {
                             const token = getCookie("token");
@@ -2809,7 +2809,7 @@ app.get("/:id", async (req, res) => {
                                 setCookie("userId", localStorage.getItem("userId"), 30);
                             }
                         })();
-        
+    
                         document.addEventListener("DOMContentLoaded", () => {
                             const slider = document.getElementById("slider-imagens");
                             const prevArrow = document.getElementById("prev-arrow");
@@ -2817,38 +2817,38 @@ app.get("/:id", async (req, res) => {
                             const dotsContainer = document.getElementById("slider-dots");
                             const totalSlides = ${imagens.length || 1};
                             let currentSlide = 0;
-        
+    
                             function updateSlider() {
                                 slider.style.transform = \`translateX(-\${currentSlide * 100}vw)\`;
                                 document.querySelectorAll(".dot").forEach((dot, index) => dot.classList.toggle("active", index === currentSlide));
                                 prevArrow.style.display = currentSlide === 0 ? "none" : "block";
                                 nextArrow.style.display = currentSlide === totalSlides - 1 ? "none" : "block";
                             }
-        
+    
                             function goToSlide(index) {
                                 currentSlide = Math.max(0, Math.min(index, totalSlides - 1));
                                 updateSlider();
                             }
-        
+    
                             prevArrow.addEventListener("click", () => { if (currentSlide > 0) { currentSlide--; updateSlider(); } });
                             nextArrow.addEventListener("click", () => { if (currentSlide < totalSlides - 1) { currentSlide++; updateSlider(); } });
                             dotsContainer.addEventListener("click", (e) => {
                                 const dot = e.target.closest(".dot");
                                 if (dot) goToSlide(Array.from(dotsContainer.children).indexOf(dot));
                             });
-        
+    
                             updateSlider();
-        
+    
                             function verificarLogin(acao) {
-                                const token = getCookie("token");
-                                const userId = getCookie("userId");
+                                const token = localStorage.getItem("token");
+                                const userId = localStorage.getItem("userId");
                                 if (!token || !userId) {
                                     exibirNotificacao(acao);
                                     return false;
                                 }
                                 return true;
                             }
-        
+    
                             function exibirNotificacao(acao) {
                                 const mensagem = acao === "afiliar-se" ? "Efetue Login para afiliar-se." : "Efetue Login para conectar-se.";
                                 const overlay = document.createElement("div");
@@ -2863,7 +2863,7 @@ app.get("/:id", async (req, res) => {
                                     </div>
                                 \`;
                                 document.body.appendChild(overlay);
-        
+    
                                 document.getElementById("notificacao-btn-login").addEventListener("click", () => {
                                     window.location.href = "https://meuleaditapema.com.br/login?imovel=${id}";
                                 });
@@ -2871,12 +2871,58 @@ app.get("/:id", async (req, res) => {
                                     document.body.removeChild(overlay);
                                 });
                             }
-        
+    
+                            async function criarPedidoImovel(imovelId) {
+                                const token = localStorage.getItem("token");
+                                const userId = localStorage.getItem("userId");
+    
+                                if (!verificarLogin("conectar")) return;
+    
+                                try {
+                                    const pedidoData = {
+                                        userId: userId,
+                                        token: token,
+                                        entregue: false,
+                                        pago: false,
+                                        imoveis_id: [imovelId], // Envia o ID do imóvel
+                                        leads_id: [] // Sem leads neste caso
+                                    };
+    
+                                    console.log("Enviando pedido para o backend:", pedidoData);
+    
+                                    const response = await fetch('https://backand.meuleaditapema.com.br/criar-pedido', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify(pedidoData)
+                                    });
+    
+                                    if (!response.ok) {
+                                        const errorData = await response.json();
+                                        throw new Error(errorData.error || 'Erro ao criar o pedido');
+                                    }
+    
+                                    const result = await response.json();
+                                    console.log("Resposta do backend:", result);
+    
+                                    if (result.success && result.invoiceUrl) {
+                                        window.location.href = result.invoiceUrl;
+                                    } else {
+                                        alert('Pedido criado com sucesso, mas não foi possível redirecionar para o pagamento.');
+                                    }
+                                } catch (error) {
+                                    console.error("Erro ao criar pedido:", error);
+                                    alert(\`Erro ao processar o pagamento: \${error.message}\`);
+                                }
+                            }
+    
                             document.getElementById("btn-afiliar").addEventListener("click", () => {
                                 if (verificarLogin("afiliar-se")) console.log("Afiliado com sucesso!");
                             });
+    
                             document.getElementById("btn-conectar").addEventListener("click", () => {
-                                if (verificarLogin("conectar")) console.log("Conectado com sucesso!");
+                                criarPedidoImovel('${id}');
                             });
                         });
                     </script>
