@@ -1908,7 +1908,6 @@ app.post('/criar-pedido', async (req, res) => {
 
 
 
-const axios = require('axios'); // Certifique-se de ter o axios instalado (npm install axios)
 
 app.post('/webhook/asaas', async (req, res) => {
     try {
