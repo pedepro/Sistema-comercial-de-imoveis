@@ -1762,12 +1762,25 @@ app.post('/criar-pedido', async (req, res) => {
         console.log("🚀 Recebendo requisição em /criar-pedido");
         console.log("📥 Dados recebidos:", req.body);
 
-        const { corretor, entregue, pago, imoveis_id, leads_id } = req.body;
+        const { userId, token, entregue, pago, imoveis_id, leads_id } = req.body;
 
-        if (!corretor) {
-            console.log("❌ Erro: O campo 'corretor' é obrigatório");
-            return res.status(400).json({ success: false, error: "O campo 'corretor' é obrigatório" });
+        if (!userId || !token) {
+            console.log("❌ Erro: userId e token são obrigatórios");
+            return res.status(400).json({ success: false, error: "userId e token são obrigatórios" });
         }
+
+        // Busca o id interno e o assas_id do corretor com base no userId e token
+        const corretorQuery = await pool.query(
+            "SELECT id, assas_id FROM corretores WHERE id = $1 AND token = $2",
+            [userId, token]
+        );
+        if (corretorQuery.rows.length === 0) {
+            console.log("❌ Erro: Corretor não encontrado para userId e token:", userId, token);
+            return res.status(401).json({ success: false, error: "Credenciais inválidas" });
+        }
+        const corretorId = corretorQuery.rows[0].id; // ID interno (integer)
+        const assasId = corretorQuery.rows[0].assas_id; // ID do Asaas (string)
+        console.log("✅ Corretor encontrado - ID interno:", corretorId, "assas_id:", assasId);
 
         // Calcula o total_value baseado nos imóveis e leads
         let total_value = 0;
@@ -1806,22 +1819,22 @@ app.post('/criar-pedido', async (req, res) => {
             return res.status(400).json({ success: false, error: "O valor total deve ser maior que zero" });
         }
 
-        // Criação da cobrança no Asaas
+        // Criação da cobrança no Asaas usando o assas_id
         console.log("💳 Criando cobrança no Asaas...");
         const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + 7); // Vencimento em 7 dias como exemplo
+        dueDate.setDate(dueDate.getDate() + 7);
         const asaasResponse = await axios.post(
             `${process.env.ASAAS_API_URL}/payments`,
             {
                 billingType: "UNDEFINED",
-                customer: corretor, // Usa o assas_id do corretor enviado pelo frontend
+                customer: assasId, // Usa o assas_id do corretor
                 value: total_value,
-                dueDate: dueDate.toISOString().split('T')[0], // Formato YYYY-MM-DD
-                description: `Pedido de imóveis e leads - Corretor ${corretor}`,
+                dueDate: dueDate.toISOString().split('T')[0],
+                description: `Pedido de imóveis e leads - Corretor ${corretorId}`,
                 split: [
                     {
-                        percentualValue: 1, // 1% como no exemplo, ajustável
-                        walletId: process.env.split_walletID // Pega do .env
+                        percentualValue: 1,
+                        walletId: process.env.split_walletID
                     }
                 ],
                 callback: {
@@ -1843,7 +1856,7 @@ app.post('/criar-pedido', async (req, res) => {
         const invoiceUrl = asaasResponse.data.invoiceUrl;
         console.log(`✅ Cobrança criada no Asaas. ID: ${cobranca_id}, Invoice URL: ${invoiceUrl}`);
 
-        // Insere o pedido na tabela com o cobranca_id e invoiceUrl gerados
+        // Insere o pedido na tabela com o corretorId (integer)
         const insertQuery = `
             INSERT INTO pedido (total_value, corretor, entregue, pago, cobranca_id, invoiceUrl, imoveis_id, leads_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -1851,7 +1864,7 @@ app.post('/criar-pedido', async (req, res) => {
         `;
         const values = [
             total_value,
-            corretor,
+            corretorId, // Usa o id interno do corretor (integer)
             entregue !== undefined ? entregue : false,
             pago !== undefined ? pago : false,
             cobranca_id,
@@ -1868,7 +1881,6 @@ app.post('/criar-pedido', async (req, res) => {
 
         console.log(`✅ Pedido criado com sucesso. ID: ${pedidoId}, Total: ${total_value}`);
 
-        // Resposta ao frontend
         res.status(201).json({
             success: true,
             pedido_id: pedidoId,
@@ -1887,7 +1899,6 @@ app.post('/criar-pedido', async (req, res) => {
         res.status(500).json({ success: false, error: "Erro interno do servidor" });
     }
 });
-
 
 
 
@@ -2015,7 +2026,6 @@ app.get("/:id", async (req, res) => {
                     <meta property="og:site_name" content="Meu Lead Itapema">
                     <link rel="icon" type="image/x-icon" href="${logoUrl}">
                     <style>
-                        /* [Estilos mantidos, omitidos por brevidade] */
                         * {
                             margin: 0;
                             padding: 0;
@@ -2135,7 +2145,7 @@ app.get("/:id", async (req, res) => {
                         }
                         .value-label {
                             color: #7f8c8d;
-                            font-size: 16px;
+                            font-size: 16Shrinkpx;
                             margin-bottom: 5px;
                             font-style: italic;
                         }
@@ -2259,7 +2269,7 @@ app.get("/:id", async (req, res) => {
                             height: 100%;
                             background: rgba(0, 0, 0, 0.6);
                             display: flex;
-                            justify-content: center 
+                            justify-content: center;
                             align-items: center;
                             z-index: 2000;
                         }
@@ -2570,29 +2580,10 @@ app.get("/:id", async (req, res) => {
                             console.log("Leads a comprar:", selectedLeads);
 
                             try {
-                                // Busca o assas_id do corretor no backend
-                                const corretorResponse = await fetch(\`https://backand.meuleaditapema.com.br/corretor?id=\${userId}&token=\${token}\`, {
-                                    method: 'GET',
-                                    headers: {
-                                        'Content-Type': 'application/json'
-                                    }
-                                });
-
-                                if (!corretorResponse.ok) {
-                                    const errorData = await corretorResponse.json();
-                                    throw new Error(errorData.error || 'Erro ao buscar dados do corretor');
-                                }
-
-                                const corretorData = await corretorResponse.json();
-                                const assasId = corretorData.assas_id; // Assumindo que assas_id está no retorno, ajuste se necessário
-
-                                if (!assasId) {
-                                    throw new Error('ID do Asaas do corretor não encontrado');
-                                }
-
                                 // Dados do pedido para enviar à rota /criar-pedido
                                 const pedidoData = {
-                                    corretor: assasId, // Usa o assas_id do corretor
+                                    userId: userId, // ID interno do corretor
+                                    token: token,   // Token de autenticação
                                     entregue: false,
                                     pago: false,
                                     imoveis_id: [], // Sem imóveis neste caso
@@ -2652,7 +2643,6 @@ app.get("/:id", async (req, res) => {
                 </body>
                 </html>
             `;
-            res.send(html);
         } else if (req.isImovelDomain && !req.isLeadDomain) {
             // Lógica para imóveis
             const result = await pool.query(
