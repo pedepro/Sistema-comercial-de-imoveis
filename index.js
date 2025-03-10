@@ -1908,6 +1908,128 @@ app.post('/criar-pedido', async (req, res) => {
 
 
 
+app.post('/webhook/asaas', async (req, res) => {
+    try {
+        console.log("🌐 Recebendo webhook do Asaas");
+        console.log("📥 Dados recebidos:", JSON.stringify(req.body, null, 2));
+
+        // O webhook pode vir como um array, pegamos o primeiro item
+        const webhookData = Array.isArray(req.body) ? req.body[0] : req.body;
+        const event = webhookData.body.event;
+        const paymentId = webhookData.body.payment.id;
+
+        // Verifica se o evento é de pagamento confirmado
+        if (event !== "PAYMENT_CONFIRMED") {
+            console.log(`⚠️ Evento ignorado: ${event}. Apenas PAYMENT_CONFIRMED é processado.`);
+            return res.status(200).json({ success: true, message: "Evento ignorado" });
+        }
+
+        if (!paymentId) {
+            console.log("❌ Erro: payment.id não encontrado no webhook");
+            return res.status(400).json({ success: false, error: "payment.id é obrigatório" });
+        }
+
+        // Busca pedidos com o cobranca_id correspondente
+        const pedidosQuery = `
+            SELECT id, corretor, imoveis_id, leads_id
+            FROM pedido
+            WHERE cobranca_id = $1
+        `;
+        const pedidosResult = await pool.query(pedidosQuery, [paymentId]);
+
+        if (pedidosResult.rowCount === 0) {
+            console.log(`❌ Nenhum pedido encontrado com cobranca_id: ${paymentId}`);
+            return res.status(404).json({ success: false, error: "Nenhum pedido encontrado" });
+        }
+
+        const pedidos = pedidosResult.rows;
+        console.log(`✅ Pedidos encontrados: ${pedidosResult.rowCount}`);
+
+        // Inicia uma transação para garantir consistência
+        await pool.query('BEGIN');
+
+        try {
+            // Atualiza todos os pedidos encontrados para pago = true
+            const updatePedidosQuery = `
+                UPDATE pedido
+                SET pago = true
+                WHERE cobranca_id = $1
+                RETURNING id
+            `;
+            const updatedPedidos = await pool.query(updatePedidosQuery, [paymentId]);
+            console.log(`✅ Pedidos atualizados (pago = true): ${updatedPedidos.rowCount}`);
+
+            // Processa cada pedido para atualizar a tabela corretores
+            for (const pedido of pedidos) {
+                const { corretor, imoveis_id, leads_id } = pedido;
+
+                // Converte os arrays para garantir que sejam válidos (podem vir como null)
+                const imoveisIds = Array.isArray(imoveis_id) ? imoveis_id.map(id => parseInt(id)) : [];
+                const leadsIds = Array.isArray(leads_id) ? leads_id.map(id => parseInt(id)) : [];
+
+                console.log(`📌 Processando pedido ${pedido.id} para corretor ${corretor}`);
+                console.log(`   - Imóveis IDs: ${imoveisIds}`);
+                console.log(`   - Leads IDs: ${leadsIds}`);
+
+                // Busca os valores atuais de imoveis_comprados e clientes do corretor
+                const corretorQuery = `
+                    SELECT imoveis_comprados, clientes
+                    FROM corretores
+                    WHERE id = $1
+                `;
+                const corretorResult = await pool.query(corretorQuery, [corretor]);
+
+                if (corretorResult.rowCount === 0) {
+                    throw new Error(`Corretor ${corretor} não encontrado`);
+                }
+
+                const corretorData = corretorResult.rows[0];
+                const imoveisCompradosAtuais = Array.isArray(corretorData.imoveis_comprados) ? corretorData.imoveis_comprados.map(id => parseInt(id)) : [];
+                const clientesAtuais = Array.isArray(corretorData.clientes) ? corretorData.clientes.map(id => parseInt(id)) : [];
+
+                // Adiciona novos IDs sem duplicatas
+                const novosImoveisComprados = [...new Set([...imoveisCompradosAtuais, ...imoveisIds])];
+                const novosClientes = [...new Set([...clientesAtuais, ...leadsIds])];
+
+                // Atualiza o corretor com os novos arrays
+                const updateCorretorQuery = `
+                    UPDATE corretores
+                    SET imoveis_comprados = $1::integer[],
+                        clientes = $2::integer[]
+                    WHERE id = $3
+                    RETURNING id
+                `;
+                const updateCorretorResult = await pool.query(updateCorretorQuery, [
+                    novosImoveisComprados.length > 0 ? novosImoveisComprados : null,
+                    novosClientes.length > 0 ? novosClientes : null,
+                    corretor
+                ]);
+
+                if (updateCorretorResult.rowCount === 0) {
+                    throw new Error(`Falha ao atualizar corretor ${corretor}`);
+                }
+
+                console.log(`✅ Corretor ${corretor} atualizado com sucesso`);
+                console.log(`   - Imóveis comprados: ${novosImoveisComprados}`);
+                console.log(`   - Clientes: ${novosClientes}`);
+            }
+
+            // Confirma a transação
+            await pool.query('COMMIT');
+            console.log("✅ Transação concluída com sucesso");
+            return res.status(200).json({ success: true, message: "Webhook processado com sucesso" });
+        } catch (error) {
+            // Em caso de erro, faz rollback da transação
+            await pool.query('ROLLBACK');
+            throw error;
+        }
+    } catch (error) {
+        console.error("❌ Erro ao processar webhook:", error.message);
+        return res.status(500).json({ success: false, error: "Erro interno do servidor" });
+    }
+});
+
+
 
 
 
