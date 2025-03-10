@@ -1748,6 +1748,14 @@ app.delete('/imoveis/:id', async (req, res) => {
 
 
 
+
+
+
+
+
+
+
+
 // Rota para criar um pedido com integração ao Asaas
 app.post('/criar-pedido', async (req, res) => {
     try {
@@ -1757,9 +1765,11 @@ app.post('/criar-pedido', async (req, res) => {
         const { corretor, entregue, pago, imoveis_id, leads_id } = req.body;
 
         if (!corretor) {
+            console.log("❌ Erro: O campo 'corretor' é obrigatório");
             return res.status(400).json({ success: false, error: "O campo 'corretor' é obrigatório" });
         }
 
+        // Calcula o total_value baseado nos imóveis e leads
         let total_value = 0;
 
         if (imoveis_id && Array.isArray(imoveis_id) && imoveis_id.length > 0) {
@@ -1791,32 +1801,52 @@ app.post('/criar-pedido', async (req, res) => {
         }
 
         total_value = isNaN(total_value) ? 0 : total_value;
+        if (total_value <= 0) {
+            console.log("❌ Erro: O valor total deve ser maior que zero");
+            return res.status(400).json({ success: false, error: "O valor total deve ser maior que zero" });
+        }
 
         // Criação da cobrança no Asaas
+        console.log("💳 Criando cobrança no Asaas...");
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 7); // Vencimento em 7 dias como exemplo
         const asaasResponse = await axios.post(
-            `${process.env.ASAAS_API_URL}/charges`,
+            `${process.env.ASAAS_API_URL}/payments`,
             {
-                billingType: "BOLETO", // Ou "PIX", "CREDIT_CARD", etc., conforme necessário
-                customer: "cus_000005737255", // Substitua pelo ID do cliente no Asaas (pode vir do corretor)
+                billingType: "UNDEFINED",
+                customer: corretor, // Usa o assas_id do corretor enviado pelo frontend
                 value: total_value,
-                dueDate: new Date().toISOString().split('T')[0], // Data de vencimento (hoje como exemplo)
-                description: `Pedido de imóveis e leads - Corretor ${corretor}`
+                dueDate: dueDate.toISOString().split('T')[0], // Formato YYYY-MM-DD
+                description: `Pedido de imóveis e leads - Corretor ${corretor}`,
+                split: [
+                    {
+                        percentualValue: 1, // 1% como no exemplo, ajustável
+                        walletId: process.env.split_walletID // Pega do .env
+                    }
+                ],
+                callback: {
+                    autoRedirect: true,
+                    successUrl: "https://meuleaditapema.com.br/"
+                },
+                postalService: false
             },
             {
                 headers: {
-                    'Authorization': `Bearer ${process.env.ASAAS_API_KEY}`,
-                    'Content-Type': 'application/json'
+                    'accept': 'application/json',
+                    'content-type': 'application/json',
+                    'access_token': process.env.ASAAS_API_KEY
                 }
             }
         );
 
         const cobranca_id = asaasResponse.data.id;
-        console.log(`💳 Cobrança criada no Asaas. ID: ${cobranca_id}`);
+        const invoiceUrl = asaasResponse.data.invoiceUrl;
+        console.log(`✅ Cobrança criada no Asaas. ID: ${cobranca_id}, Invoice URL: ${invoiceUrl}`);
 
-        // Insere o pedido na tabela com o cobranca_id gerado
+        // Insere o pedido na tabela com o cobranca_id e invoiceUrl gerados
         const insertQuery = `
-            INSERT INTO pedido (total_value, corretor, entregue, pago, cobranca_id, imoveis_id, leads_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO pedido (total_value, corretor, entregue, pago, cobranca_id, invoiceUrl, imoveis_id, leads_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING id
         `;
         const values = [
@@ -1825,6 +1855,7 @@ app.post('/criar-pedido', async (req, res) => {
             entregue !== undefined ? entregue : false,
             pago !== undefined ? pago : false,
             cobranca_id,
+            invoiceUrl,
             imoveis_id && imoveis_id.length > 0 ? imoveis_id : null,
             leads_id && leads_id.length > 0 ? leads_id : null
         ];
@@ -1837,639 +1868,68 @@ app.post('/criar-pedido', async (req, res) => {
 
         console.log(`✅ Pedido criado com sucesso. ID: ${pedidoId}, Total: ${total_value}`);
 
+        // Resposta ao frontend
         res.status(201).json({
             success: true,
             pedido_id: pedidoId,
             total_value: total_value,
-            cobranca_id: cobranca_id
+            cobranca_id: cobranca_id,
+            invoiceUrl: invoiceUrl
         });
     } catch (error) {
-        console.error("❌ Erro ao criar pedido:", error.message);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Rota para a raiz do subdomínio (opcional, caso acesse sem ID)
-app.get("eu/", (req, res) => {
-    console.log("Acessando raiz do subdomínio, redirecionando para uma página padrão ou instrução");
-    res.send("Por favor, forneça o ID do imóvel na URL, ex.: https://imovel.meuleaditapema.com.br/1");
-});
-
-// Rota para capturar o ID diretamente no subdomínio (ex.: /1)
-app.get("eu/:id", async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        const result = await pool.query(
-            `
-            SELECT 
-                i.*, 
-                COALESCE(
-                    (SELECT json_agg(json_build_object(
-                        'id', images.id,
-                        'url', url,
-                        'livre', livre,
-                        'afiliados', afiliados,
-                        'compradores', compradores
-                    ))
-                     FROM images 
-                     WHERE images.imovel = i.id), 
-                    '[]'::json
-                ) AS imagens
-            FROM imoveis i
-            WHERE i.id = $1
-            `,
-            [id]
-        );
-
-        if (result.rowCount === 0) {
-            return res.status(404).send("Imóvel não encontrado");
+        console.error("❌ Erro ao criar pedido:");
+        if (error.response) {
+            console.error("   - Detalhes do erro do Asaas:", JSON.stringify(error.response.data, null, 2));
+            console.error("   - Status HTTP:", error.response.status);
+        } else {
+            console.error("   - Erro interno:", error.message);
         }
-
-        const imovel = result.rows[0];
-        console.log(`Dados do imóvel ${id}:`, imovel);
-        console.log(`Imagens do imóvel ${id}:`, imovel.imagens);
-
-        const imagens = Array.isArray(imovel.imagens) ? imovel.imagens : [];
-        const primeiraImagem = imagens.length > 0 ? imagens[0].url : 'http://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico';
-
-        const html = `
-            <!DOCTYPE html>
-            <html lang="pt-BR">
-            <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>${imovel.texto_principal || "Detalhes do Imóvel"}</title>
-              <meta property="og:title" content="${imovel.texto_principal || "Imóvel sem título"}">
-              <meta property="og:description" content="${imovel.descricao || "Sem descrição disponível"}">
-              <meta property="og:image" content="${primeiraImagem}">
-              <meta property="og:url" content="https://imovel.meuleaditapema.com.br/${id}">
-              <meta property="og:type" content="article">
-              <link rel="icon" type="image/x-icon" href="/assets/icon.ico">
-              <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-              <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-              <style>
-                * {
-                  box-sizing: border-box;
-                  margin: 0;
-                  padding: 0;
-                }
-                body {
-                  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
-                  background-color: #F0F2F5;
-                  color: #1C1E21;
-                  line-height: 1.6;
-                }
-                .slider-container {
-                  position: relative;
-                  width: 100%;
-                  max-height: 60vh;
-                  overflow: hidden;
-                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-                }
-                .slider {
-                  display: flex;
-                  transition: transform 0.3s ease;
-                  width: 100%;
-                }
-                .slider img {
-                  width: 100vw;
-                  height: 60vh;
-                  object-fit: cover;
-                  flex-shrink: 0;
-                }
-                .slider-arrow {
-                  position: absolute;
-                  top: 50%;
-                  transform: translateY(-50%);
-                  background: rgba(0, 0, 0, 0.5);
-                  color: white;
-                  border: none;
-                  padding: 15px;
-                  font-size: 30px;
-                  cursor: pointer;
-                  z-index: 10;
-                  transition: background 0.2s ease;
-                  display: none;
-                }
-                .slider-arrow:hover {
-                  background: rgba(0, 0, 0, 0.8);
-                }
-                .slider-arrow.left {
-                  left: 10px;
-                }
-                .slider-arrow.right {
-                  right: 10px;
-                }
-                .slider-dots {
-                  position: absolute;
-                  bottom: 15px;
-                  left: 50%;
-                  transform: translateX(-50%);
-                  display: flex;
-                  gap: 8px;
-                }
-                .dot {
-                  width: 10px;
-                  height: 10px;
-                  background: rgba(255, 255, 255, 0.5);
-                  border-radius: 50%;
-                  cursor: pointer;
-                  transition: background 0.2s ease;
-                }
-                .dot.active {
-                  background: white;
-                }
-                .container {
-                  max-width: 1200px;
-                  margin: 20px auto;
-                  padding: 0 20px;
-                }
-                .detalhes-imovel {
-                  border-radius: 8px;
-                  transition: all 0.2s ease;
-                }
-                .titulo-imovel {
-                  font-size: 32px;
-                  color: #1C1E21;
-                  margin-bottom: 16px;
-                  font-weight: 600;
-                }
-                .preco-imovel {
-                  font-size: 24px;
-                  font-weight: 600;
-                  color: #1877F2;
-                  margin: 12px 0;
-                }
-                .tipo-imovel {
-                  font-size: 16px;
-                  color: #60697B;
-                  margin: 8px 0;
-                  font-weight: 500;
-                }
-                .localizacao-imovel {
-                  font-size: 16px;
-                  color: #60697B;
-                  margin: 16px 0 20px;
-                  font-weight: 500;
-                }
-                .descricao-imovel, .negociacao-imovel {
-                  margin: 20px 0;
-                  font-size: 16px;
-                  color: #60697B;
-                  line-height: 1.8;
-                }
-                .descricao-imovel strong, .negociacao-imovel strong {
-                  font-weight: 700;
-                  color: #1C1E21;
-                }
-                .detalhes-grid {
-                  display: grid;
-                  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-                  gap: 16px;
-                  margin: 20px 0;
-                }
-                .detalhe-item {
-                  background-color: #FFFFFF;
-                  border: 1px solid #E9ECEF;
-                  border-radius: 6px;
-                  padding: 12px;
-                  text-align: center;
-                  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-                  transition: transform 0.2s ease, box-shadow 0.2s ease;
-                }
-                .detalhe-item:hover {
-                  transform: translateY(-2px);
-                  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                }
-                .material-icons {
-                  font-size: 24px;
-                  color: #1877F2;
-                  margin-bottom: 4px;
-                  display: block;
-                }
-                .detalhe-descricao {
-                  font-size: 12px;
-                  color: #60697B;
-                  margin-bottom: 4px;
-                  font-weight: 500;
-                }
-                .detalhe-valor {
-                  font-size: 16px;
-                  color: #1C1E21;
-                  font-weight: 500;
-                }
-                .botoes-container {
-                  display: flex;
-                  flex-direction: column;
-                  gap: 16px;
-                  margin-top: 24px;
-                  text-align: center;
-                }
-                .btn {
-                  display: inline-block;
-                  padding: 12px 24px;
-                  font-size: 16px;
-                  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
-                  color: #FFFFFF;
-                  background-color: #1877F2;
-                  border: none;
-                  border-radius: 6px;
-                  cursor: pointer;
-                  transition: background-color 0.2s ease, transform 0.2s ease;
-                  width: 100%;
-                  max-width: 350px;
-                  align-self: center;
-                }
-                .btn:hover {
-                  background-color: #166FE5;
-                  transform: translateY(-2px);
-                }
-                .btn-secundario {
-                  background-color: #42B72A;
-                }
-                .btn-secundario:hover {
-                  background-color: #36A420;
-                }
-                .info-conectar, .info-afiliar {
-                  font-size: 14px;
-                  color: #60697B;
-                  margin-top: 8px;
-                  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
-                  line-height: 1.5;
-                }
-                #notificacao-overlay {
-                  position: fixed;
-                  top: 0;
-                  left: 0;
-                  width: 100%;
-                  height: 100%;
-                  background: rgba(0, 0, 0, 0.5);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  z-index: 1000;
-                }
-                .notificacao {
-                  background: #FFFFFF;
-                  padding: 24px;
-                  border-radius: 8px;
-                  text-align: center;
-                  max-width: 400px;
-                  width: 90%;
-                  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                }
-                .notificacao p {
-                  font-size: 16px;
-                  margin-bottom: 16px;
-                  color: #1C1E21;
-                  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
-                }
-                .botoes {
-                  display: flex;
-                  justify-content: space-between;
-                  gap: 12px;
-                }
-                .notificacao-btn-azul {
-                  background: #1877F2;
-                  color: white;
-                  padding: 10px 20px;
-                  border: none;
-                  border-radius: 6px;
-                  font-size: 14px;
-                  cursor: pointer;
-                  width: 48%;
-                  transition: background-color 0.2s ease, transform 0.2s ease;
-                }
-                .notificacao-btn-azul:hover {
-                  background-color: #166FE5;
-                  transform: translateY(-2px);
-                }
-                .notificacao-btn-cinza {
-                  background: #E9ECEF;
-                  color: #1C1E21;
-                  padding: 10px 20px;
-                  border: none;
-                  border-radius: 6px;
-                  font-size: 14px;
-                  cursor: pointer;
-                  width: 48%;
-                  transition: background-color 0.2s ease, transform 0.2s ease;
-                }
-                .notificacao-btn-cinza:hover {
-                  background-color: #D1D5DB;
-                  transform: translateY(-2px);
-                }
-                @media (max-width: 768px) {
-                  .slider-container {
-                    max-height: 50vh;
-                  }
-                  .slider img {
-                    height: 50vh;
-                  }
-                  .container {
-                    margin: 16px auto;
-                    padding: 0 16px;
-                  }
-                  .detalhes-imovel {
-                    padding: 16px;
-                  }
-                  .titulo-imovel {
-                    font-size: 28px;
-                  }
-                  .preco-imovel {
-                    font-size: 20px;
-                  }
-                  .tipo-imovel, .localizacao-imovel, .descricao-imovel, .negociacao-imovel {
-                    font-size: 14px;
-                  }
-                  .detalhes-grid {
-                    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-                    gap: 12px;
-                  }
-                  .btn {
-                    padding: 10px 20px;
-                    font-size: 14px;
-                    max-width: 100%;
-                  }
-                  .notificacao {
-                    padding: 16px;
-                    max-width: 350px;
-                  }
-                  .notificacao p {
-                    font-size: 14px;
-                  }
-                }
-                @media (max-width: 480px) {
-                  .slider-container {
-                    max-height: 40vh;
-                  }
-                  .slider img {
-                    height: 40vh;
-                  }
-                  .titulo-imovel {
-                    font-size: 24px;
-                  }
-                  .preco-imovel {
-                    font-size: 18px;
-                  }
-                  .tipo-imovel, .localizacao-imovel, .descricao-imovel, .negociacao-imovel {
-                    font-size: 12px;
-                  }
-                  .detalhes-grid {
-                    grid-template-columns: 1fr 1fr;
-                    gap: 8px;
-                  }
-                  .detalhe-item {
-                    padding: 10px;
-                  }
-                  .material-icons {
-                    font-size: 20px;
-                  }
-                  .detalhe-descricao {
-                    font-size: 10px;
-                  }
-                  .detalhe-valor {
-                    font-size: 14px;
-                  }
-                  .btn {
-                    padding: 8px 16px;
-                    font-size: 12px;
-                  }
-                  .info-conectar, .info-afiliar {
-                    font-size: 12px;
-                  }
-                }
-              </style>
-            </head>
-            <body>
-              <div class="slider-container" id="slider-container">
-                <button class="slider-arrow left" id="prev-arrow">‹</button>
-                <div class="slider" id="slider-imagens">
-                  ${imagens.length > 0 ? imagens.map(img => `<img src="${img.url}" alt="Imagem do Imóvel" loading="lazy">`).join('') : '<img src="https://source.unsplash.com/400x300/?house" alt="Imagem padrão" loading="lazy">'}
-                </div>
-                <button class="slider-arrow right" id="next-arrow">›</button>
-                <div class="slider-dots" id="slider-dots">${imagens.length > 0 ? imagens.map((_, i) => `<div class="dot${i === 0 ? ' active' : ''}"></div>`).join('') : '<div class="dot active"></div>'}</div>
-              </div>
-              <div class="container" id="detalhes-imovel-container">
-                <div class="detalhes-imovel" id="detalhes-imovel">
-                  <h1 class="titulo-imovel">${imovel.texto_principal || "Imóvel sem título"}</h1>
-                  <p class="preco-imovel">${parseFloat(imovel.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                  <p class="tipo-imovel">${imovel.tipo || 'Não informado'}</p>
-                  <p class="localizacao-imovel">Localização: ${imovel.endereco || 'Não informado'}</p>
-                  <p class="descricao-imovel"><strong>Descrição:</strong> ${imovel.descricao || 'Sem descrição'}</p>
-                  <p class="negociacao-imovel"><strong>Descrição da negociação:</strong> ${imovel.descricao_negociacao || 'Sem descrição de negociação'}</p>
-                  <div class="detalhes-grid">
-                    <div class="detalhe-item">
-                      <span class="material-icons">square_foot</span>
-                      <span class="detalhe-descricao">Área</span>
-                      <span class="detalhe-valor">${imovel.metros_quadrados || 0} m²</span>
-                    </div>
-                    <div class="detalhe-item">
-                      <span class="material-icons">king_bed</span>
-                      <span class="detalhe-descricao">Quartos</span>
-                      <span class="detalhe-valor">${imovel.quartos || 0}</span>
-                    </div>
-                    <div class="detalhe-item">
-                      <span class="material-icons">bathtub</span>
-                      <span class="detalhe-descricao">Banheiros</span>
-                      <span class="detalhe-valor">${imovel.banheiros || 0}</span>
-                    </div>
-                    <div class="detalhe-item">
-                      <span class="material-icons">directions_car</span>
-                      <span class="detalhe-descricao">Vagas de garagem</span>
-                      <span class="detalhe-valor">${imovel.vagas_garagem || 0}</span>
-                    </div>
-                    <div class="detalhe-item">
-                      <span class="material-icons">layers</span>
-                      <span class="detalhe-descricao">Andar</span>
-                      <span class="detalhe-valor">${imovel.andar || 'Não informado'}</span>
-                    </div>
-                    <div class="detalhe-item">
-                      <span class="material-icons">chair</span>
-                      <span class="detalhe-descricao">Mobiliado</span>
-                      <span class="detalhe-valor">${imovel.mobiliado ? "Sim" : "Não"}</span>
-                    </div>
-                  </div>
-                  <div class="botoes-container">
-                    <button id="btn-conectar" class="btn btn-secundario">Conectar-se com o proprietário por R$ ${Number(imovel.price_contato || 39.90).toFixed(2).replace('.', ',')}</button>
-                    <p class="info-conectar">Ao pagar R$ ${Number(imovel.price_contato || 39.90).toFixed(2).replace('.', ',')}, você será conectado diretamente com o proprietário para tirar dúvidas e negociar.
-                      Não cobramos taxas extras sob venda, comissões, parcerias ou outros. É você em contato direto com o proprietário do imóvel.
-                    </p>
-                    <button id="btn-afiliar" class="btn">Afiliar-se</button>
-                    <p class="info-afiliar">Ao se afiliar a um imóvel, você passa a receber atualizações sobre sua disponibilidade, imagens, valores e condições de negociação.</p>
-                  </div>
-                </div>
-              </div>
-              <script>
-                document.addEventListener("DOMContentLoaded", () => {
-                  console.log("DOM carregado, iniciando script de interação");
-
-                  const slider = document.getElementById("slider-imagens");
-                  const prevArrow = document.getElementById("prev-arrow");
-                  const nextArrow = document.getElementById("next-arrow");
-                  const dotsContainer = document.getElementById("slider-dots");
-                  const totalSlides = ${imagens.length || 1};
-                  let currentSlide = 0;
-
-                  function updateSlider() {
-                    slider.style.transform = \`translateX(-\${currentSlide * 100}vw)\`;
-                    document.querySelectorAll(".dot").forEach((dot, index) => {
-                      dot.classList.toggle("active", index === currentSlide);
-                    });
-                    prevArrow.style.display = currentSlide === 0 ? "none" : "block";
-                    nextArrow.style.display = currentSlide === totalSlides - 1 ? "none" : "block";
-                    console.log("Slider atualizado, currentSlide:", currentSlide);
-                  }
-
-                  function goToSlide(index) {
-                    currentSlide = Math.max(0, Math.min(index, totalSlides - 1));
-                    updateSlider();
-                  }
-
-                  prevArrow.addEventListener("click", () => {
-                    if (currentSlide > 0) {
-                      currentSlide--;
-                      updateSlider();
-                    }
-                  });
-
-                  nextArrow.addEventListener("click", () => {
-                    if (currentSlide < totalSlides - 1) {
-                      currentSlide++;
-                      updateSlider();
-                    }
-                  });
-
-                  dotsContainer.addEventListener("click", (e) => {
-                    const dot = e.target.closest(".dot");
-                    if (dot) {
-                      const index = Array.from(dotsContainer.children).indexOf(dot);
-                      goToSlide(index);
-                    }
-                  });
-
-                  updateSlider();
-
-                  function verificarLogin(acao) {
-                    const token = localStorage.getItem("token");
-                    console.log(\`Verificando login para ação \${acao}, token:\`, token ? "presente" : "ausente");
-                    
-                    if (!token) {
-                      exibirNotificacao(acao);
-                      return false;
-                    }
-                    return true;
-                  }
-
-                  function exibirNotificacao(acao) {
-                    const mensagem = acao === "afiliar-se"
-                      ? "Efetue Login ou crie uma conta para afiliar-se."
-                      : "Efetue Login ou crie uma conta para conectar-se com o proprietário.";
-
-                    console.log(\`Exibindo notificação para ação: \${acao}\`);
-
-                    const overlay = document.createElement("div");
-                    overlay.id = "notificacao-overlay";
-                    overlay.innerHTML = \`
-                      <div class="notificacao">
-                        <p>\${mensagem}</p>
-                        <div class="botoes">
-                          <button id="notificacao-btn-login" class="notificacao-btn-azul">Fazer Login</button>
-                          <button id="notificacao-btn-cancelar" class="notificacao-btn-cinza">Cancelar</button>
-                        </div>
-                      </div>
-                    \`;
-
-                    document.body.appendChild(overlay);
-
-                    document.getElementById("notificacao-btn-login").addEventListener("click", () => {
-                      const id = "${id}";
-                      let loginUrl = "/login";
-                      if (id) loginUrl += \`?id=\${id}\`;
-                      console.log("Redirecionando para login:", loginUrl);
-                      window.location.href = loginUrl;
-                    });
-
-                    document.getElementById("notificacao-btn-cancelar").addEventListener("click", () => {
-                      console.log("Fechando notificação");
-                      document.body.removeChild(overlay);
-                    });
-                  }
-
-                  document.getElementById("btn-afiliar").addEventListener("click", () => {
-                    if (verificarLogin("afiliar-se")) {
-                      console.log("Usuário afiliado com sucesso!");
-                    }
-                  });
-
-                  document.getElementById("btn-conectar").addEventListener("click", () => {
-                    if (verificarLogin("conectar")) {
-                      console.log("Usuário se conectou com sucesso!");
-                    }
-                  });
-                });
-              </script>
-            </body>
-            </html>
-        `;
-
-        res.send(html);
-    } catch (err) {
-        console.error("Erro na consulta do imóvel:", err);
-        res.status(500).send("Erro interno do servidor");
+        res.status(500).json({ success: false, error: "Erro interno do servidor" });
     }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
