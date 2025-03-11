@@ -1010,20 +1010,23 @@ app.get('/list-clientes', async (req, res) => {
     }
 });
 
-// Rota para buscar um lead específico
-app.get('/clientes/:id', async (req, res) => {
+// Rota para criar um novo lead (caso ainda não exista)
+app.post('/clientes', async (req, res) => {
     try {
-        const { id } = req.params;
-        const query = 'SELECT * FROM clientes WHERE id = $1';
-        const result = await pool.query(query, [id]);
+        const { nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp } = req.body;
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({ success: false, error: "Lead não encontrado" });
-        }
+        const query = `
+            INSERT INTO clientes (nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING *`;
+        const values = [nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp];
 
-        res.json(result.rows[0]);
+        const result = await pool.query(query, values);
+
+        console.log(`✅ Novo lead criado com ID ${result.rows[0].id}`);
+        res.status(201).json({ success: true, cliente: result.rows[0] });
     } catch (err) {
-        console.error("❌ Erro ao buscar lead:", err.message);
+        console.error("❌ Erro ao criar lead:", err.message);
         res.status(500).json({ success: false, error: err.message });
     }
 });
@@ -1032,7 +1035,7 @@ app.get('/clientes/:id', async (req, res) => {
 app.put('/clientes/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { nome, categoria, endereco, tipo_imovel, interesse, valor_lead, valor, whatsapp, disponivel } = req.body;
+        const { nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp, disponivel } = req.body;
 
         console.log(`🚀 Recebendo requisição em /clientes/${id} para atualização`);
         console.log("📥 Dados recebidos:", req.body);
@@ -1067,14 +1070,14 @@ app.put('/clientes/:id', async (req, res) => {
             values.push(interesse);
             index++;
         }
-        if (valor_lead !== undefined) {
-            fields.push(`valor_lead = $${index}`);
-            values.push(valor_lead);
-            index++;
-        }
-        if (valor !== undefined) {
+        if (valor !== undefined) { // Preço de Interesse
             fields.push(`valor = $${index}`);
             values.push(valor);
+            index++;
+        }
+        if (valor_lead !== undefined) { // Preço do Lead
+            fields.push(`valor_lead = $${index}`);
+            values.push(valor_lead);
             index++;
         }
         if (whatsapp !== undefined) {
@@ -1118,7 +1121,6 @@ app.put('/clientes/:id', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
-
 
 
 // Rota para criar um novo lead (caso ainda não exista)
