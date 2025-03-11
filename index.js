@@ -1144,27 +1144,48 @@ app.delete('/clientes/:id', async (req, res) => {
         const { id } = req.params;
         console.log(`🚀 Recebendo requisição em /clientes/${id} para exclusão`);
 
-        const query = 'DELETE FROM clientes WHERE id = $1 RETURNING *';
-        const values = [id];
+        // Verifica se o lead está associado a algum corretor
+        const checkQuery = `
+            SELECT COUNT(*) 
+            FROM corretores 
+            WHERE $1 = ANY(clientes)`;
+        const checkValues = [parseInt(id)];
 
-        console.log("📝 Query gerada para exclusão:", query);
-        console.log("📊 Valores utilizados:", values);
+        console.log("📝 Query de verificação gerada:", checkQuery);
+        console.log("📊 Valores utilizados na verificação:", checkValues);
 
-        const result = await pool.query(query, values);
+        const checkResult = await pool.query(checkQuery, checkValues);
+        const count = parseInt(checkResult.rows[0].count);
 
-        if (result.rows.length === 0) {
+        if (count > 0) {
+            console.warn(`⚠️ Lead ${id} está associado a ${count} corretor(es) e não pode ser excluído`);
+            return res.status(403).json({
+                success: false,
+                error: "Este lead já foi adquirido por corretores e não pode ser excluído"
+            });
+        }
+
+        // Se não houver associação, prossegue com a exclusão
+        const deleteQuery = 'DELETE FROM clientes WHERE id = $1 RETURNING *';
+        const deleteValues = [id];
+
+        console.log("📝 Query gerada para exclusão:", deleteQuery);
+        console.log("📊 Valores utilizados:", deleteValues);
+
+        const deleteResult = await pool.query(deleteQuery, deleteValues);
+
+        if (deleteResult.rows.length === 0) {
             console.warn(`⚠️ Lead com ID ${id} não encontrado para exclusão`);
             return res.status(404).json({ success: false, error: "Lead não encontrado" });
         }
 
         console.log(`✅ Lead ${id} excluído com sucesso`);
-        res.json({ success: true, message: "Lead excluído com sucesso", cliente: result.rows[0] });
+        res.json({ success: true, message: "Lead excluído com sucesso", cliente: deleteResult.rows[0] });
     } catch (err) {
         console.error("❌ Erro ao excluir lead:", err.message);
         res.status(500).json({ success: false, error: err.message });
     }
 });
-
 
 
 
