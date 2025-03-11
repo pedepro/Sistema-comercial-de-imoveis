@@ -1010,23 +1010,20 @@ app.get('/list-clientes', async (req, res) => {
     }
 });
 
-// Rota para criar um novo lead (caso ainda não exista)
-app.post('/clientes', async (req, res) => {
+// Rota para buscar um lead específico
+app.get('/clientes/:id', async (req, res) => {
     try {
-        const { nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp } = req.body;
+        const { id } = req.params;
+        const query = 'SELECT * FROM clientes WHERE id = $1';
+        const result = await pool.query(query, [id]);
 
-        const query = `
-            INSERT INTO clientes (nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING *`;
-        const values = [nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp];
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, error: "Lead não encontrado" });
+        }
 
-        const result = await pool.query(query, values);
-
-        console.log(`✅ Novo lead criado com ID ${result.rows[0].id}`);
-        res.status(201).json({ success: true, cliente: result.rows[0] });
+        res.json(result.rows[0]);
     } catch (err) {
-        console.error("❌ Erro ao criar lead:", err.message);
+        console.error("❌ Erro ao buscar lead:", err.message);
         res.status(500).json({ success: false, error: err.message });
     }
 });
@@ -1126,13 +1123,13 @@ app.put('/clientes/:id', async (req, res) => {
 // Rota para criar um novo lead (caso ainda não exista)
 app.post('/clientes', async (req, res) => {
     try {
-        const { nome, categoria, endereco, tipo_imovel, interesse, valor_lead, valor, whatsapp } = req.body;
+        const { nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp } = req.body;
 
         const query = `
-            INSERT INTO clientes (nome, categoria, endereco, tipo_imovel, interesse, valor_lead, valor, whatsapp)
+            INSERT INTO clientes (nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *`;
-        const values = [nome, categoria, endereco, tipo_imovel, interesse, valor_lead, valor, whatsapp];
+        const values = [nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp];
 
         const result = await pool.query(query, values);
 
