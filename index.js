@@ -867,7 +867,7 @@ app.get('/list-clientes', async (req, res) => {
         let values = [];
         let index = 1;
 
-        // Filtros para a consulta de clientes
+        // Filtro por tipo de imóvel
         if (req.query.tipo_imovel) {
             query += ` AND tipo_imovel = $${index}`;
             values.push(req.query.tipo_imovel);
@@ -888,7 +888,7 @@ app.get('/list-clientes', async (req, res) => {
             }
         }
 
-        // Filtro por intervalo de valor
+        // Filtro por intervalo de valor (Preço de Interesse)
         if (req.query.valor_min) {
             const valorMin = parseInt(req.query.valor_min);
             if (!isNaN(valorMin)) {
@@ -913,11 +913,23 @@ app.get('/list-clientes', async (req, res) => {
             }
         }
 
-        if (req.query.nome) {
-            query += ` AND nome ILIKE $${index}`;
-            values.push(`%${req.query.nome}%`);
-            console.log(`📌 Filtro nome: ${req.query.nome}`);
-            index++;
+        // Filtro de busca geral por nome, id ou valor_lead
+        if (req.query.busca) {
+            const busca = req.query.busca;
+            const buscaNum = parseFloat(busca); // Tenta converter para número (para id ou valor_lead)
+            if (!isNaN(buscaNum)) {
+                // Se for número, busca por id ou valor_lead
+                query += ` AND (id = $${index} OR valor_lead = $${index})`;
+                values.push(buscaNum);
+                console.log(`📌 Filtro busca (numérico): id ou valor_lead = ${buscaNum}`);
+                index++;
+            } else {
+                // Se não for número, busca por nome
+                query += ` AND nome ILIKE $${index}`;
+                values.push(`%${busca}%`);
+                console.log(`📌 Filtro busca (texto): nome ILIKE %${busca}%`);
+                index++;
+            }
         }
 
         // Ordenação por valor_lead
@@ -933,10 +945,9 @@ app.get('/list-clientes', async (req, res) => {
             }
         }
 
-        // Tratamento para paginação
-        const limit = parseInt(req.query.limit) || 20; // Limite padrão ajustado para 20
+        // Paginação
+        const limit = parseInt(req.query.limit) || 20;
         const offset = parseInt(req.query.offset) || 0;
-
         query += ` LIMIT $${index} OFFSET $${index + 1}`;
         values.push(limit, offset);
 
@@ -946,12 +957,11 @@ app.get('/list-clientes', async (req, res) => {
         // Consulta principal
         const result = await pool.query(query, values);
 
-        // Consulta para contar o número total de clientes aplicando os filtros
+        // Consulta de contagem
         let countQuery = 'SELECT COUNT(*) FROM clientes WHERE 1=1';
         let countValues = [];
         let countIndex = 1;
 
-        // Repetir os filtros na contagem
         if (req.query.tipo_imovel) {
             countQuery += ` AND tipo_imovel = $${countIndex}`;
             countValues.push(req.query.tipo_imovel);
@@ -985,10 +995,18 @@ app.get('/list-clientes', async (req, res) => {
             }
         }
 
-        if (req.query.nome) {
-            countQuery += ` AND nome ILIKE $${countIndex}`;
-            countValues.push(`%${req.query.nome}%`);
-            countIndex++;
+        if (req.query.busca) {
+            const busca = req.query.busca;
+            const buscaNum = parseFloat(busca);
+            if (!isNaN(buscaNum)) {
+                countQuery += ` AND (id = $${countIndex} OR valor_lead = $${countIndex})`;
+                countValues.push(buscaNum);
+                countIndex++;
+            } else {
+                countQuery += ` AND nome ILIKE $${countIndex}`;
+                countValues.push(`%${busca}%`);
+                countIndex++;
+            }
         }
 
         console.log("📝 Consulta de contagem gerada:", countQuery);
