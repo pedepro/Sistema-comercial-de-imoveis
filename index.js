@@ -917,12 +917,21 @@ app.get('/list-clientes', async (req, res) => {
         let buscaExata = false;
         if (req.query.busca) {
             const busca = req.query.busca;
-            const buscaNum = parseFloat(busca); // Tenta converter para número (para id ou valor_lead)
-            if (!isNaN(buscaNum)) {
-                // Busca exata por id ou valor_lead
-                query += ` AND (id = $${index} OR valor_lead = $${index})`;
-                values.push(buscaNum);
-                console.log(`📌 Filtro busca (numérico): id ou valor_lead = ${buscaNum}`);
+            const buscaInt = parseInt(busca); // Para id (inteiro)
+            const buscaFloat = parseFloat(busca); // Para valor_lead (decimal)
+
+            if (!isNaN(buscaInt) && buscaInt.toString() === busca) {
+                // Busca exata por id (somente inteiros)
+                query += ` AND id = $${index}`;
+                values.push(buscaInt);
+                console.log(`📌 Filtro busca (id): id = ${buscaInt}`);
+                index++;
+                buscaExata = true;
+            } else if (!isNaN(buscaFloat)) {
+                // Busca exata por valor_lead (números com decimais)
+                query += ` AND valor_lead = $${index}`;
+                values.push(buscaFloat);
+                console.log(`📌 Filtro busca (valor_lead): valor_lead = ${buscaFloat}`);
                 index++;
                 buscaExata = true;
             } else {
@@ -1010,10 +1019,16 @@ app.get('/list-clientes', async (req, res) => {
 
         if (req.query.busca) {
             const busca = req.query.busca;
-            const buscaNum = parseFloat(busca);
-            if (!isNaN(buscaNum)) {
-                countQuery += ` AND (id = $${countIndex} OR valor_lead = $${countIndex})`;
-                countValues.push(buscaNum);
+            const buscaInt = parseInt(busca);
+            const buscaFloat = parseFloat(busca);
+
+            if (!isNaN(buscaInt) && buscaInt.toString() === busca) {
+                countQuery += ` AND id = $${countIndex}`;
+                countValues.push(buscaInt);
+                countIndex++;
+            } else if (!isNaN(buscaFloat)) {
+                countQuery += ` AND valor_lead = $${countIndex}`;
+                countValues.push(buscaFloat);
                 countIndex++;
             } else {
                 countQuery += ` AND nome ILIKE $${countIndex}`;
