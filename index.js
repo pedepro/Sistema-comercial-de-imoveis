@@ -1037,22 +1037,64 @@ app.put('/clientes/:id', async (req, res) => {
         console.log(`🚀 Recebendo requisição em /clientes/${id} para atualização`);
         console.log("📥 Dados recebidos:", req.body);
 
+        // Construção dinâmica da query para atualizar apenas os campos enviados
+        const fields = [];
+        const values = [];
+        let index = 1;
+
+        if (nome !== undefined) {
+            fields.push(`nome = $${index}`);
+            values.push(nome);
+            index++;
+        }
+        if (categoria !== undefined) {
+            fields.push(`categoria = $${index}`);
+            values.push(categoria);
+            index++;
+        }
+        if (endereco !== undefined) {
+            fields.push(`endereco = $${index}`);
+            values.push(endereco);
+            index++;
+        }
+        if (tipo_imovel !== undefined) {
+            fields.push(`tipo_imovel = $${index}`);
+            values.push(tipo_imovel);
+            index++;
+        }
+        if (interesse !== undefined) {
+            fields.push(`interesse = $${index}`);
+            values.push(interesse);
+            index++;
+        }
+        if (valor_lead !== undefined) {
+            fields.push(`valor_lead = $${index}`);
+            values.push(valor_lead);
+            index++;
+        }
+        if (whatsapp !== undefined) {
+            fields.push(`whatsapp = $${index}`);
+            values.push(whatsapp);
+            index++;
+        }
+        if (disponivel !== undefined) {
+            fields.push(`disponivel = $${index}`);
+            values.push(disponivel);
+            index++;
+        }
+
+        if (fields.length === 0) {
+            console.warn("⚠️ Nenhum campo válido fornecido para atualização");
+            return res.status(400).json({ success: false, error: "Nenhum campo fornecido para atualização" });
+        }
+
+        // Adiciona o ID como último parâmetro
         const query = `
             UPDATE clientes 
-            SET nome = $1, categoria = $2, endereco = $3, tipo_imovel = $4, interesse = $5, valor_lead = $6, whatsapp = $7, disponivel = $8
-            WHERE id = $9
+            SET ${fields.join(", ")}
+            WHERE id = $${index}
             RETURNING *`;
-        const values = [
-            nome,
-            categoria,
-            endereco,
-            tipo_imovel,
-            interesse,
-            valor_lead,
-            whatsapp,
-            disponivel !== undefined ? disponivel : null, // Campo opcional
-            id
-        ];
+        values.push(id);
 
         console.log("📝 Query gerada para atualização:", query);
         console.log("📊 Valores utilizados:", values);
@@ -1071,6 +1113,9 @@ app.put('/clientes/:id', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
+
+
 // Rota para criar um novo lead (caso ainda não exista)
 app.post('/clientes', async (req, res) => {
     try {
