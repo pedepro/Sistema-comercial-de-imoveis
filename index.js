@@ -914,17 +914,19 @@ app.get('/list-clientes', async (req, res) => {
         }
 
         // Filtro de busca geral por nome, id ou valor_lead
+        let buscaExata = false;
         if (req.query.busca) {
             const busca = req.query.busca;
             const buscaNum = parseFloat(busca); // Tenta converter para número (para id ou valor_lead)
             if (!isNaN(buscaNum)) {
-                // Se for número, busca por id ou valor_lead
+                // Busca exata por id ou valor_lead
                 query += ` AND (id = $${index} OR valor_lead = $${index})`;
                 values.push(buscaNum);
                 console.log(`📌 Filtro busca (numérico): id ou valor_lead = ${buscaNum}`);
                 index++;
+                buscaExata = true;
             } else {
-                // Se não for número, busca por nome
+                // Busca por nome (case-insensitive)
                 query += ` AND nome ILIKE $${index}`;
                 values.push(`%${busca}%`);
                 console.log(`📌 Filtro busca (texto): nome ILIKE %${busca}%`);
@@ -956,6 +958,17 @@ app.get('/list-clientes', async (req, res) => {
 
         // Consulta principal
         const result = await pool.query(query, values);
+        let clientes = result.rows;
+
+        // Se não houver resultados e for uma busca por nome, buscar itens parecidos
+        if (clientes.length === 0 && req.query.busca && !buscaExata) {
+            console.log("⚠️ Nenhum resultado exato encontrado. Buscando itens parecidos...");
+            let similarQuery = 'SELECT * FROM clientes WHERE nome ILIKE $1 LIMIT 5';
+            let similarValues = [`%${req.query.busca}%`];
+            const similarResult = await pool.query(similarQuery, similarValues);
+            clientes = similarResult.rows;
+            console.log(`📌 Itens parecidos encontrados: ${clientes.length}`);
+        }
 
         // Consulta de contagem
         let countQuery = 'SELECT COUNT(*) FROM clientes WHERE 1=1';
@@ -1015,11 +1028,11 @@ app.get('/list-clientes', async (req, res) => {
         const countResult = await pool.query(countQuery, countValues);
         const totalRegistros = parseInt(countResult.rows[0].count);
 
-        console.log("✅ Consulta realizada com sucesso. Resultados encontrados:", result.rows.length);
+        console.log("✅ Consulta realizada com sucesso. Resultados encontrados:", clientes.length);
         console.log("📊 Total de registros na base com filtros:", totalRegistros);
 
         res.json({
-            clientes: result.rows,
+            clientes: clientes,
             total: totalRegistros
         });
     } catch (err) {
@@ -1027,6 +1040,8 @@ app.get('/list-clientes', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
+
+
 
 // Rota para buscar um lead específico
 app.get('/clientes/:id', async (req, res) => {
