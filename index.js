@@ -1635,6 +1635,92 @@ app.get('/corretor', async (req, res) => {
 });
 
 
+// 📌 Rota para atualizar informações do corretor
+app.put('/corretor/dados', async (req, res) => {
+    const { id, token, name, phone, creci, email, current_password, new_password } = req.body;
+
+    if (!id || !token) {
+        return res.status(400).json({ error: "ID e Token são obrigatórios." });
+    }
+
+    try {
+        // Verificar se o corretor existe e o token é válido
+        const checkResult = await pool.query(
+            "SELECT * FROM corretores WHERE id = $1 AND token = $2",
+            [id, token]
+        );
+
+        if (checkResult.rows.length === 0) {
+            return res.status(401).json({ error: "Credenciais inválidas." });
+        }
+
+        const corretor = checkResult.rows[0];
+
+        // Se nova senha for fornecida, validar a senha atual
+        if (new_password) {
+            if (!current_password) {
+                return res.status(400).json({ error: "Senha atual é necessária para alterar a senha." });
+            }
+            if (current_password !== corretor.password) {
+                return res.status(401).json({ error: "Senha atual incorreta." });
+            }
+        }
+
+        // Montar a query de atualização apenas com os campos fornecidos
+        let updateQuery = "UPDATE corretores SET ";
+        const updateValues = [];
+        let index = 1;
+
+        if (name) {
+            updateQuery += `name = $${index}, `;
+            updateValues.push(name);
+            index++;
+        }
+        if (phone) {
+            updateQuery += `phone = $${index}, `;
+            updateValues.push(phone);
+            index++;
+        }
+        if (creci) {
+            updateQuery += `creci = $${index}, `;
+            updateValues.push(creci);
+            index++;
+        }
+        if (email) {
+            updateQuery += `email = $${index}, `;
+            updateValues.push(email);
+            index++;
+        }
+        if (new_password) {
+            updateQuery += `password = $${index}, `;
+            updateValues.push(new_password);
+            index++;
+        }
+
+        // Remover a vírgula extra e adicionar a condição WHERE
+        updateQuery = updateQuery.slice(0, -2) + " WHERE id = $" + index + " AND token = $" + (index + 1);
+        updateValues.push(id, token);
+
+        // Executar a atualização apenas se houver campos para atualizar
+        if (index > 3) { // Se index > 3, significa que há pelo menos um campo além de id e token
+            await pool.query(updateQuery, updateValues);
+        }
+
+        // Retornar os dados atualizados
+        const updatedResult = await pool.query(
+            "SELECT email, phone, token, id, creci, imoveis, clientes, name, assas_id FROM corretores WHERE id = $1 AND token = $2",
+            [id, token]
+        );
+
+        res.json(updatedResult.rows[0]);
+    } catch (error) {
+        console.error("Erro ao atualizar corretor:", error);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+});
+
+
+
 
 app.get('/cidades', async (req, res) => {
     try {
