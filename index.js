@@ -1032,18 +1032,35 @@ app.get('/clientes/:id', async (req, res) => {
 app.put('/clientes/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { nome, categoria, endereco, tipo_imovel, interesse, valor_lead, whatsapp } = req.body;
+        const { nome, categoria, endereco, tipo_imovel, interesse, valor_lead, whatsapp, disponivel } = req.body;
+
+        console.log(`🚀 Recebendo requisição em /clientes/${id} para atualização`);
+        console.log("📥 Dados recebidos:", req.body);
 
         const query = `
             UPDATE clientes 
-            SET nome = $1, categoria = $2, endereco = $3, tipo_imovel = $4, interesse = $5, valor_lead = $6, whatsapp = $7
-            WHERE id = $8
+            SET nome = $1, categoria = $2, endereco = $3, tipo_imovel = $4, interesse = $5, valor_lead = $6, whatsapp = $7, disponivel = $8
+            WHERE id = $9
             RETURNING *`;
-        const values = [nome, categoria, endereco, tipo_imovel, interesse, valor_lead, whatsapp, id];
+        const values = [
+            nome,
+            categoria,
+            endereco,
+            tipo_imovel,
+            interesse,
+            valor_lead,
+            whatsapp,
+            disponivel !== undefined ? disponivel : null, // Campo opcional
+            id
+        ];
+
+        console.log("📝 Query gerada para atualização:", query);
+        console.log("📊 Valores utilizados:", values);
 
         const result = await pool.query(query, values);
 
         if (result.rows.length === 0) {
+            console.warn(`⚠️ Lead com ID ${id} não encontrado para atualização`);
             return res.status(404).json({ success: false, error: "Lead não encontrado" });
         }
 
@@ -1054,7 +1071,6 @@ app.put('/clientes/:id', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
-
 // Rota para criar um novo lead (caso ainda não exista)
 app.post('/clientes', async (req, res) => {
     try {
@@ -1077,6 +1093,32 @@ app.post('/clientes', async (req, res) => {
 });
 
 
+
+app.delete('/clientes/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log(`🚀 Recebendo requisição em /clientes/${id} para exclusão`);
+
+        const query = 'DELETE FROM clientes WHERE id = $1 RETURNING *';
+        const values = [id];
+
+        console.log("📝 Query gerada para exclusão:", query);
+        console.log("📊 Valores utilizados:", values);
+
+        const result = await pool.query(query, values);
+
+        if (result.rows.length === 0) {
+            console.warn(`⚠️ Lead com ID ${id} não encontrado para exclusão`);
+            return res.status(404).json({ success: false, error: "Lead não encontrado" });
+        }
+
+        console.log(`✅ Lead ${id} excluído com sucesso`);
+        res.json({ success: true, message: "Lead excluído com sucesso", cliente: result.rows[0] });
+    } catch (err) {
+        console.error("❌ Erro ao excluir lead:", err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 
 
 
