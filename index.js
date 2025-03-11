@@ -2204,7 +2204,61 @@ app.post('/webhook/asaas', async (req, res) => {
 
 
 
+app.post('/pedido/entregar', async (req, res) => {
+    try {
+        console.log("🌐 Recebendo requisição para confirmar entrega do pedido");
+        console.log("📥 Dados recebidos:", JSON.stringify(req.body, null, 2));
 
+        // Extrai o pedido_id do corpo da requisição
+        const { pedido_id } = req.body;
+
+        if (!pedido_id) {
+            console.log("❌ Erro: pedido_id não encontrado na requisição");
+            return res.status(400).json({ success: false, error: "pedido_id é obrigatório" });
+        }
+
+        // Busca o pedido no banco de dados para verificar se existe
+        const pedidoQuery = `
+            SELECT id, entregue
+            FROM pedido
+            WHERE id = $1
+        `;
+        const pedidoResult = await pool.query(pedidoQuery, [pedido_id]);
+
+        if (pedidoResult.rowCount === 0) {
+            console.log(`❌ Nenhum pedido encontrado com id: ${pedido_id}`);
+            return res.status(404).json({ success: false, error: "Pedido não encontrado" });
+        }
+
+        const pedido = pedidoResult.rows[0];
+
+        // Verifica se o pedido já foi entregue
+        if (pedido.entregue) {
+            console.log(`⚠️ Pedido ${pedido_id} já está marcado como entregue`);
+            return res.status(200).json({ success: true, message: "Pedido já foi entregue anteriormente" });
+        }
+
+        // Atualiza o campo entregue para true
+        const updatePedidoQuery = `
+            UPDATE pedido
+            SET entregue = true
+            WHERE id = $1
+            RETURNING id, entregue
+        `;
+        const updatedPedido = await pool.query(updatePedidoQuery, [pedido_id]);
+
+        if (updatedPedido.rowCount === 0) {
+            console.log(`❌ Falha ao atualizar pedido ${pedido_id}`);
+            return res.status(500).json({ success: false, error: "Falha ao atualizar o pedido" });
+        }
+
+        console.log(`✅ Pedido ${pedido_id} atualizado com sucesso: entregue = ${updatedPedido.rows[0].entregue}`);
+        return res.status(200).json({ success: true, message: "Entrega confirmada com sucesso" });
+    } catch (error) {
+        console.error("❌ Erro ao processar confirmação de entrega:", error.message);
+        return res.status(500).json({ success: false, error: "Erro interno do servidor" });
+    }
+});
 
 
 
