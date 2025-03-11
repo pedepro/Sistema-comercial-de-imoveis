@@ -1904,6 +1904,126 @@ app.post('/criar-pedido', async (req, res) => {
 
 
 
+// Rota para buscar detalhes de um pedido
+app.get('/detalhes-pedido', async (req, res) => {
+    try {
+        console.log("🚀 Recebendo requisição em /detalhes-pedido");
+        console.log("📥 Query recebida:", req.query);
+
+        const { id, cobranca_id } = req.query;
+
+        if (!id && !cobranca_id) {
+            console.log("❌ Erro: id ou cobranca_id é obrigatório");
+            return res.status(400).json({ success: false, error: "id ou cobranca_id é obrigatório" });
+        }
+
+        // Monta a query base para buscar o pedido
+        let pedidoQuery = `
+            SELECT *
+            FROM pedido
+            WHERE 1=1
+        `;
+        const queryParams = [];
+
+        if (id) {
+            queryParams.push(id);
+            pedidoQuery += ` AND id = $${queryParams.length}`;
+        }
+        if (cobranca_id) {
+            queryParams.push(cobranca_id);
+            pedidoQuery += ` AND cobranca_id = $${queryParams.length}`;
+        }
+
+        console.log("📝 Query do pedido:", pedidoQuery);
+        console.log("📊 Parâmetros:", queryParams);
+
+        const pedidoResult = await pool.query(pedidoQuery, queryParams);
+        if (pedidoResult.rows.length === 0) {
+            console.log("❌ Erro: Pedido não encontrado");
+            return res.status(404).json({ success: false, error: "Pedido não encontrado" });
+        }
+
+        const pedido = pedidoResult.rows[0];
+        console.log("✅ Pedido encontrado:", pedido);
+
+        // Busca os detalhes do corretor
+        const corretorQuery = `
+            SELECT *
+            FROM corretores
+            WHERE id = $1
+        `;
+        const corretorResult = await pool.query(corretorQuery, [pedido.corretor]);
+        const corretor = corretorResult.rows[0] || null;
+        console.log("✅ Corretor encontrado:", corretor);
+
+        // Busca os detalhes dos imóveis (se existirem)
+        let imoveis = [];
+        if (pedido.imoveis_id && Array.isArray(pedido.imoveis_id) && pedido.imoveis_id.length > 0) {
+            const imoveisQuery = `
+                SELECT *
+                FROM imoveis
+                WHERE id = ANY($1::integer[])
+            `;
+            const imoveisResult = await pool.query(imoveisQuery, [pedido.imoveis_id]);
+            imoveis = imoveisResult.rows;
+            console.log("✅ Imóveis encontrados:", imoveis.length);
+        } else {
+            console.log("📌 Nenhum imóvel associado ao pedido");
+        }
+
+        // Busca os detalhes dos leads (se existirem)
+        let leads = [];
+        if (pedido.leads_id && Array.isArray(pedido.leads_id) && pedido.leads_id.length > 0) {
+            const leadsQuery = `
+                SELECT *
+                FROM clientes
+                WHERE id = ANY($1::integer[])
+            `;
+            const leadsResult = await pool.query(leadsQuery, [pedido.leads_id]);
+            leads = leadsResult.rows;
+            console.log("✅ Leads encontrados:", leads.length);
+        } else {
+            console.log("📌 Nenhum lead associado ao pedido");
+        }
+
+        // Monta a resposta completa
+        const resposta = {
+            success: true,
+            pedido: {
+                ...pedido,
+                corretor: corretor,
+                imoveis: imoveis,
+                leads: leads
+            }
+        };
+
+        console.log("✅ Detalhes do pedido preparados com sucesso");
+        res.status(200).json(resposta);
+    } catch (error) {
+        console.error("❌ Erro ao buscar detalhes do pedido:", error.message);
+        res.status(500).json({ success: false, error: "Erro interno do servidor" });
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
