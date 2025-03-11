@@ -1142,7 +1142,6 @@ app.post('/clientes', async (req, res) => {
 });
 
 
-
 app.delete('/clientes/:id', async (req, res) => {
     try {
         const { id } = req.params;
