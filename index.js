@@ -1010,6 +1010,101 @@ app.get('/list-clientes', async (req, res) => {
     }
 });
 
+// Rota para buscar um lead específico
+app.get('/clientes/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const query = 'SELECT * FROM clientes WHERE id = $1';
+        const result = await pool.query(query, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, error: "Lead não encontrado" });
+        }
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("❌ Erro ao buscar lead:", err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// Rota para editar um lead
+app.put('/clientes/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nome, categoria, endereco, tipo_imovel, interesse, valor_lead, whatsapp } = req.body;
+
+        const query = `
+            UPDATE clientes 
+            SET nome = $1, categoria = $2, endereco = $3, tipo_imovel = $4, interesse = $5, valor_lead = $6, whatsapp = $7
+            WHERE id = $8
+            RETURNING *`;
+        const values = [nome, categoria, endereco, tipo_imovel, interesse, valor_lead, whatsapp, id];
+
+        const result = await pool.query(query, values);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, error: "Lead não encontrado" });
+        }
+
+        console.log(`✅ Lead ${id} atualizado com sucesso`);
+        res.json({ success: true, cliente: result.rows[0] });
+    } catch (err) {
+        console.error("❌ Erro ao atualizar lead:", err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// Rota para criar um novo lead (caso ainda não exista)
+app.post('/clientes', async (req, res) => {
+    try {
+        const { nome, categoria, endereco, tipo_imovel, interesse, valor_lead, whatsapp } = req.body;
+
+        const query = `
+            INSERT INTO clientes (nome, categoria, endereco, tipo_imovel, interesse, valor_lead, whatsapp)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING *`;
+        const values = [nome, categoria, endereco, tipo_imovel, interesse, valor_lead, whatsapp];
+
+        const result = await pool.query(query, values);
+
+        console.log(`✅ Novo lead criado com ID ${result.rows[0].id}`);
+        res.status(201).json({ success: true, cliente: result.rows[0] });
+    } catch (err) {
+        console.error("❌ Erro ao criar lead:", err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
