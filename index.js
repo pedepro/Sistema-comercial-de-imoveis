@@ -1032,7 +1032,7 @@ app.get('/clientes/:id', async (req, res) => {
 app.put('/clientes/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { nome, categoria, endereco, tipo_imovel, interesse, valor_lead, whatsapp, disponivel } = req.body;
+        const { nome, categoria, endereco, tipo_imovel, interesse, valor_lead, valor, whatsapp, disponivel } = req.body;
 
         console.log(`🚀 Recebendo requisição em /clientes/${id} para atualização`);
         console.log("📥 Dados recebidos:", req.body);
@@ -1070,6 +1070,11 @@ app.put('/clientes/:id', async (req, res) => {
         if (valor_lead !== undefined) {
             fields.push(`valor_lead = $${index}`);
             values.push(valor_lead);
+            index++;
+        }
+        if (valor !== undefined) {
+            fields.push(`valor = $${index}`);
+            values.push(valor);
             index++;
         }
         if (whatsapp !== undefined) {
@@ -1119,13 +1124,13 @@ app.put('/clientes/:id', async (req, res) => {
 // Rota para criar um novo lead (caso ainda não exista)
 app.post('/clientes', async (req, res) => {
     try {
-        const { nome, categoria, endereco, tipo_imovel, interesse, valor_lead, whatsapp } = req.body;
+        const { nome, categoria, endereco, tipo_imovel, interesse, valor_lead, valor, whatsapp } = req.body;
 
         const query = `
-            INSERT INTO clientes (nome, categoria, endereco, tipo_imovel, interesse, valor_lead, whatsapp)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO clientes (nome, categoria, endereco, tipo_imovel, interesse, valor_lead, valor, whatsapp)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *`;
-        const values = [nome, categoria, endereco, tipo_imovel, interesse, valor_lead, whatsapp];
+        const values = [nome, categoria, endereco, tipo_imovel, interesse, valor_lead, valor, whatsapp];
 
         const result = await pool.query(query, values);
 
