@@ -2190,7 +2190,6 @@ app.delete('/imoveis/:id', async (req, res) => {
 
 
 
-// Rota para criar um pedido com integração ao Asaas
 app.post('/criar-pedido', async (req, res) => {
     try {
         console.log("🚀 Recebendo requisição em /criar-pedido");
@@ -2212,8 +2211,8 @@ app.post('/criar-pedido', async (req, res) => {
             console.log("❌ Erro: Corretor não encontrado para userId e token:", userId, token);
             return res.status(401).json({ success: false, error: "Credenciais inválidas" });
         }
-        const corretorId = corretorQuery.rows[0].id; // ID interno (integer)
-        const assasId = corretorQuery.rows[0].assas_id; // ID do Asaas (string)
+        const corretorId = corretorQuery.rows[0].id;
+        const assasId = corretorQuery.rows[0].assas_id;
         console.log("✅ Corretor encontrado - ID interno:", corretorId, "assas_id:", assasId);
 
         // Calcula o total_value baseado nos imóveis e leads
@@ -2261,7 +2260,7 @@ app.post('/criar-pedido', async (req, res) => {
             `${process.env.ASAAS_API_URL}/payments`,
             {
                 billingType: "UNDEFINED",
-                customer: assasId, // Usa o assas_id do corretor
+                customer: assasId,
                 value: total_value,
                 dueDate: dueDate.toISOString().split('T')[0],
                 description: `Pedido de imóveis e leads - Corretor ${corretorId}`,
@@ -2298,7 +2297,7 @@ app.post('/criar-pedido', async (req, res) => {
         `;
         const values = [
             total_value,
-            corretorId, // Usa o id interno do corretor (integer)
+            corretorId,
             entregue !== undefined ? entregue : false,
             pago !== undefined ? pago : false,
             cobranca_id,
@@ -2312,6 +2311,15 @@ app.post('/criar-pedido', async (req, res) => {
 
         const result = await pool.query(insertQuery, values);
         const pedidoId = result.rows[0].id;
+
+        // Atualiza a tabela corretores adicionando o pedidoId ao array pedidos
+        const updateCorretoresQuery = `
+            UPDATE corretores 
+            SET pedidos = array_append(COALESCE(pedidos, '{}'), $1)
+            WHERE id = $2
+        `;
+        await pool.query(updateCorretoresQuery, [pedidoId, corretorId]);
+        console.log(`✅ Array pedidos atualizado para o corretor ${corretorId} com pedido ${pedidoId}`);
 
         console.log(`✅ Pedido criado com sucesso. ID: ${pedidoId}, Total: ${total_value}`);
 
@@ -2333,7 +2341,6 @@ app.post('/criar-pedido', async (req, res) => {
         res.status(500).json({ success: false, error: "Erro interno do servidor" });
     }
 });
-
 
 
 
