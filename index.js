@@ -2708,8 +2708,192 @@ app.post('/pedido/entregar', async (req, res) => {
 
 
 
+app.get('/estatisticas-relatorios', async (req, res) => {
+    try {
+        console.log("🚀 Recebendo requisição em /estatisticas-relatorios");
+
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const query = `
+            WITH stats AS (
+                SELECT 
+                    c.id AS corretor_id,
+                    c.name AS corretor_name,
+                    c.created_at AS corretor_created_at,
+                    COUNT(p.id) AS total_pedidos,
+                    COUNT(p.id) FILTER (WHERE p.pago = false AND p.entregue = false) AS pedidos_pendentes,
+                    COUNT(p.id) FILTER (WHERE p.pago = true AND p.entregue = true) AS pedidos_finalizados_corretor
+                FROM corretores c
+                LEFT JOIN pedido p ON c.id = p.corretor
+                GROUP BY c.id, c.name, c.created_at
+            )
+            SELECT 
+                -- Corretores sem pedidos
+                json_agg(
+                    json_build_object(
+                        'name', corretor_name,
+                        'created_at', corretor_created_at
+                    )
+                ) FILTER (WHERE total_pedidos = 0) AS corretores_sem_pedidos,
+
+                -- Corretores com pedidos
+                json_agg(
+                    json_build_object(
+                        'name', corretor_name,
+                        'total_pedidos', total_pedidos
+                    )
+                ) FILTER (WHERE total_pedidos > 0) AS corretores_com_pedidos,
+
+                -- Corretores com pedidos pendentes
+                json_agg(
+                    json_build_object(
+                        'name', corretor_name,
+                        'pedidos_pendentes', pedidos_pendentes
+                    )
+                ) FILTER (WHERE pedidos_pendentes > 0) AS corretores_com_pedidos_pendentes,
+
+                -- Corretores com mais de 1 pedido
+                json_agg(
+                    json_build_object(
+                        'name', corretor_name,
+                        'total_pedidos', total_pedidos
+                    )
+                ) FILTER (WHERE total_pedidos > 1) AS corretores_com_mais_de_um_pedido,
+
+                -- Pedidos finalizados (total geral)
+                (SELECT COUNT(*) 
+                 FROM pedido 
+                 WHERE pago = true AND entregue = true) AS pedidos_finalizados,
+
+                -- Melhores corretores (top 5, ordenados por pedidos finalizados e depois por data de criação)
+                (SELECT json_agg(t.*)
+                 FROM (
+                     SELECT 
+                         json_build_object(
+                             'name', corretor_name,
+                             'pedidos_finalizados', pedidos_finalizados_corretor,
+                             'created_at', corretor_created_at
+                         )
+                     FROM stats 
+                     ORDER BY pedidos_finalizados_corretor DESC, corretor_created_at ASC
+                     LIMIT 5
+                 ) t) AS melhores_corretores,
+
+                -- Pedidos últimos 30 dias com detalhes
+                (SELECT json_agg(
+                    json_build_object(
+                        'id', p.id,
+                        'corretor_name', c.name,
+                        'valor', p.total_value,
+                        'data', p.created_at
+                    ))
+                 FROM pedido p
+                 JOIN corretores c ON c.id = p.corretor
+                 WHERE p.created_at >= $1) AS pedidos_ultimos_30_dias,
+
+                -- Novos corretores últimos 30 dias
+                (SELECT json_agg(
+                    json_build_object(
+                        'name', name,
+                        'created_at', created_at
+                    ))
+                 FROM corretores 
+                 WHERE created_at >= $1) AS novos_corretores_ultimos_30_dias,
+
+                -- Total de clientes cadastrados por IA últimos 30 dias
+                (SELECT COUNT(*) 
+                 FROM clientes 
+                 WHERE AI_created = true 
+                 AND created_at >= $1) AS clientes_cadastrados_por_ia_ultimos_30_dias
+
+            FROM stats;
+        `;
+
+        const result = await pool.query(query, [thirtyDaysAgo]);
+        const stats = result.rows[0];
+
+        const response = {
+            success: true,
+            data: {
+                corretores_sem_pedidos: stats.corretores_sem_pedidos || [],
+                corretores_com_pedidos: stats.corretores_com_pedidos || [],
+                corretores_com_pedidos_pendentes: stats.corretores_com_pedidos_pendentes || [],
+                corretores_com_mais_de_um_pedido: stats.corretores_com_mais_de_um_pedido || [],
+                pedidos_finalizados: stats.pedidos_finalizados || 0,
+                melhores_corretores: stats.melhores_corretores || [],
+                pedidos_ultimos_30_dias: stats.pedidos_ultimos_30_dias || [],
+                novos_corretores_ultimos_30_dias: stats.novos_corretores_ultimos_30_dias || [],
+                clientes_cadastrados_por_ia_ultimos_30_dias: stats.clientes_cadastrados_por_ia_ultimos_30_dias || 0
+            },
+            timestamp: new Date().toISOString()
+        };
+
+        res.status(200).json(response);
+    } catch (error) {
+        console.error("❌ Erro detalhado:", error.stack);
+        res.status(500).json({
+            success: false,
+            error: "Erro interno do servidor ao calcular estatísticas",
+            details: error.message
+        });
+    }
+});
 
 
+app.get('/pedidos-por-intervalo', async (req, res) => {
+    try {
+        console.log("🚀 Recebendo requisição em /pedidos-por-intervalo");
+
+        const { startDate, endDate, groupBy } = req.query;
+
+        // Validação dos parâmetros
+        if (!startDate || !endDate || !groupBy) {
+            return res.status(400).json({
+                success: false,
+                error: "Parâmetros startDate, endDate e groupBy são obrigatórios"
+            });
+        }
+
+        if (!['day', 'week', 'month'].includes(groupBy)) {
+            return res.status(400).json({
+                success: false,
+                error: "groupBy deve ser 'day', 'week' ou 'month'"
+            });
+        }
+
+        // Query SQL ajustada para agrupamento
+        const query = `
+            SELECT 
+                DATE_TRUNC($3, p.created_at) AS periodo,
+                SUM(p.total_value) AS faturamento
+            FROM pedido p
+            WHERE p.created_at BETWEEN $1 AND $2
+            GROUP BY DATE_TRUNC($3, p.created_at)
+            ORDER BY periodo ASC;
+        `;
+
+        const result = await pool.query(query, [startDate, endDate, groupBy]);
+        const faturamento = result.rows.map(row => ({
+            periodo: row.periodo.toISOString().split('T')[0], // Formato YYYY-MM-DD
+            faturamento: parseFloat(row.faturamento) || 0
+        }));
+
+        console.log("✅ Faturamento calculado:", faturamento);
+
+        res.status(200).json({
+            success: true,
+            data: faturamento
+        });
+    } catch (error) {
+        console.error("❌ Erro ao calcular faturamento:", error.stack);
+        res.status(500).json({
+            success: false,
+            error: "Erro interno do servidor ao calcular faturamento",
+            details: error.message
+        });
+    }
+});
 
 
 
@@ -3860,6 +4044,30 @@ appLead.get("/:id", async (req, res) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const httpServerLead = appLead.listen(portLead, () => {
     console.log(`Servidor Lead rodando em http://localhost:${portLead}`);
 });
+
+
+
+
+
+
