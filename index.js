@@ -1232,6 +1232,19 @@ app.post('/clientes/ia', async (req, res) => {
     try {
         const { nome, endereco, tipo_imovel, interesse, valor, whatsapp } = req.body;
 
+        // Lista de tipos de imóvel válidos
+        const validTiposImovel = ['Apartamento', 'Casa', 'Terreno', 'Comercial', 'Rural', 'Studio'];
+
+        // Validação do tipo_imovel
+        if (!tipo_imovel || !validTiposImovel.includes(tipo_imovel)) {
+            return res.status(400).json({
+                success: false,
+                error: "Tipo de imóvel inválido",
+                message: "Por favor, escolha uma das seguintes opções para tipo_imovel:",
+                options: validTiposImovel
+            });
+        }
+
         // Remove espaços, hífens e @s.whatsapp.net do whatsapp, mantendo o + se existir
         const whatsappClean = whatsapp
             ? String(whatsapp)
@@ -1255,10 +1268,18 @@ app.post('/clientes/ia', async (req, res) => {
         const result = await pool.query(query, values);
 
         console.log(`✅ Novo cliente criado com ID ${result.rows[0].id}`);
-        res.status(201).json({ success: true, cliente: result.rows[0] });
+        res.status(201).json({ 
+            success: true, 
+            cliente: result.rows[0],
+            message: "Cliente cadastrado com sucesso"
+        });
     } catch (err) {
         console.error("❌ Erro ao criar cliente via IA:", err.message);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ 
+            success: false, 
+            error: "Erro interno no servidor",
+            message: err.message 
+        });
     }
 });
 
