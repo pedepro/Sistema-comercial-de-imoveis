@@ -1076,6 +1076,36 @@ app.get('/clientes/:id', async (req, res) => {
     }
 });
 
+
+
+// Rota para buscar um cliente pelos últimos 8 números do WhatsApp
+app.get('/clientes/whatsapp/:numero', async (req, res) => {
+    try {
+        const { numero } = req.params;
+        // Usando SUBSTRING para pegar os últimos 8 caracteres do whatsapp
+        const query = `
+            SELECT * FROM clientes 
+            WHERE SUBSTRING(whatsapp FROM -8) = $1
+        `;
+        const result = await pool.query(query, [numero]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                error: "Cliente não encontrado com esses últimos 8 números do WhatsApp" 
+            });
+        }
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("❌ Erro ao buscar cliente:", err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+
+
+
 // Rota para editar um lead
 app.put('/clientes/:id', async (req, res) => {
     try {
