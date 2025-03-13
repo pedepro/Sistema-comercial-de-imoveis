@@ -1082,10 +1082,10 @@ app.get('/clientes/:id', async (req, res) => {
 app.get('/clientes/whatsapp/:numero', async (req, res) => {
     try {
         const { numero } = req.params;
-        // Usando SUBSTRING para pegar os últimos 8 caracteres do whatsapp
+        // Query ajustada para remover caracteres não numéricos antes de pegar os últimos 8 dígitos
         const query = `
             SELECT * FROM clientes 
-            WHERE SUBSTRING(whatsapp FROM -8) = $1
+            WHERE SUBSTRING(REGEXP_REPLACE(whatsapp, '[^0-9]', '', 'g') FROM -8) = $1
         `;
         const result = await pool.query(query, [numero]);
 
