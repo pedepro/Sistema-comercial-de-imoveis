@@ -721,21 +721,28 @@ app.get('/list-imoveis/disponiveis', async (req, res) => {
 
 
 
-app.get("/get-imov1el/:id", async (req, res) => {
+app.get("/get-imovel/:id", async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Consulta combinada para pegar o imóvel e suas imagens onde livre = true
+        // Consulta combinada para pegar o imóvel e todas as suas imagens
         const result = await pool.query(
             `
             SELECT 
                 i.*, 
                 COALESCE(
-                    (SELECT array_agg(url) 
-                     FROM images 
-                     WHERE images.imovel = i.id 
-                     AND images.livre = true), 
-                    ARRAY[]::text[]
+                    (SELECT json_agg(
+                        json_build_object(
+                            'id', images.id,
+                            'url', images.url,
+                            'livre', images.livre,
+                            'afiliados', images.afiliados,
+                            'compradores', images.compradores
+                        )
+                    ) 
+                    FROM images 
+                    WHERE images.imovel = i.id), 
+                    '[]'::json
                 ) AS imagens
             FROM imoveis i
             WHERE i.id = $1
