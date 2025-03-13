@@ -1227,6 +1227,41 @@ app.post('/clientes', async (req, res) => {
     }
 });
 
+// Rota para criar um novo cliente via IA
+app.post('/clientes/ia', async (req, res) => {
+    try {
+        const { nome, endereco, tipo_imovel, interesse, valor, whatsapp } = req.body;
+
+        // Remove espaços, hífens e @s.whatsapp.net do whatsapp, mantendo o + se existir
+        const whatsappClean = whatsapp
+            ? String(whatsapp)
+                .replace(/[\s-]/g, '') // Remove espaços e hífens
+                .replace('@s.whatsapp.net', '') // Remove @s.whatsapp.net
+            : whatsapp;
+
+        // Converte valor para número (remove quaisquer caracteres não numéricos, se necessário)
+        const valorNumerico = parseFloat(String(valor).replace(/[^0-9.]/g, '')) || 0;
+
+        // Determina categoria e valor_lead com base no valor
+        const categoria = valorNumerico >= 2000000 ? 2 : 1; // 2 milhões
+        const valor_lead = valorNumerico >= 2000000 ? 49.90 : 29.90;
+
+        const query = `
+            INSERT INTO clientes (nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING *`;
+        const values = [nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsappClean];
+
+        const result = await pool.query(query, values);
+
+        console.log(`✅ Novo cliente criado com ID ${result.rows[0].id}`);
+        res.status(201).json({ success: true, cliente: result.rows[0] });
+    } catch (err) {
+        console.error("❌ Erro ao criar cliente via IA:", err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 
 app.delete('/clientes/:id', async (req, res) => {
     try {
