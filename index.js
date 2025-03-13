@@ -1078,16 +1078,19 @@ app.get('/clientes/:id', async (req, res) => {
 
 
 
-// Rota para buscar um cliente pelos últimos 8 números do WhatsApp
 app.get('/clientes/whatsapp/:numero', async (req, res) => {
     try {
         const { numero } = req.params;
-        // Query ajustada para remover caracteres não numéricos antes de pegar os últimos 8 dígitos
+        console.log("Número buscado:", numero);
+
+        // Query ajustada usando RIGHT para pegar os últimos 8 dígitos
         const query = `
-            SELECT * FROM clientes 
-            WHERE SUBSTRING(REGEXP_REPLACE(whatsapp, '[^0-9]', '', 'g') FROM -8) = $1
+            SELECT * 
+            FROM clientes 
+            WHERE RIGHT(REGEXP_REPLACE(whatsapp, '[^0-9]', '', 'g'), 8) = $1
         `;
         const result = await pool.query(query, [numero]);
+        console.log("Resultado da busca:", result.rows);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ 
