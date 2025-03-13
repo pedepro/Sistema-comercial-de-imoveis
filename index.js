@@ -1203,11 +1203,16 @@ app.post('/clientes', async (req, res) => {
     try {
         const { nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp } = req.body;
 
+        // Remove espaços e hífens do whatsapp, mantendo o + se existir
+        const whatsappClean = whatsapp
+            ? String(whatsapp).replace(/[\s-]/g, '')
+            : whatsapp;
+
         const query = `
             INSERT INTO clientes (nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *`;
-        const values = [nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp];
+        const values = [nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsappClean];
 
         const result = await pool.query(query, values);
 
