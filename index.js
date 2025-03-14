@@ -920,29 +920,51 @@ app.get('/list-clientes', async (req, res) => {
             }
         }
 
+        // Novos filtros booleanos
+        if (req.query.disponivel !== undefined) {
+            const disponivel = req.query.disponivel === 'true' || req.query.disponivel === true;
+            query += ` AND disponivel = $${index}`;
+            values.push(disponivel);
+            console.log(`📌 Filtro disponivel: ${disponivel}`);
+            index++;
+        }
+
+        if (req.query.ai_created !== undefined) {
+            const aiCreated = req.query.ai_created === 'true' || req.query.ai_created === true;
+            query += ` AND ai_created = $${index}`;
+            values.push(aiCreated);
+            console.log(`📌 Filtro ai_created: ${aiCreated}`);
+            index++;
+        }
+
+        if (req.query.aprovado !== undefined) {
+            const aprovado = req.query.aprovado === 'true' || req.query.aprovado === true;
+            query += ` AND aprovado = $${index}`;
+            values.push(aprovado);
+            console.log(`📌 Filtro aprovado: ${aprovado}`);
+            index++;
+        }
+
         // Filtro de busca geral por nome, id ou valor_lead
         let buscaExata = false;
         if (req.query.busca) {
             const busca = req.query.busca;
-            const buscaInt = parseInt(busca); // Para id (inteiro)
-            const buscaFloat = parseFloat(busca); // Para valor_lead (decimal)
+            const buscaInt = parseInt(busca);
+            const buscaFloat = parseFloat(busca);
 
             if (!isNaN(buscaInt) && buscaInt.toString() === busca) {
-                // Busca exata por id (somente inteiros)
                 query += ` AND id = $${index}`;
                 values.push(buscaInt);
                 console.log(`📌 Filtro busca (id): id = ${buscaInt}`);
                 index++;
                 buscaExata = true;
             } else if (!isNaN(buscaFloat)) {
-                // Busca exata por valor_lead (números com decimais)
                 query += ` AND valor_lead = $${index}`;
                 values.push(buscaFloat);
                 console.log(`📌 Filtro busca (valor_lead): valor_lead = ${buscaFloat}`);
                 index++;
                 buscaExata = true;
             } else {
-                // Busca por nome (case-insensitive)
                 query += ` AND nome ILIKE $${index}`;
                 values.push(`%${busca}%`);
                 console.log(`📌 Filtro busca (texto): nome ILIKE %${busca}%`);
@@ -1024,6 +1046,28 @@ app.get('/list-clientes', async (req, res) => {
             }
         }
 
+        // Adicionando os novos filtros na query de contagem
+        if (req.query.disponivel !== undefined) {
+            const disponivel = req.query.disponivel === 'true' || req.query.disponivel === true;
+            countQuery += ` AND disponivel = $${countIndex}`;
+            countValues.push(disponivel);
+            countIndex++;
+        }
+
+        if (req.query.ai_created !== undefined) {
+            const aiCreated = req.query.ai_created === 'true' || req.query.ai_created === true;
+            countQuery += ` AND ai_created = $${countIndex}`;
+            countValues.push(aiCreated);
+            countIndex++;
+        }
+
+        if (req.query.aprovado !== undefined) {
+            const aprovado = req.query.aprovado === 'true' || req.query.aprovado === true;
+            countQuery += ` AND aprovado = $${countIndex}`;
+            countValues.push(aprovado);
+            countIndex++;
+        }
+
         if (req.query.busca) {
             const busca = req.query.busca;
             const buscaInt = parseInt(busca);
@@ -1062,7 +1106,6 @@ app.get('/list-clientes', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
-
 
 
 // Rota para buscar um lead específico
