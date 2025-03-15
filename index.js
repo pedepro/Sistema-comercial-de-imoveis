@@ -1163,7 +1163,18 @@ app.get('/clientes/whatsapp/:numero', async (req, res) => {
 app.put('/clientes/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp, disponivel } = req.body;
+        const { 
+            nome, 
+            categoria, 
+            endereco, 
+            tipo_imovel, 
+            interesse, 
+            valor, 
+            valor_lead, 
+            whatsapp, 
+            disponivel,
+            aprovado // Novo campo adicionado
+        } = req.body;
 
         console.log(`🚀 Recebendo requisição em /clientes/${id} para atualização`);
         console.log("📥 Dados recebidos:", req.body);
@@ -1198,12 +1209,12 @@ app.put('/clientes/:id', async (req, res) => {
             values.push(interesse);
             index++;
         }
-        if (valor !== undefined) { // Preço de Interesse
+        if (valor !== undefined) {
             fields.push(`valor = $${index}`);
             values.push(valor);
             index++;
         }
-        if (valor_lead !== undefined) { // Preço do Lead
+        if (valor_lead !== undefined) {
             fields.push(`valor_lead = $${index}`);
             values.push(valor_lead);
             index++;
@@ -1216,6 +1227,11 @@ app.put('/clientes/:id', async (req, res) => {
         if (disponivel !== undefined) {
             fields.push(`disponivel = $${index}`);
             values.push(disponivel);
+            index++;
+        }
+        if (aprovado !== undefined) { // Novo campo adicionado
+            fields.push(`aprovado = $${index}`);
+            values.push(aprovado);
             index++;
         }
 
@@ -1249,7 +1265,6 @@ app.put('/clientes/:id', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
-
 
 // Rota para criar um novo lead (caso ainda não exista)
 app.post('/clientes', async (req, res) => {
