@@ -920,7 +920,7 @@ app.get('/list-clientes', async (req, res) => {
             }
         }
 
-        // Novos filtros booleanos
+        // Filtros booleanos
         if (req.query.disponivel !== undefined) {
             const disponivel = req.query.disponivel === 'true' || req.query.disponivel === true;
             query += ` AND disponivel = $${index}`;
@@ -972,17 +972,23 @@ app.get('/list-clientes', async (req, res) => {
             }
         }
 
-        // Ordenação por valor_lead
-        if (req.query.ordenacao) {
-            if (req.query.ordenacao === 'maior-menor') {
-                query += ` ORDER BY valor_lead DESC`;
-                console.log(`📌 Ordenação: Maior para Menor (valor_lead DESC)`);
-            } else if (req.query.ordenacao === 'menor-maior') {
-                query += ` ORDER BY valor_lead ASC`;
-                console.log(`📌 Ordenação: Menor para Maior (valor_lead ASC)`);
-            } else {
-                console.warn("⚠️ Ordenação inválida recebida:", req.query.ordenacao);
-            }
+        // Ordenação dinâmica
+        let orderBy = req.query.order_by || 'created_at'; // Padrão: created_at
+        const orderDir = req.query.order_dir || 'desc'; // Padrão: descendente
+        const validOrderFields = ['created_at', 'valor_lead'];
+        const validOrderDirs = ['asc', 'desc'];
+
+        // Mapeia 'data_criacao' do frontend para 'created_at' no backend
+        if (orderBy === 'data_criacao') {
+            orderBy = 'created_at';
+        }
+
+        if (validOrderFields.includes(orderBy) && validOrderDirs.includes(orderDir)) {
+            query += ` ORDER BY ${orderBy} ${orderDir.toUpperCase()}`;
+            console.log(`📌 Ordenação: ${orderBy} ${orderDir.toUpperCase()}`);
+        } else {
+            console.warn(`⚠️ Parâmetros de ordenação inválidos: order_by=${orderBy}, order_dir=${orderDir}`);
+            query += ` ORDER BY created_at DESC`; // Fallback para padrão
         }
 
         // Paginação
@@ -998,7 +1004,7 @@ app.get('/list-clientes', async (req, res) => {
         const result = await pool.query(query, values);
         let clientes = result.rows;
 
-        // Se não houver resultados e for uma busca por nome, buscar itens parecidos
+        // Busca de itens similares se não houver resultados
         if (clientes.length === 0 && req.query.busca && !buscaExata) {
             console.log("⚠️ Nenhum resultado exato encontrado. Buscando itens parecidos...");
             let similarQuery = 'SELECT * FROM clientes WHERE nome ILIKE $1 LIMIT 5';
@@ -1046,7 +1052,6 @@ app.get('/list-clientes', async (req, res) => {
             }
         }
 
-        // Adicionando os novos filtros na query de contagem
         if (req.query.disponivel !== undefined) {
             const disponivel = req.query.disponivel === 'true' || req.query.disponivel === true;
             countQuery += ` AND disponivel = $${countIndex}`;
