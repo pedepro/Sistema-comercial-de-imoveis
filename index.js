@@ -1164,11 +1164,11 @@ app.get('/clientes/whatsapp/:numero', async (req, res) => {
 
 
 
-// Rota para editar um lead
 app.put('/clientes/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const { 
+            titulo, // Novo campo adicionado
             nome, 
             categoria, 
             endereco, 
@@ -1178,7 +1178,7 @@ app.put('/clientes/:id', async (req, res) => {
             valor_lead, 
             whatsapp, 
             disponivel,
-            aprovado // Novo campo adicionado
+            aprovado 
         } = req.body;
 
         console.log(`🚀 Recebendo requisição em /clientes/${id} para atualização`);
@@ -1189,6 +1189,11 @@ app.put('/clientes/:id', async (req, res) => {
         const values = [];
         let index = 1;
 
+        if (titulo !== undefined) {
+            fields.push(`titulo = $${index}`);
+            values.push(titulo);
+            index++;
+        }
         if (nome !== undefined) {
             fields.push(`nome = $${index}`);
             values.push(nome);
@@ -1234,7 +1239,7 @@ app.put('/clientes/:id', async (req, res) => {
             values.push(disponivel);
             index++;
         }
-        if (aprovado !== undefined) { // Novo campo adicionado
+        if (aprovado !== undefined) {
             fields.push(`aprovado = $${index}`);
             values.push(aprovado);
             index++;
@@ -1274,18 +1279,31 @@ app.put('/clientes/:id', async (req, res) => {
 // Rota para criar um novo lead (caso ainda não exista)
 app.post('/clientes', async (req, res) => {
     try {
-        const { nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp } = req.body;
+        const { 
+            titulo, // Novo campo adicionado
+            nome, 
+            categoria, 
+            endereco, 
+            tipo_imovel, 
+            interesse, 
+            valor, 
+            valor_lead, 
+            whatsapp 
+        } = req.body;
 
         // Remove espaços e hífens do whatsapp, mantendo o + se existir
         const whatsappClean = whatsapp
             ? String(whatsapp).replace(/[\s-]/g, '')
             : whatsapp;
 
+        console.log("🚀 Recebendo requisição em /clientes para criação");
+        console.log("📥 Dados recebidos:", req.body);
+
         const query = `
-            INSERT INTO clientes (nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO clientes (titulo, nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsapp, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
             RETURNING *`;
-        const values = [nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsappClean];
+        const values = [titulo, nome, categoria, endereco, tipo_imovel, interesse, valor, valor_lead, whatsappClean];
 
         const result = await pool.query(query, values);
 
