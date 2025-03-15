@@ -1179,11 +1179,12 @@ app.get('/clientes/whatsapp/:numero', async (req, res) => {
 
 
 
+// Rota para atualizar um lead existente
 app.put('/clientes/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const { 
-            titulo, // Novo campo adicionado
+            titulo, 
             nome, 
             categoria, 
             endereco, 
@@ -1193,11 +1194,43 @@ app.put('/clientes/:id', async (req, res) => {
             valor_lead, 
             whatsapp, 
             disponivel,
-            aprovado 
+            aprovado,
+            destaque 
         } = req.body;
 
         console.log(`🚀 Recebendo requisição em /clientes/${id} para atualização`);
         console.log("📥 Dados recebidos:", req.body);
+
+        // Verifica se o lead existe e obtém o estado atual de 'aprovado'
+        const checkQuery = 'SELECT aprovado FROM clientes WHERE id = $1';
+        const checkResult = await pool.query(checkQuery, [id]);
+        if (checkResult.rows.length === 0) {
+            console.warn(`⚠️ Lead com ID ${id} não encontrado`);
+            return res.status(404).json({ success: false, error: "Lead não encontrado" });
+        }
+
+        const currentAprovado = checkResult.rows[0].aprovado;
+
+        // Validação: Não permitir disponivel = true se aprovado for false
+        if (disponivel !== undefined && aprovado !== undefined) {
+            // Caso ambos sejam enviados na requisição
+            if (disponivel === true && aprovado === false) {
+                console.warn(`⚠️ Tentativa de tornar disponível sem aprovação. Disponível: ${disponivel}, Aprovado: ${aprovado}`);
+                return res.status(400).json({ 
+                    success: false, 
+                    error: "Não é possível tornar um lead disponível se ele não estiver aprovado" 
+                });
+            }
+        } else if (disponivel === true) {
+            // Caso apenas disponivel seja enviado, verifica o estado atual de aprovado
+            if (currentAprovado === false) {
+                console.warn(`⚠️ Tentativa de tornar disponível sem aprovação. Estado atual de aprovado: ${currentAprovado}`);
+                return res.status(400).json({ 
+                    success: false, 
+                    error: "Não é possível tornar um lead disponível se ele não estiver aprovado" 
+                });
+            }
+        }
 
         // Construção dinâmica da query para atualizar apenas os campos enviados
         const fields = [];
@@ -1257,6 +1290,11 @@ app.put('/clientes/:id', async (req, res) => {
         if (aprovado !== undefined) {
             fields.push(`aprovado = $${index}`);
             values.push(aprovado);
+            index++;
+        }
+        if (destaque !== undefined) {
+            fields.push(`destaque = $${index}`);
+            values.push(destaque);
             index++;
         }
 
