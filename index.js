@@ -945,6 +945,14 @@ app.get('/list-clientes', async (req, res) => {
             index++;
         }
 
+        if (req.query.destaque !== undefined) {
+            const destaque = req.query.destaque === 'true' || req.query.destaque === true;
+            query += ` AND destaque = $${index}`;
+            values.push(destaque);
+            console.log(`📌 Filtro destaque: ${destaque}`);
+            index++;
+        }
+
         // Filtro de busca geral por nome, id ou valor_lead
         let buscaExata = false;
         if (req.query.busca) {
@@ -1070,6 +1078,13 @@ app.get('/list-clientes', async (req, res) => {
             const aprovado = req.query.aprovado === 'true' || req.query.aprovado === true;
             countQuery += ` AND aprovado = $${countIndex}`;
             countValues.push(aprovado);
+            countIndex++;
+        }
+
+        if (req.query.destaque !== undefined) {
+            const destaque = req.query.destaque === 'true' || req.query.destaque === true;
+            countQuery += ` AND destaque = $${countIndex}`;
+            countValues.push(destaque);
             countIndex++;
         }
 
