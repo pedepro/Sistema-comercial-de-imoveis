@@ -2013,7 +2013,6 @@ app.get('/cidades', async (req, res) => {
 
 
 
-//rota de cadastro de imovel 
 app.post('/imoveis/novo', async (req, res) => {
     let client;
     try {
@@ -2022,27 +2021,43 @@ app.post('/imoveis/novo', async (req, res) => {
 
         console.log('Dados recebidos do frontend (imóvel):', req.body);
 
-        const imovelData = {
-            valor: req.body.valor || null,
-            banheiros: req.body.banheiros || null,
-            metros_quadrados: req.body.metros_quadrados || null,
-            andar: req.body.andar || null,
-            imovel_pronto: req.body.imovel_pronto === 'sim' ? true : false, // Novo campo
-            mobiliado: req.body.mobiliado === 'sim' ? true : false,
-            price_contato: req.body.price_contato || '39.90',
-            vagas_garagem: req.body.vagas_garagem || '0',
-            cidade: req.body.cidade || null,
-            categoria: req.body.categoria || null,
-            quartos: req.body.quartos || null,
-            texto_principal: req.body.texto_principal || '',
-            whatsapp: req.body.whatsapp || '',
-            tipo: req.body.tipo || '',
-            endereco: req.body.endereco || '',
-            descricao: req.body.descricao || '',
-            nome_proprietario: req.body.nome_proprietario || '',
-            descricao_negociacao: req.body.descricao_negociacao || ''
+        // Função auxiliar para converter e validar valores numéricos
+        const parseNumeric = (value, fieldName, maxDigits, precision = 0, required = false) => {
+            if (value === undefined || value === '' || value === null) {
+                if (required) throw new Error(`Campo ${fieldName} é obrigatório`);
+                return null;
+            }
+            const parsed = Number(value);
+            if (isNaN(parsed)) throw new Error(`Valor inválido para ${fieldName}: ${value}`);
+            const totalDigits = Math.floor(parsed).toString().length;
+            if (totalDigits > maxDigits - precision) {
+                throw new Error(`Valor de ${fieldName} excede o limite de ${maxDigits - precision} dígitos inteiros: ${value}`);
+            }
+            return parsed;
         };
 
+        const imovelData = {
+            valor: parseNumeric(req.body.valor, 'Valor', 12, 2, true), // NUMERIC(12,2) NOT NULL
+            banheiros: parseNumeric(req.body.banheiros, 'Banheiros', 10, 0, true), // INTEGER NOT NULL
+            metros_quadrados: parseNumeric(req.body.metros_quadrados, 'Metros Quadrados', 10, 2, true), // NUMERIC(10,2) NOT NULL
+            andar: parseNumeric(req.body.andar, 'Andar', 10), // INTEGER
+            imovel_pronto: req.body.imovel_pronto !== undefined ? req.body.imovel_pronto : false, // BOOLEAN NOT NULL
+            mobiliado: req.body.mobiliado !== undefined ? req.body.mobiliado : false, // BOOLEAN NOT NULL
+            price_contato: parseNumeric(req.body.price_contato, 'Preço Contato', 10, 2) || 39.90, // NUMERIC(10,2) DEFAULT 39.90
+            vagas_garagem: parseNumeric(req.body.vagas_garagem, 'Vagas Garagem', 10) || 0, // INTEGER DEFAULT 0
+            cidade: parseNumeric(req.body.cidade, 'Cidade', 10), // INTEGER
+            categoria: parseNumeric(req.body.categoria, 'Categoria', 10), // INTEGER
+            quartos: parseNumeric(req.body.quartos, 'Quartos', 10, 0, true), // INTEGER NOT NULL (assumido)
+            texto_principal: req.body.texto_principal || '', // TEXT NOT NULL
+            whatsapp: req.body.whatsapp || '', // TEXT
+            tipo: req.body.tipo || '', // TEXT NOT NULL (assumido)
+            endereco: req.body.endereco || '', // TEXT NOT NULL
+            descricao: req.body.descricao || '', // TEXT
+            nome_proprietario: req.body.nome_proprietario || '', // TEXT
+            descricao_negociacao: req.body.descricao_negociacao || '' // TEXT
+        };
+
+        // Validação de campos obrigatórios
         const requiredFields = {
             banheiros: 'Banheiros',
             endereco: 'Endereço',
@@ -2053,11 +2068,11 @@ app.post('/imoveis/novo', async (req, res) => {
             valor: 'Valor'
         };
         const missingFields = Object.entries(requiredFields)
-            .filter(([key]) => !imovelData[key] || imovelData[key] === '' || imovelData[key] === undefined)
+            .filter(([key]) => imovelData[key] === null || imovelData[key] === '' || imovelData[key] === undefined)
             .map(([, label]) => label);
 
         if (missingFields.length > 0) {
-            throw new Error(`Campos obrigatórios faltando: ${missingFields.join(', ')}`);
+            throw new Error(`Campos obrigatórios faltando ou inválidos: ${missingFields.join(', ')}`);
         }
 
         const imovelQuery = `
@@ -2076,6 +2091,9 @@ app.post('/imoveis/novo', async (req, res) => {
             imovelData.whatsapp, imovelData.tipo, imovelData.endereco, imovelData.descricao,
             imovelData.nome_proprietario, imovelData.descricao_negociacao
         ];
+
+        console.log('Valores enviados para o banco:', imovelValues);
+
         const imovelResult = await client.query(imovelQuery, imovelValues);
         const imovelId = imovelResult.rows[0].id;
 
@@ -2089,6 +2107,7 @@ app.post('/imoveis/novo', async (req, res) => {
         if (client) client.release();
     }
 });
+
 // Rota para cadastrar imagens
 app.post('/imoveis/:id/imagens', async (req, res) => {
     let client;
