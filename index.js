@@ -2165,31 +2165,43 @@ app.put('/imoveis/:id', async (req, res) => {
         console.log('ID do imóvel recebido:', imovelId);
         console.log('Dados recebidos do frontend para atualização:', req.body);
 
+        // Busca os dados atuais do imóvel no banco
+        const currentQuery = `
+            SELECT * FROM imoveis WHERE id = $1
+        `;
+        const currentResult = await client.query(currentQuery, [imovelId]);
+        if (currentResult.rows.length === 0) {
+            throw new Error('Imóvel não encontrado');
+        }
+        const currentImovel = currentResult.rows[0];
+        console.log('Dados atuais do imóvel no banco:', currentImovel);
+
+        // Define os valores a serem atualizados, mantendo os atuais se não enviados
         const imovelData = {
-            valor: req.body.valor || null,
-            banheiros: req.body.banheiros || null,
-            metros_quadrados: req.body.metros_quadrados || null,
-            andar: req.body.andar || null,
-            imovel_pronto: req.body.imovel_pronto === 'sim' ? true : false, // Conversão explícita
-            mobiliado: req.body.mobiliado === 'sim' ? true : false,         // Conversão explícita
-            price_contato: req.body.price_contato || '39.90',
-            vagas_garagem: req.body.vagas_garagem || '0',
-            cidade: req.body.cidade || null,
-            categoria: req.body.categoria || null,
-            quartos: req.body.quartos || null,
-            texto_principal: req.body.texto_principal || '',
-            whatsapp: req.body.whatsapp || '',
-            tipo: req.body.tipo || '',
-            endereco: req.body.endereco || '',
-            descricao: req.body.descricao || '',
-            nome_proprietario: req.body.nome_proprietario || '',
-            descricao_negociacao: req.body.descricao_negociacao || ''
+            valor: req.body.valor !== undefined ? req.body.valor : currentImovel.valor,
+            banheiros: req.body.banheiros !== undefined ? req.body.banheiros : currentImovel.banheiros,
+            metros_quadrados: req.body.metros_quadrados !== undefined ? req.body.metros_quadrados : currentImovel.metros_quadrados,
+            andar: req.body.andar !== undefined ? req.body.andar : currentImovel.andar,
+            imovel_pronto: req.body.imovel_pronto !== undefined ? req.body.imovel_pronto : currentImovel.imovel_pronto,
+            mobiliado: req.body.mobiliado !== undefined ? req.body.mobiliado : currentImovel.mobiliado,
+            price_contato: req.body.price_contato !== undefined ? req.body.price_contato : currentImovel.price_contato,
+            vagas_garagem: req.body.vagas_garagem !== undefined ? req.body.vagas_garagem : currentImovel.vagas_garagem,
+            cidade: req.body.cidade !== undefined ? req.body.cidade : currentImovel.cidade,
+            categoria: req.body.categoria !== undefined ? req.body.categoria : currentImovel.categoria,
+            quartos: req.body.quartos !== undefined ? req.body.quartos : currentImovel.quartos,
+            texto_principal: req.body.texto_principal !== undefined ? req.body.texto_principal : currentImovel.texto_principal,
+            whatsapp: req.body.whatsapp !== undefined ? req.body.whatsapp : currentImovel.whatsapp,
+            tipo: req.body.tipo !== undefined ? req.body.tipo : currentImovel.tipo,
+            endereco: req.body.endereco !== undefined ? req.body.endereco : currentImovel.endereco,
+            descricao: req.body.descricao !== undefined ? req.body.descricao : currentImovel.descricao,
+            nome_proprietario: req.body.nome_proprietario !== undefined ? req.body.nome_proprietario : currentImovel.nome_proprietario,
+            descricao_negociacao: req.body.descricao_negociacao !== undefined ? req.body.descricao_negociacao : currentImovel.descricao_negociacao
         };
 
-        // Log dos valores convertidos para debug
-        console.log('Valores convertidos para o banco - imovel_pronto:', imovelData.imovel_pronto);
-        console.log('Valores convertidos para o banco - mobiliado:', imovelData.mobiliado);
+        // Log dos valores que serão salvos no banco
+        console.log('Valores a serem salvos no banco:', imovelData);
 
+        // Validação de campos obrigatórios (apenas para os que foram enviados)
         const requiredFields = {
             banheiros: 'Banheiros',
             endereco: 'Endereço',
@@ -2200,11 +2212,11 @@ app.put('/imoveis/:id', async (req, res) => {
             valor: 'Valor'
         };
         const missingFields = Object.entries(requiredFields)
-            .filter(([key]) => !imovelData[key] || imovelData[key] === '' || imovelData[key] === undefined)
+            .filter(([key]) => req.body[key] !== undefined && (imovelData[key] === null || imovelData[key] === '' || imovelData[key] === undefined))
             .map(([, label]) => label);
 
         if (missingFields.length > 0) {
-            throw new Error(`Campos obrigatórios faltando: ${missingFields.join(', ')}`);
+            throw new Error(`Campos obrigatórios faltando ou inválidos: ${missingFields.join(', ')}`);
         }
 
         const updateQuery = `
@@ -2248,7 +2260,6 @@ app.put('/imoveis/:id', async (req, res) => {
             throw new Error('Imóvel não encontrado');
         }
 
-        // Log do resultado retornado pelo banco
         console.log('Resultado do banco após atualização:', result.rows[0]);
 
         await client.query('COMMIT');
