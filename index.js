@@ -2176,22 +2176,34 @@ app.put('/imoveis/:id', async (req, res) => {
         const currentImovel = currentResult.rows[0];
         console.log('Dados atuais do imóvel no banco:', currentImovel);
 
+        // Função auxiliar para converter valores numéricos
+        const parseNumeric = (value, defaultValue, isNotNull = false) => {
+            if (value === undefined) return defaultValue; // Mantém o valor atual se não enviado
+            if (value === '' || value === null) {
+                if (isNotNull) throw new Error(`Campo numérico não pode ser vazio`);
+                return null; // Converte string vazia ou null em null, se permitido
+            }
+            const parsed = Number(value);
+            if (isNaN(parsed)) throw new Error(`Valor inválido para campo numérico: ${value}`);
+            return parsed;
+        };
+
         // Define os valores a serem atualizados, mantendo os atuais se não enviados
         const imovelData = {
-            valor: req.body.valor !== undefined ? req.body.valor : currentImovel.valor,
-            banheiros: req.body.banheiros !== undefined ? req.body.banheiros : currentImovel.banheiros,
-            metros_quadrados: req.body.metros_quadrados !== undefined ? req.body.metros_quadrados : currentImovel.metros_quadrados,
-            andar: req.body.andar !== undefined ? req.body.andar : currentImovel.andar,
-            imovel_pronto: req.body.imovel_pronto !== undefined ? req.body.imovel_pronto : currentImovel.imovel_pronto,
+            valor: parseNumeric(req.body.valor, currentImovel.valor, true), // NOT NULL
+            banheiros: parseNumeric(req.body.banheiros, currentImovel.banheiros, true), // NOT NULL
+            metros_quadrados: parseNumeric(req.body.metros_quadrados, currentImovel.metros_quadrados, true), // NOT NULL
+            andar: parseNumeric(req.body.andar, currentImovel.andar), // Permite NULL
+            imovel_pronto: req.body.imovel_pronto !== undefined ? req.body.imovel_pronto : (currentImovel.imovel_pronto ?? false), // Assume false se não existir ainda
             mobiliado: req.body.mobiliado !== undefined ? req.body.mobiliado : currentImovel.mobiliado,
-            price_contato: req.body.price_contato !== undefined ? req.body.price_contato : currentImovel.price_contato,
-            vagas_garagem: req.body.vagas_garagem !== undefined ? req.body.vagas_garagem : currentImovel.vagas_garagem,
-            cidade: req.body.cidade !== undefined ? req.body.cidade : currentImovel.cidade,
-            categoria: req.body.categoria !== undefined ? req.body.categoria : currentImovel.categoria,
-            quartos: req.body.quartos !== undefined ? req.body.quartos : currentImovel.quartos,
+            price_contato: parseNumeric(req.body.price_contato, currentImovel.price_contato), // Permite NULL
+            vagas_garagem: parseNumeric(req.body.vagas_garagem, currentImovel.vagas_garagem), // Permite NULL
+            cidade: parseNumeric(req.body.cidade, currentImovel.cidade), // Permite NULL
+            categoria: parseNumeric(req.body.categoria, currentImovel.categoria), // Permite NULL
+            quartos: parseNumeric(req.body.quartos, currentImovel.quartos || 0, true), // Assume NOT NULL baseado no código
             texto_principal: req.body.texto_principal !== undefined ? req.body.texto_principal : currentImovel.texto_principal,
             whatsapp: req.body.whatsapp !== undefined ? req.body.whatsapp : currentImovel.whatsapp,
-            tipo: req.body.tipo !== undefined ? req.body.tipo : currentImovel.tipo,
+            tipo: req.body.tipo !== undefined ? req.body.tipo : currentImovel.tipo || '',
             endereco: req.body.endereco !== undefined ? req.body.endereco : currentImovel.endereco,
             descricao: req.body.descricao !== undefined ? req.body.descricao : currentImovel.descricao,
             nome_proprietario: req.body.nome_proprietario !== undefined ? req.body.nome_proprietario : currentImovel.nome_proprietario,
@@ -2201,7 +2213,7 @@ app.put('/imoveis/:id', async (req, res) => {
         // Log dos valores que serão salvos no banco
         console.log('Valores a serem salvos no banco:', imovelData);
 
-        // Validação de campos obrigatórios (apenas para os que foram enviados)
+        // Validação de campos obrigatórios
         const requiredFields = {
             banheiros: 'Banheiros',
             endereco: 'Endereço',
@@ -2212,7 +2224,7 @@ app.put('/imoveis/:id', async (req, res) => {
             valor: 'Valor'
         };
         const missingFields = Object.entries(requiredFields)
-            .filter(([key]) => req.body[key] !== undefined && (imovelData[key] === null || imovelData[key] === '' || imovelData[key] === undefined))
+            .filter(([key]) => req.body[key] !== undefined && (imovelData[key] === null || imovelData[key] === ''))
             .map(([, label]) => label);
 
         if (missingFields.length > 0) {
