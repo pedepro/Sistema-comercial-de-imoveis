@@ -647,6 +647,16 @@ app.get('/list-imoveis/disponiveis', async (req, res) => {
             }
         }
 
+        // Filtro por categoria (padrão) - NOVO
+        if (req.query.categoria) {
+            const categoria = parseInt(req.query.categoria);
+            if (isNaN(categoria) || (categoria !== 1 && categoria !== 2)) {
+                return res.status(400).json({ success: false, error: 'Categoria deve ser 1 (Médio Padrão) ou 2 (Alto Padrão)' });
+            }
+            query += ' AND i.categoria = $' + (params.length + 1);
+            params.push(categoria);
+        }
+
         // Filtro por destaque (se fornecido)
         if (req.query.destaque) {
             const destaque = req.query.destaque === 'true'; // Converte string 'true' para booleano
@@ -689,6 +699,10 @@ app.get('/list-imoveis/disponiveis', async (req, res) => {
                 totalQuery += ' AND i.valor <= $' + (totalParams.length + 1);
                 totalParams.push(parseFloat(req.query.precoMax));
             }
+        }
+        if (req.query.categoria) {
+            totalQuery += ' AND i.categoria = $' + (totalParams.length + 1);
+            totalParams.push(parseInt(req.query.categoria));
         }
         if (req.query.destaque) {
             totalQuery += ' AND i.destaque = $' + (totalParams.length + 1);
