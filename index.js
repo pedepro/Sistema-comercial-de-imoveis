@@ -2162,13 +2162,16 @@ app.put('/imoveis/:id', async (req, res) => {
         await client.query('BEGIN');
 
         const imovelId = req.params.id;
+        console.log('ID do imóvel recebido:', imovelId);
+        console.log('Dados recebidos do frontend para atualização:', req.body);
+
         const imovelData = {
             valor: req.body.valor || null,
             banheiros: req.body.banheiros || null,
             metros_quadrados: req.body.metros_quadrados || null,
             andar: req.body.andar || null,
-            imovel_pronto: req.body.imovel_pronto === 'sim' ? true : false, // Novo campo
-            mobiliado: req.body.mobiliado === 'sim' ? true : false,
+            imovel_pronto: req.body.imovel_pronto === 'sim' ? true : false, // Conversão explícita
+            mobiliado: req.body.mobiliado === 'sim' ? true : false,         // Conversão explícita
             price_contato: req.body.price_contato || '39.90',
             vagas_garagem: req.body.vagas_garagem || '0',
             cidade: req.body.cidade || null,
@@ -2182,6 +2185,10 @@ app.put('/imoveis/:id', async (req, res) => {
             nome_proprietario: req.body.nome_proprietario || '',
             descricao_negociacao: req.body.descricao_negociacao || ''
         };
+
+        // Log dos valores convertidos para debug
+        console.log('Valores convertidos para o banco - imovel_pronto:', imovelData.imovel_pronto);
+        console.log('Valores convertidos para o banco - mobiliado:', imovelData.mobiliado);
 
         const requiredFields = {
             banheiros: 'Banheiros',
@@ -2202,12 +2209,27 @@ app.put('/imoveis/:id', async (req, res) => {
 
         const updateQuery = `
             UPDATE imoveis
-            SET valor = $1, banheiros = $2, metros_quadrados = $3, andar = $4, imovel_pronto = $5, 
-                mobiliado = $6, price_contato = $7, vagas_garagem = $8, cidade = $9, categoria = $10, 
-                quartos = $11, texto_principal = $12, whatsapp = $13, tipo = $14, endereco = $15, 
-                descricao = $16, nome_proprietario = $17, descricao_negociacao = $18
+            SET 
+                valor = $1, 
+                banheiros = $2, 
+                metros_quadrados = $3, 
+                andar = $4, 
+                imovel_pronto = $5, 
+                mobiliado = $6, 
+                price_contato = $7, 
+                vagas_garagem = $8, 
+                cidade = $9, 
+                categoria = $10, 
+                quartos = $11, 
+                texto_principal = $12, 
+                whatsapp = $13, 
+                tipo = $14, 
+                endereco = $15, 
+                descricao = $16, 
+                nome_proprietario = $17, 
+                descricao_negociacao = $18
             WHERE id = $19
-            RETURNING id
+            RETURNING id, imovel_pronto, mobiliado
         `;
         const values = [
             imovelData.valor, imovelData.banheiros, imovelData.metros_quadrados, imovelData.andar,
@@ -2217,14 +2239,26 @@ app.put('/imoveis/:id', async (req, res) => {
             imovelData.nome_proprietario, imovelData.descricao_negociacao, imovelId
         ];
 
+        console.log('Query de atualização:', updateQuery);
+        console.log('Valores enviados para o banco:', values);
+
         const result = await client.query(updateQuery, values);
 
         if (result.rows.length === 0) {
             throw new Error('Imóvel não encontrado');
         }
 
+        // Log do resultado retornado pelo banco
+        console.log('Resultado do banco após atualização:', result.rows[0]);
+
         await client.query('COMMIT');
-        res.json({ success: true, message: 'Imóvel atualizado com sucesso', imovelId });
+        res.json({ 
+            success: true, 
+            message: 'Imóvel atualizado com sucesso', 
+            imovelId,
+            imovel_pronto: result.rows[0].imovel_pronto,
+            mobiliado: result.rows[0].mobiliado
+        });
     } catch (err) {
         if (client) await client.query('ROLLBACK');
         console.error('Erro ao atualizar imóvel:', err);
