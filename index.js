@@ -647,7 +647,7 @@ app.get('/list-imoveis/disponiveis', async (req, res) => {
             }
         }
 
-        // Filtro por categoria (padrão) - NOVO
+        // Filtro por categoria (padrão)
         if (req.query.categoria) {
             const categoria = parseInt(req.query.categoria);
             if (isNaN(categoria) || (categoria !== 1 && categoria !== 2)) {
@@ -657,9 +657,23 @@ app.get('/list-imoveis/disponiveis', async (req, res) => {
             params.push(categoria);
         }
 
+        // Filtro por imóvel pronto (NOVO)
+        if (req.query.imovel_pronto) {
+            const imovelPronto = req.query.imovel_pronto === 'true';
+            query += ' AND i.imovel_pronto = $' + (params.length + 1);
+            params.push(imovelPronto);
+        }
+
+        // Filtro por mobiliado (NOVO)
+        if (req.query.mobiliado) {
+            const mobiliado = req.query.mobiliado === 'true';
+            query += ' AND i.mobiliado = $' + (params.length + 1);
+            params.push(mobiliado);
+        }
+
         // Filtro por destaque (se fornecido)
         if (req.query.destaque) {
-            const destaque = req.query.destaque === 'true'; // Converte string 'true' para booleano
+            const destaque = req.query.destaque === 'true';
             query += ' AND i.destaque = $' + (params.length + 1);
             params.push(destaque);
             console.log(`📌 Filtro destaque: ${destaque}`);
@@ -703,6 +717,14 @@ app.get('/list-imoveis/disponiveis', async (req, res) => {
         if (req.query.categoria) {
             totalQuery += ' AND i.categoria = $' + (totalParams.length + 1);
             totalParams.push(parseInt(req.query.categoria));
+        }
+        if (req.query.imovel_pronto) {
+            totalQuery += ' AND i.imovel_pronto = $' + (totalParams.length + 1);
+            totalParams.push(req.query.imovel_pronto === 'true');
+        }
+        if (req.query.mobiliado) {
+            totalQuery += ' AND i.mobiliado = $' + (totalParams.length + 1);
+            totalParams.push(req.query.mobiliado === 'true');
         }
         if (req.query.destaque) {
             totalQuery += ' AND i.destaque = $' + (totalParams.length + 1);
