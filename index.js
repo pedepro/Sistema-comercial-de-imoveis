@@ -2013,8 +2013,7 @@ app.get('/cidades', async (req, res) => {
 
 
 
-
-// Rota para cadastrar imóvel (sem imagens)
+//rota de cadastro de imovel 
 app.post('/imoveis/novo', async (req, res) => {
     let client;
     try {
@@ -2028,6 +2027,7 @@ app.post('/imoveis/novo', async (req, res) => {
             banheiros: req.body.banheiros || null,
             metros_quadrados: req.body.metros_quadrados || null,
             andar: req.body.andar || null,
+            imovel_pronto: req.body.imovel_pronto === 'sim' ? true : false, // Novo campo
             mobiliado: req.body.mobiliado === 'sim' ? true : false,
             price_contato: req.body.price_contato || '39.90',
             vagas_garagem: req.body.vagas_garagem || '0',
@@ -2061,16 +2061,20 @@ app.post('/imoveis/novo', async (req, res) => {
         }
 
         const imovelQuery = `
-            INSERT INTO imoveis (valor, banheiros, metros_quadrados, andar, mobiliado, price_contato, vagas_garagem, cidade, categoria, quartos, texto_principal, whatsapp, tipo, endereco, descricao, nome_proprietario, descricao_negociacao)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            INSERT INTO imoveis (
+                valor, banheiros, metros_quadrados, andar, imovel_pronto, mobiliado, price_contato, 
+                vagas_garagem, cidade, categoria, quartos, texto_principal, whatsapp, tipo, endereco, 
+                descricao, nome_proprietario, descricao_negociacao
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
             RETURNING id
         `;
         const imovelValues = [
             imovelData.valor, imovelData.banheiros, imovelData.metros_quadrados, imovelData.andar,
-            imovelData.mobiliado, imovelData.price_contato, imovelData.vagas_garagem, imovelData.cidade,
-            imovelData.categoria, imovelData.quartos, imovelData.texto_principal, imovelData.whatsapp,
-            imovelData.tipo, imovelData.endereco, imovelData.descricao, imovelData.nome_proprietario,
-            imovelData.descricao_negociacao
+            imovelData.imovel_pronto, imovelData.mobiliado, imovelData.price_contato, imovelData.vagas_garagem,
+            imovelData.cidade, imovelData.categoria, imovelData.quartos, imovelData.texto_principal,
+            imovelData.whatsapp, imovelData.tipo, imovelData.endereco, imovelData.descricao,
+            imovelData.nome_proprietario, imovelData.descricao_negociacao
         ];
         const imovelResult = await client.query(imovelQuery, imovelValues);
         const imovelId = imovelResult.rows[0].id;
@@ -2085,7 +2089,6 @@ app.post('/imoveis/novo', async (req, res) => {
         if (client) client.release();
     }
 });
-
 // Rota para cadastrar imagens
 app.post('/imoveis/:id/imagens', async (req, res) => {
     let client;
@@ -2152,7 +2155,6 @@ app.delete('/imoveis/:id/imagens/:imagemId', async (req, res) => {
 });
 
 
-// Rota para atualizar um imóvel existente
 app.put('/imoveis/:id', async (req, res) => {
     let client;
     try {
@@ -2165,6 +2167,7 @@ app.put('/imoveis/:id', async (req, res) => {
             banheiros: req.body.banheiros || null,
             metros_quadrados: req.body.metros_quadrados || null,
             andar: req.body.andar || null,
+            imovel_pronto: req.body.imovel_pronto === 'sim' ? true : false, // Novo campo
             mobiliado: req.body.mobiliado === 'sim' ? true : false,
             price_contato: req.body.price_contato || '39.90',
             vagas_garagem: req.body.vagas_garagem || '0',
@@ -2199,19 +2202,19 @@ app.put('/imoveis/:id', async (req, res) => {
 
         const updateQuery = `
             UPDATE imoveis
-            SET valor = $1, banheiros = $2, metros_quadrados = $3, andar = $4, mobiliado = $5,
-                price_contato = $6, vagas_garagem = $7, cidade = $8, categoria = $9, quartos = $10,
-                texto_principal = $11, whatsapp = $12, tipo = $13, endereco = $14, descricao = $15,
-                nome_proprietario = $16, descricao_negociacao = $17
-            WHERE id = $18
+            SET valor = $1, banheiros = $2, metros_quadrados = $3, andar = $4, imovel_pronto = $5, 
+                mobiliado = $6, price_contato = $7, vagas_garagem = $8, cidade = $9, categoria = $10, 
+                quartos = $11, texto_principal = $12, whatsapp = $13, tipo = $14, endereco = $15, 
+                descricao = $16, nome_proprietario = $17, descricao_negociacao = $18
+            WHERE id = $19
             RETURNING id
         `;
         const values = [
             imovelData.valor, imovelData.banheiros, imovelData.metros_quadrados, imovelData.andar,
-            imovelData.mobiliado, imovelData.price_contato, imovelData.vagas_garagem, imovelData.cidade,
-            imovelData.categoria, imovelData.quartos, imovelData.texto_principal, imovelData.whatsapp,
-            imovelData.tipo, imovelData.endereco, imovelData.descricao, imovelData.nome_proprietario,
-            imovelData.descricao_negociacao, imovelId
+            imovelData.imovel_pronto, imovelData.mobiliado, imovelData.price_contato, imovelData.vagas_garagem,
+            imovelData.cidade, imovelData.categoria, imovelData.quartos, imovelData.texto_principal,
+            imovelData.whatsapp, imovelData.tipo, imovelData.endereco, imovelData.descricao,
+            imovelData.nome_proprietario, imovelData.descricao_negociacao, imovelId
         ];
 
         const result = await client.query(updateQuery, values);
@@ -2230,7 +2233,6 @@ app.put('/imoveis/:id', async (req, res) => {
         if (client) client.release();
     }
 });
-
 
 // Rota para atualizar uma imagem existente
 app.put('/imoveis/:id/imagens/:imagemId', async (req, res) => {
