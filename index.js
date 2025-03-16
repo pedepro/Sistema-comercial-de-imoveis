@@ -1583,37 +1583,30 @@ app.get('/list-corretores', async (req, res) => {
 
 
 
-// Rota para listar os imóveis de um corretor, baseado no array de IDs na tabela "corretores"
 app.get('/list-imoveis/:id', async (req, res) => {
-    const corretorId = req.params.id;  // Obtendo o ID do corretor a partir da URL
+    const corretorId = req.params.id;
 
     try {
-        // Consulta para obter os arrays de IDs de imóveis comprados e afiliados do corretor
+        // Consulta para obter os arrays de IDs de imóveis do corretor
         const corretorResult = await pool.query(
             'SELECT imoveis_comprados, imoveis_afiliados FROM corretores WHERE id = $1',
             [corretorId]
         );
-        console.log('Resultado da consulta de corretores:', corretorResult.rows);
 
-        // Verificando se o corretor foi encontrado
         if (corretorResult.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'Corretor não encontrado' });
         }
 
         const imoveisComprados = corretorResult.rows[0].imoveis_comprados || [];
         const imoveisAfiliados = corretorResult.rows[0].imoveis_afiliados || [];
-
-        // Combinando os IDs de imóveis comprados e afiliados (removendo duplicatas, se necessário)
         const todosImoveisIds = [...new Set([...imoveisComprados, ...imoveisAfiliados])];
 
-        // Verificando se o corretor tem imóveis associados
         if (todosImoveisIds.length === 0) {
             return res.status(404).json({ success: false, message: 'Nenhum imóvel associado a este corretor' });
         }
 
-        // Consulta para obter os imóveis com base nos IDs, incluindo a primeira imagem com livre = true
-        const imoveisResult = await pool.query(
-            `
+        // Construindo a query principal com filtros
+        let query = `
             SELECT 
                 i.*, 
                 COALESCE(
@@ -1633,21 +1626,142 @@ app.get('/list-imoveis/:id', async (req, res) => {
                 ) AS imagem
             FROM imoveis i
             WHERE i.id = ANY($1)
-            `,
-            [todosImoveisIds]
-        );
-        console.log('Resultado da consulta de imóveis:', imoveisResult.rows);
+        `;
+        const params = [todosImoveisIds];
 
-        // Adicionando a informação de origem (comprado ou afiliado) a cada imóvel
-        const imoveisComOrigem = imoveisResult.rows.map(imovel => {
+        // Filtros adicionais como na primeira rota
+        if (req.query.cidade) {
+            const cidade = parseInt(req.query.cidade);
+            if (isNaN(cidade)) {
+                return res.status(400).json({ success: false, error: 'Cidade deve ser um número válido' });
+            }
+            query += ' AND i.cidade = $' + (params.length + 1);
+            params.push(cidade);
+        }
+
+        if (req.query.precoMin || req.query.precoMax) {
+            if (req.query.precoMin) {
+                const precoMin = parseFloat(req.query.precoMin);
+                if (isNaN(precoMin)) {
+                    return res.status(400).json({ success: false, error: 'Preço mínimo deve ser um número válido' });
+                }
+                query += ' AND i.valor >= $' + (params.length + 1);
+                params.push(precoMin);
+            }
+            if (req.query.precoMax) {
+                const precoMax = parseFloat(req.query.precoMax);
+                if (isNaN(precoMax)) {
+                    return res.status(400).json({ success: false, error: 'Preço máximo deve ser um número válido' });
+                }
+                query += ' AND i.valor <= $' + (params.length + 1);
+                params.push(precoMax);
+            }
+        }
+
+        if (req.query.categoria) {
+            const categoria = parseInt(req.query.categoria);
+            if (isNaN(categoria) || (categoria !== 1 && categoria !== 2)) {
+                return res.status(400).json({ success: false, error: 'Categoria deve ser 1 (Médio Padrão) ou 2 (Alto Padrão)' });
+            }
+            query += ' AND i.categoria = $' + (params.length + 1);
+            params.push(categoria);
+        }
+
+        if (req.query.imovel_pronto) {
+            const imovelPronto = req.query.imovel_pronto === 'true';
+            query += ' AND i.imovel_pronto = $' + (params.length + 1);
+            params.push(imovelPronto);
+        }
+
+        if (req.query.mobiliado) {
+            const mobiliado = req.query.mobiliado === 'true';
+            query += ' AND i.mobiliado = $' + (params.length + 1);
+            params.push(mobiliado);
+        }
+
+        if (req.query.destaque) {
+            const destaque = req.query.destaque === 'true';
+            query += ' AND i.destaque = $' + (params.length + 1);
+            params.push(destaque);
+        }
+
+        // Paginação
+        const limite = parseInt(req.query.limite) || 6;
+        const offset = parseInt(req.query.offset) || 0;
+        if (isNaN(limite) || limite <= 0) {
+            return res.status(400).json({ success: false, error: 'Limite deve ser um número positivo' });
+        }
+        if (isNaN(offset) || offset < 0) {
+            return res.status(400).json({ success: false, error: 'Offset deve ser um número não negativo' });
+        }
+        query += ' LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
+        params.push(limite, offset);
+
+        console.log('Query executada (corretor):', query);
+        console.log('Parâmetros:', params);
+
+        const result = await pool.query(query, params);
+
+        // Query para totalização
+        let totalQuery = 'SELECT COUNT(*) FROM imoveis i WHERE i.id = ANY($1)';
+        let totalParams = [todosImoveisIds];
+
+        if (req.query.cidade) {
+            totalQuery += ' AND i.cidade = $' + (totalParams.length + 1);
+            totalParams.push(parseInt(req.query.cidade));
+        }
+        if (req.query.precoMin || req.query.precoMax) {
+            if (req.query.precoMin) {
+                totalQuery += ' AND i.valor >= $' + (totalParams.length + 1);
+                totalParams.push(parseFloat(req.query.precoMin));
+            }
+            if (req.query.precoMax) {
+                totalQuery += ' AND i.valor <= $' + (totalParams.length + 1);
+                totalParams.push(parseFloat(req.query.precoMax));
+            }
+        }
+        if (req.query.categoria) {
+            totalQuery += ' AND i.categoria = $' + (totalParams.length + 1);
+            totalParams.push(parseInt(req.query.categoria));
+        }
+        if (req.query.imovel_pronto) {
+            totalQuery += ' AND i.imovel_pronto = $' + (totalParams.length + 1);
+            totalParams.push(req.query.imovel_pronto === 'true');
+        }
+        if (req.query.mobiliado) {
+            totalQuery += ' AND i.mobiliado = $' + (totalParams.length + 1);
+            totalParams.push(req.query.mobiliado === 'true');
+        }
+        if (req.query.destaque) {
+            totalQuery += ' AND i.destaque = $' + (totalParams.length + 1);
+            totalParams.push(req.query.destaque === 'true');
+        }
+
+        const totalResult = await pool.query(totalQuery, totalParams);
+        const total = parseInt(totalResult.rows[0].count);
+
+        // Adicionando informação de origem
+        const imoveisComOrigem = result.rows.map(imovel => {
             const origem = imoveisComprados.includes(imovel.id) 
                 ? (imoveisAfiliados.includes(imovel.id) ? 'ambos' : 'comprado') 
                 : 'afiliado';
             return { ...imovel, origem };
         });
 
-        // Retornando os imóveis encontrados com a informação de origem
-        res.json({ success: true, imoveis: imoveisComOrigem });
+        if (result.rowCount === 0) {
+            return res.status(200).json({
+                success: false,
+                imoveis: [],
+                total: 0,
+                message: 'Nenhum imóvel encontrado para os filtros aplicados'
+            });
+        }
+
+        res.json({
+            success: true,
+            imoveis: imoveisComOrigem,
+            total: total
+        });
     } catch (err) {
         console.error('Erro na rota /list-imoveis:', err);
         res.status(500).json({ success: false, error: err.message });
