@@ -1808,15 +1808,17 @@ app.delete('/remover-afiliacao/:corretorId/:imovelId', async (req, res) => {
 
 
 
-// Rota para listar os clientes de um corretor, baseado no array de IDs na tabela "corretores"
+// Rota para listar os clientes de um corretor, com suporte à paginação
 app.get('/list-clientes/:id', async (req, res) => {
     const corretorId = req.params.id;  // Obtendo o ID do corretor a partir da URL
+    const limit = parseInt(req.query.limit) || 10;  // Número de itens por página, padrão 10
+    const offset = parseInt(req.query.offset) || 0;  // Ponto de início, padrão 0
 
     try {
         // Consulta para obter o array de IDs de clientes do corretor
         const corretorResult = await pool.query(
             'SELECT clientes FROM corretores WHERE id = $1',
-            [corretorId]  // Passando o ID do corretor como parâmetro
+            [corretorId]
         );
 
         // Verificando se o corretor foi encontrado
@@ -1828,18 +1830,30 @@ app.get('/list-clientes/:id', async (req, res) => {
 
         // Verificando se o corretor tem clientes associados
         if (!clientesIds || clientesIds.length === 0) {
-            return res.status(404).json({ success: false, message: 'Nenhum cliente associado a este corretor' });
+            return res.status(200).json({ success: true, clientes: [], total: 0 });
         }
 
-        // Consulta para obter os clientes com base nos IDs
+        // Consulta para contar o total de clientes (sem paginação)
+        const totalResult = await pool.query(
+            'SELECT COUNT(*) FROM clientes WHERE id = ANY($1)',
+            [clientesIds]
+        );
+        const total = parseInt(totalResult.rows[0].count);
+
+        // Consulta para obter os clientes com base nos IDs, com paginação
         const clientesResult = await pool.query(
-            'SELECT * FROM clientes WHERE id = ANY($1)', 
-            [clientesIds]  // Passando o array de IDs de clientes
+            'SELECT * FROM clientes WHERE id = ANY($1) ORDER BY id LIMIT $2 OFFSET $3',
+            [clientesIds, limit, offset]
         );
 
-        // Retornando os clientes encontrados
-        res.json({ success: true, clientes: clientesResult.rows });
+        // Retornando os clientes encontrados com o total
+        res.json({
+            success: true,
+            clientes: clientesResult.rows,
+            total: total
+        });
     } catch (err) {
+        console.error('Erro ao listar clientes:', err);
         res.status(500).json({ success: false, error: err.message });
     }
 });

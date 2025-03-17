@@ -86,6 +86,22 @@ header h1 {
     background-color: #ddd;
 }
 
+/* Esconder itens que dependem de login por padrão com !important para evitar sobrescrição */
+.sidebar ul li:has(#meusleads-link),
+.sidebar ul li:has(#meusimoveis-link),
+.sidebar ul li:has(#editar-perfil-link),
+#logout-icon {
+    display: none !important;
+}
+
+/* Classe para exibir explicitamente quando logado */
+.logged-in .sidebar ul li:has(#meusleads-link),
+.logged-in .sidebar ul li:has(#meusimoveis-link),
+.logged-in .sidebar ul li:has(#editar-perfil-link),
+.logged-in #logout-icon {
+    display: block !important;
+}
+
 /* Estilo da área principal */
 .main-content {
     transition: margin-left 0.3s ease;
