@@ -1461,6 +1461,32 @@ app.post('/clientes/ia', async (req, res) => {
 });
 
 
+// Rota para buscar detalhes de um lead específico por ID
+app.get('/clientes/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const result = await pool.query(
+            `SELECT id, disponivel, cotas_compradas, categoria, ai_created, created_at, 
+                    destaque, valor, interesse, tipo_imovel, valor_lead, titulo 
+             FROM clientes 
+             WHERE id = $1 
+             LIMIT 1`,
+            [id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Lead não encontrado" });
+        }
+
+        res.json({ cliente: result.rows[0] });
+    } catch (error) {
+        console.error("Erro ao buscar lead:", error);
+        res.status(500).json({ error: "Erro interno ao buscar lead" });
+    }
+});
+
+
 app.delete('/clientes/:id', async (req, res) => {
     try {
         const { id } = req.params;
