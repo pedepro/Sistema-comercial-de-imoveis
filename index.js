@@ -2623,6 +2623,35 @@ app.post('/criar-pedido', async (req, res) => {
         await pool.query(updateCorretoresQuery, [pedidoId, corretorId]);
         console.log(`✅ Array pedidos atualizado para o corretor ${corretorId} com pedido ${pedidoId}`);
 
+        // Enviar notificação ao n8n
+        const n8nUrl = process.env.n8n_novo_pedido;
+        const pedidoData = {
+            pedido_id: pedidoId,
+            total_value: total_value,
+            corretor_id: corretorId,
+            cobranca_id: cobranca_id,
+            invoice_url: invoiceUrl,
+            imoveis_id: imoveis_id || [],
+            leads_id: leads_id || [],
+            criado_em: new Date().toISOString()
+        };
+        console.log("📤 Enviando notificação ao n8n:", pedidoData);
+
+        try {
+            await axios.post(n8nUrl, pedidoData, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            console.log(`✅ Notificação enviada ao n8n com sucesso para ${n8nUrl}`);
+        } catch (n8nError) {
+            console.error("❌ Erro ao enviar notificação ao n8n:", n8nError.message);
+            if (n8nError.response) {
+                console.error("   - Resposta do n8n:", n8nError.response.data);
+            }
+            // Não falha a requisição principal, apenas loga o erro
+        }
+
         console.log(`✅ Pedido criado com sucesso. ID: ${pedidoId}, Total: ${total_value}`);
 
         res.status(201).json({
@@ -2643,7 +2672,6 @@ app.post('/criar-pedido', async (req, res) => {
         res.status(500).json({ success: false, error: "Erro interno do servidor" });
     }
 });
-
 
 
 
