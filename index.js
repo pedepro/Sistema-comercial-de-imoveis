@@ -3286,7 +3286,8 @@ app.get("/:id", async (req, res) => {
                     c.valor_lead,
                     c.categoria,
                     c.valor,
-                    c.titulo  -- Adicionado o campo título
+                    c.titulo,  -- Adicionado o campo título
+                    c.id
                 FROM clientes c
                 WHERE c.id = $1
                 `,
