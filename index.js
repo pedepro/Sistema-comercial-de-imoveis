@@ -3273,6 +3273,7 @@ app.use((req, res, next) => {
 });
 
 // Rota para a raiz do subdomínio
+// Rota para a raiz do subdomínio
 app.get("/:id", async (req, res) => {
     const { id } = req.params;
 
@@ -3564,185 +3565,266 @@ app.get("/:id", async (req, res) => {
                             transform: translateY(-3px);
                             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
                         }
+                        /* Novo CSS do Checkout */
                         .checkout-overlay {
                             position: fixed;
                             top: 0;
                             left: 0;
                             width: 100%;
                             height: 100%;
-                            background: rgba(0, 0, 0, 0.6);
+                            background: rgba(0, 0, 0, 0.7);
+                            backdrop-filter: blur(4px);
                             display: flex;
                             justify-content: center;
                             align-items: center;
                             z-index: 2000;
+                            animation: fadeIn 0.3s ease;
+                            overflow: hidden;
                         }
                         .checkout-modal {
-                            background: #fff;
+                            background: #ffffff;
                             width: 100%;
-                            max-width: 800px;
-                            height: 80vh;
-                            border-radius: 12px;
-                            padding: 20px;
-                            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+                            max-width: 850px;
+                            height: 85vh;
+                            border-radius: 16px;
+                            padding: 0;
+                            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
                             display: flex;
                             flex-direction: column;
-                            overflow-y: auto;
+                            font-family: 'Inter', 'Segoe UI', 'Helvetica', 'Arial', sans-serif;
+                            overflow: hidden;
+                        }
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
                         }
                         .checkout-header {
                             position: relative;
-                            margin-bottom: 20px;
                             display: flex;
                             justify-content: space-between;
                             align-items: center;
+                            padding: 20px 30px;
+                            margin-bottom: 25px;
                         }
                         .checkout-header h2 {
-                            font-size: 24px;
-                            color: #333;
-                            margin: 0;
+                            font-size: 26px;
+                            font-weight: 600;
+                            color: #1a1a1a;
+                            letter-spacing: -0.5px;
                         }
                         .close-icon {
-                            font-size: 24px;
-                            color: #555;
                             cursor: pointer;
-                            transition: color 0.2s;
+                            font-size: 28px;
+                            color: #888;
+                            transition: color 0.2s ease;
                         }
                         .close-icon:hover {
-                            color: #f44336;
+                            color: #333;
                         }
-                        .lead-info {
-                            padding: 15px;
-                            border-bottom: 1px solid #ddd;
-                        }
-                        .lead-info .lead-interesse {
-                            font-size: 16px;
-                            color: #1c1e21;
-                            margin: 5px 0;
-                        }
-                        .similar-leads {
-                            margin-top: 20px;
+                        .checkout-content {
                             flex-grow: 1;
                             overflow-y: auto;
+                            padding: 0 30px;
+                        }
+                        .lead-info {
+                            margin-bottom: 30px;
+                            background: #f9fafb;
+                            padding: 15px;
+                            border-radius: 10px;
+                            border: 1px solid #e5e7eb;
+                        }
+                        .lead-info div {
+                            font-size: 16px;
+                            color: #2d3748;
+                            margin: 8px 0;
+                            line-height: 1.5;
+                        }
+                        .similar-leads {
+                            margin-bottom: 30px;
                         }
                         .similar-leads h3 {
-                            font-size: 18px;
-                            color: #555;
-                            margin-bottom: 10px;
+                            font-size: 20px;
+                            font-weight: 600;
+                            color: #1a1a1a;
+                            margin-bottom: 15px;
                         }
                         .similar-leads-container {
-                            display: flex;
-                            gap: 10px;
-                            overflow-x: auto;
-                            padding-bottom: 10px;
+                            display: grid;
+                            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                            gap: 15px;
                         }
                         .mini-lead-card {
-                            flex: 0 0 200px;
-                            background: #fff;
-                            border: 2px solid #ddd;
-                            border-radius: 8px;
-                            padding: 10px;
+                            padding: 15px;
+                            background: #ffffff;
+                            border-radius: 10px;
+                            border: 1px solid #e5e7eb;
                             cursor: pointer;
-                            transition: border-color 0.3s;
+                            transition: all 0.2s ease;
+                            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+                        }
+                        .mini-lead-card:hover {
+                            transform: translateY(-3px);
+                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
                         }
                         .mini-lead-card.selected {
-                            border-color: #1877f2;
-                            box-shadow: 0 0 5px rgba(24, 119, 242, 0.5);
+                            background: #4f46e5;
+                            color: #ffffff;
+                            border-color: #4f46e5;
+                        }
+                        .mini-lead-card.medio-padrao .lead-badge {
+                            background: #60a5fa;
+                        }
+                        .mini-lead-card.alto-padrao .lead-badge {
+                            background: #f59e0b;
                         }
                         .mini-lead-card .lead-badge {
                             font-size: 12px;
-                            padding: 3px 6px;
+                            padding: 5px 10px;
+                            border-radius: 12px;
                             color: #fff;
-                            border-radius: 4px;
+                            margin-bottom: 10px;
+                            font-weight: 500;
+                            text-transform: uppercase;
+                            display: inline-block;
                         }
-                        .mini-lead-card.alto-padrao .lead-badge {
-                            background-color: #d4af37;
-                        }
-                        .mini-lead-card.medio-padrao .lead-badge {
-                            background-color: #4682b4;
-                        }
-                        .mini-lead-card .lead-sku {
-                            font-size: 12px;
-                            color: #65676b;
-                            margin: 5px 0;
-                        }
-                        .mini-lead-card .lead-titulo {  /* Novo estilo para o título */
+                        .mini-lead-card .lead-sku,
+                        .mini-lead-card .lead-interesse,
+                        .mini-lead-card .lead-titulo {
                             font-size: 14px;
+                            margin: 6px 0;
+                            color: #4b5563;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            white-space: nowrap;
+                        }
+                        .mini-lead-card .lead-titulo {
                             font-weight: bold;
-                            color: #1c1e21;
-                            margin: 5px 0;
                         }
-                        .mini-lead-card .lead-interesse {
-                            font-size: 14px;
-                            color: #1c1e21;
+                        .mini-lead-card.selected .lead-sku,
+                        .mini-lead-card.selected .lead-interesse,
+                        .mini-lead-card.selected .lead-titulo {
+                            color: #ffffff;
                         }
                         .checkout-footer {
-                            margin-top: 20px;
+                            border-top: 1px solid #e5e7eb;
+                            padding: 20px 30px;
                             display: flex;
                             justify-content: space-between;
                             align-items: center;
-                            border-top: 1px solid #ddd;
-                            padding-top: 15px;
+                            background: #ffffff;
                         }
                         .total-price {
-                            font-size: 18px;
+                            font-size: 20px;
                             font-weight: 600;
-                            color: #333;
+                            color: #1a1a1a;
                         }
-                        .checkout-buttons button {
-                            padding: 10px 20px;
-                            border-radius: 6px;
+                        .checkout-buttons {
+                            display: flex;
+                            gap: 15px;
+                        }
+                        .confirm-btn {
+                            padding: 12px 24px;
+                            background-color: #4f46e5;
+                            color: #ffffff;
                             border: none;
-                            cursor: pointer;
-                            font-size: 14px;
+                            border-radius: 8px;
+                            font-size: 15px;
                             font-weight: 600;
-                            transition: background-color 0.2s;
+                            cursor: pointer;
+                            transition: all 0.2s ease;
                         }
-                        .checkout-buttons .confirm-btn {
-                            background-color: #1877f2;
-                            color: #fff;
+                        .confirm-btn:hover {
+                            background-color: #4338ca;
+                            transform: translateY(-2px);
+                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
                         }
-                        .checkout-buttons .confirm-btn:hover {
-                            background-color: #166fe5;
-                        }
-                        @media (max-width: 500px) {
+                        @media (max-width: 800px) {
                             .checkout-overlay {
+                                background: rgba(0, 0, 0, 0.9);
                                 align-items: flex-start;
-                                background: rgba(0, 0, 0, 0.8);
+                                margin: 0;
+                                padding: 0;
                             }
                             .checkout-modal {
-                                width: 100%;
-                                height: 90vh;
+                                width: 100vw;
+                                height: 100vh;
                                 max-width: none;
-                                border-radius: 12px 12px 0 0;
+                                max-height: none;
+                                border-radius: 0;
+                                padding: 0;
                                 box-shadow: none;
-                                padding: 15px;
-                                position: absolute;
-                                top: 10%;
-                                bottom: 0;
-                                overflow-y: hidden;
+                                z-index: 2500;
+                                overflow: hidden;
                             }
                             .checkout-header {
-                                padding-right: 10px;
-                            }
-                            .lead-info {
-                                padding: 10px;
-                                border-bottom: 1px solid #ddd;
+                                position: sticky;
+                                top: 0;
+                                background: #ffffff;
+                                z-index: 10;
+                                padding: 15px 20px;
+                                margin-bottom: 0;
+                                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
                             }
                             .checkout-header h2 {
-                                font-size: 18px;
+                                font-size: 24px;
                             }
-                            .similar-leads {
+                            .checkout-content {
+                                padding: 20px;
+                                max-height: calc(100vh - 120px);
                                 overflow-y: auto;
-                                max-height: calc(100% - 200px);
+                                overflow-x: hidden;
+                            }
+                            .similar-leads-container {
+                                display: flex;
+                                flex-wrap: nowrap;
+                                overflow-x: auto;
+                                gap: 12px;
+                                padding-bottom: 10px;
                             }
                             .mini-lead-card {
-                                flex: 0 0 160px;
+                                min-width: 200px;
+                                padding: 12px;
+                            }
+                            .mini-lead-card .lead-interesse,
+                            .mini-lead-card .lead-titulo {
+                                font-size: 13px;
                             }
                             .checkout-footer {
-                                gap: 10px;
-                                padding-bottom: 15px;
+                                position: sticky;
+                                bottom: 0;
+                                background: #ffffff;
+                                z-index: 10;
+                                padding: 15px 20px;
+                                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
                             }
-                            .checkout-buttons button {
-                                width: 100%;
+                            .total-price {
+                                font-size: 18px;
+                            }
+                            .confirm-btn {
+                                padding: 10px 20px;
+                                font-size: 14px;
+                            }
+                            .lead-info {
+                                padding: 12px;
+                            }
+                        }
+                        @media (max-width: 600px) {
+                            .checkout-header h2 {
+                                font-size: 22px;
+                            }
+                            .mini-lead-card {
+                                min-width: 180px;
+                            }
+                            .mini-lead-card .lead-interesse,
+                            .mini-lead-card .lead-titulo {
+                                font-size: 12px;
+                            }
+                            .total-price {
+                                font-size: 16px;
+                            }
+                            .confirm-btn {
+                                padding: 8px 16px;
+                                font-size: 13px;
                             }
                         }
                     </style>
@@ -3811,14 +3893,17 @@ app.get("/:id", async (req, res) => {
                                         <h2>Confirmar Compra de Lead</h2>
                                         <i class="close-icon" onclick="this.closest('.checkout-overlay').remove()">✖</i>
                                     </div>
-                                    <div class="lead-info">
-                                        <div class="lead-interesse">SKU: \${lead.id || "N/A"}</div>
-                                        <div class="lead-interesse">Interesse: \${lead.interesse || "Não especificado"}</div>
-                                        <div class="lead-interesse">Valor do Lead: \${valorFormatado}</div>
-                                    </div>
-                                    <div class="similar-leads">
-                                        <h3>Leads Semelhantes</h3>
-                                        <div class="similar-leads-container" id="similar-leads-container"></div>
+                                    <div class="checkout-content">
+                                        <div class="lead-info">
+                                            <div>SKU: \${lead.id || "N/A"}</div>
+                                            <div>Título: \${lead.titulo || "Não especificado"}</div>
+                                            <div>Interesse: \${lead.interesse || "Não especificado"}</div>
+                                            <div>Valor do Lead: \${valorFormatado}</div>
+                                        </div>
+                                        <div class="similar-leads">
+                                            <h3>Leads Semelhantes</h3>
+                                            <div class="similar-leads-container" id="similar-leads-container"></div>
+                                        </div>
                                     </div>
                                     <div class="checkout-footer">
                                         <div class="total-price">Total: \${valorFormatado}</div>
@@ -3839,7 +3924,7 @@ app.get("/:id", async (req, res) => {
                                 const selectedLeads = [leadId];
                                 let totalPrice = parseFloat(valorFormatado.replace("R$", "").replace(".", "").replace(",", "."));
                                 if (data.clientes && Array.isArray(data.clientes)) {
-                                    const filteredLeads = data.clientes.filter(lead => lead.id !== leadId); // Filtragem para excluir o lead atual
+                                    const filteredLeads = data.clientes.filter(lead => lead.id !== leadId);
                                     filteredLeads.forEach(lead => {
                                         const valorLead = parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { 
                                             style: 'currency', 
@@ -3850,7 +3935,7 @@ app.get("/:id", async (req, res) => {
                                         miniCard.innerHTML = \`
                                             <div class="lead-badge">\${padrao === "alto-padrao" ? "Alto Padrão" : "Médio Padrão"}</div>
                                             <div class="lead-sku">SKU \${lead.id}</div>
-                                            <div class="lead-titulo">\${lead.titulo || "Sem Título"}</div> <!-- Título em negrito -->
+                                            <div class="lead-titulo">\${lead.titulo || "Sem Título"}</div>
                                             <div class="lead-interesse">\${lead.interesse || "N/A"}</div>
                                             <div class="lead-interesse">\${valorLead}</div>
                                         \`;
