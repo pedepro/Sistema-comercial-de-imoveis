@@ -3287,7 +3287,8 @@ app.get("/:id", async (req, res) => {
                     c.valor_lead,
                     c.categoria,
                     c.valor,
-                    c.titulo
+                    c.titulo,
+                    c.id
                 FROM clientes c
                 WHERE c.id = $1
                 `,
