@@ -3286,8 +3286,7 @@ app.get("/:id", async (req, res) => {
                     c.valor_lead,
                     c.categoria,
                     c.valor,
-                    c.titulo,  -- Adicionado o campo título
-                    c.id
+                    c.titulo
                 FROM clientes c
                 WHERE c.id = $1
                 `,
@@ -3302,7 +3301,6 @@ app.get("/:id", async (req, res) => {
             const lead = result.rows[0];
             console.log(`Dados do lead ${id}:`, lead);
 
-            // URLs ajustadas para HTTPS
             const logoUrl = 'https://cloud.meuleaditapema.com.br/uploads/bc8e96dd-0f77-4955-ba77-21ed098ad2fa.ico';
             const previewImageUrl = 'https://cloud.meuleaditapema.com.br/uploads/3cbeb5c8-1937-40b0-8f03-765d7a5eba77.png';
             const categoriaTexto = lead.categoria === 1 ? "Médio Padrão" : "Alto Padrão";
@@ -3317,9 +3315,8 @@ app.get("/:id", async (req, res) => {
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>${lead.titulo || lead.interesse || "Lead Imobiliário"}</title> <!-- Atualizado para usar título -->
+                    <title>${lead.titulo || lead.interesse || "Lead Imobiliário"}</title>
                     <meta name="description" content="${categoriaTexto} - ${lead.interesse || 'Sem interesse especificado'}">
-                    <!-- Open Graph Tags otimizadas para preview -->
                     <meta property="og:title" content="${lead.titulo || lead.interesse || "Lead Imobiliário"}">
                     <meta property="og:description" content="${categoriaTexto} - Valor Estimado: ${valorBuscado}">
                     <meta property="og:image" content="${previewImageUrl}">
@@ -3667,6 +3664,12 @@ app.get("/:id", async (req, res) => {
                             color: #65676b;
                             margin: 5px 0;
                         }
+                        .mini-lead-card .lead-titulo {  /* Novo estilo para o título */
+                            font-size: 14px;
+                            font-weight: bold;
+                            color: #1c1e21;
+                            margin: 5px 0;
+                        }
                         .mini-lead-card .lead-interesse {
                             font-size: 14px;
                             color: #1c1e21;
@@ -3747,7 +3750,7 @@ app.get("/:id", async (req, res) => {
                 <body>
                     <div class="container">
                         <img src="${logoUrl}" alt="Meu Lead Itapema" class="logo">
-                        <h1>${lead.titulo || `Lead ${id}`}</h1> <!-- Atualizado para usar título -->
+                        <h1>${lead.titulo || `Lead ${id}`}</h1>
                         <p class="subtitle">${categoriaTexto}</p>
                         <div class="info-box">
                             <p>${lead.interesse || "Interesse não especificado"}</p>
@@ -3762,7 +3765,6 @@ app.get("/:id", async (req, res) => {
                         ${lead.categoria !== 1 ? '<div class="premium-badge">Alto Padrão</div>' : ''}
                     </div>
                     <script>
-                        // Funções auxiliares para manipular cookies
                         function setCookie(name, value, days) {
                             const expires = new Date();
                             expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
@@ -3800,8 +3802,7 @@ app.get("/:id", async (req, res) => {
                         }
                         async function mostrarCheckout(leadId, padrao, valorFormatado) {
                             console.log("mostrarCheckout chamado com:", leadId, padrao, valorFormatado);
-                            // Usando os dados do lead já disponíveis
-                            const lead = ${JSON.stringify(lead)}; // Passando os dados diretamente
+                            const lead = ${JSON.stringify(lead)};
                             const overlay = document.createElement("div");
                             overlay.className = "checkout-overlay";
                             overlay.innerHTML = \`
@@ -3838,7 +3839,7 @@ app.get("/:id", async (req, res) => {
                                 const selectedLeads = [leadId];
                                 let totalPrice = parseFloat(valorFormatado.replace("R$", "").replace(".", "").replace(",", "."));
                                 if (data.clientes && Array.isArray(data.clientes)) {
-                                    const filteredLeads = data.clientes.filter(lead => lead.id !== leadId);
+                                    const filteredLeads = data.clientes.filter(lead => lead.id !== leadId); // Filtragem para excluir o lead atual
                                     filteredLeads.forEach(lead => {
                                         const valorLead = parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { 
                                             style: 'currency', 
@@ -3849,6 +3850,7 @@ app.get("/:id", async (req, res) => {
                                         miniCard.innerHTML = \`
                                             <div class="lead-badge">\${padrao === "alto-padrao" ? "Alto Padrão" : "Médio Padrão"}</div>
                                             <div class="lead-sku">SKU \${lead.id}</div>
+                                            <div class="lead-titulo">\${lead.titulo || "Sem Título"}</div> <!-- Título em negrito -->
                                             <div class="lead-interesse">\${lead.interesse || "N/A"}</div>
                                             <div class="lead-interesse">\${valorLead}</div>
                                         \`;
@@ -3880,19 +3882,17 @@ app.get("/:id", async (req, res) => {
                             console.log("Leads a comprar:", selectedLeads);
 
                             try {
-                                // Dados do pedido para enviar à rota /criar-pedido
                                 const pedidoData = {
-                                    userId: userId, // ID interno do corretor
-                                    token: token,   // Token de autenticação
+                                    userId: userId,
+                                    token: token,
                                     entregue: false,
                                     pago: false,
-                                    imoveis_id: [], // Sem imóveis neste caso
-                                    leads_id: selectedLeads // Lista de IDs dos leads selecionados
+                                    imoveis_id: [],
+                                    leads_id: selectedLeads
                                 };
 
                                 console.log("Enviando pedido para o backend:", pedidoData);
 
-                                // Requisição para criar o pedido
                                 const response = await fetch('https://backand.meuleaditapema.com.br/criar-pedido', {
                                     method: 'POST',
                                     headers: {
@@ -3909,10 +3909,8 @@ app.get("/:id", async (req, res) => {
                                 const result = await response.json();
                                 console.log("Resposta do backend:", result);
 
-                                // Remove o overlay de checkout
                                 document.querySelector(".checkout-overlay").remove();
 
-                                // Redireciona para a URL de pagamento (invoiceUrl)
                                 if (result.success && result.invoiceUrl) {
                                     window.location.href = result.invoiceUrl;
                                 } else {
