@@ -13,9 +13,6 @@ RUN npm install --production
 # Copia o restante do código para o diretório de trabalho no container
 COPY . .
 
-# Cria o arquivo textos.json inicial, se não existir
-RUN echo '{"titulo_principal": "Bem-vindo!", "subtitulo": "Subtítulo padrão", "tipo_apresentacao": "imagem", "valores": [], "feedbacks": []}' > textos.json
-
 # Exponha as portas que o servidor usa
 EXPOSE 3000 3001 3002
 
