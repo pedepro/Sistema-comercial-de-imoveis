@@ -3285,7 +3285,8 @@ app.get("/:id", async (req, res) => {
                     c.interesse,
                     c.valor_lead,
                     c.categoria,
-                    c.valor
+                    c.valor,
+                    c.titulo  -- Adicionado o campo título
                 FROM clientes c
                 WHERE c.id = $1
                 `,
@@ -3315,10 +3316,10 @@ app.get("/:id", async (req, res) => {
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>${lead.interesse || "Lead Imobiliário"}</title>
+                    <title>${lead.titulo || lead.interesse || "Lead Imobiliário"}</title> <!-- Atualizado para usar título -->
                     <meta name="description" content="${categoriaTexto} - ${lead.interesse || 'Sem interesse especificado'}">
                     <!-- Open Graph Tags otimizadas para preview -->
-                    <meta property="og:title" content="${lead.interesse || "Lead Imobiliário"}">
+                    <meta property="og:title" content="${lead.titulo || lead.interesse || "Lead Imobiliário"}">
                     <meta property="og:description" content="${categoriaTexto} - Valor Estimado: ${valorBuscado}">
                     <meta property="og:image" content="${previewImageUrl}">
                     <meta property="og:image:secure_url" content="${previewImageUrl}">
@@ -3745,7 +3746,7 @@ app.get("/:id", async (req, res) => {
                 <body>
                     <div class="container">
                         <img src="${logoUrl}" alt="Meu Lead Itapema" class="logo">
-                        <h1>Lead ${id}</h1>
+                        <h1>${lead.titulo || `Lead ${id}`}</h1> <!-- Atualizado para usar título -->
                         <p class="subtitle">${categoriaTexto}</p>
                         <div class="info-box">
                             <p>${lead.interesse || "Interesse não especificado"}</p>
@@ -3798,41 +3799,35 @@ app.get("/:id", async (req, res) => {
                         }
                         async function mostrarCheckout(leadId, padrao, valorFormatado) {
                             console.log("mostrarCheckout chamado com:", leadId, padrao, valorFormatado);
-                            try {
-                                const response = await fetch(\`https://backand.meuleaditapema.com.br/list-clientes?limit=1&offset=0&id=\${leadId}\`);
-                                const data = await response.json();
-                                console.log("Resposta da API:", data);
-                                const lead = data.clientes && data.clientes[0] ? data.clientes[0] : {};
-                                const overlay = document.createElement("div");
-                                overlay.className = "checkout-overlay";
-                                overlay.innerHTML = \`
-                                    <div class="checkout-modal">
-                                        <div class="checkout-header">
-                                            <h2>Confirmar Compra de Lead</h2>
-                                            <i class="close-icon" onclick="this.closest('.checkout-overlay').remove()">✖</i>
-                                        </div>
-                                        <div class="lead-info">
-                                            <div class="lead-interesse">SKU: \${lead.id || "N/A"}</div>
-                                            <div class="lead-interesse">Interesse: \${lead.interesse || "Não especificado"}</div>
-                                            <div class="lead-interesse">Valor do Lead: \${valorFormatado}</div>
-                                        </div>
-                                        <div class="similar-leads">
-                                            <h3>Leads Semelhantes</h3>
-                                            <div class="similar-leads-container" id="similar-leads-container"></div>
-                                        </div>
-                                        <div class="checkout-footer">
-                                            <div class="total-price">Total: \${valorFormatado}</div>
-                                            <div class="checkout-buttons">
-                                                <button class="confirm-btn" onclick="confirmarCompra('\${leadId}')">Confirmar</button>
-                                            </div>
+                            // Usando os dados do lead já disponíveis
+                            const lead = ${JSON.stringify(lead)}; // Passando os dados diretamente
+                            const overlay = document.createElement("div");
+                            overlay.className = "checkout-overlay";
+                            overlay.innerHTML = \`
+                                <div class="checkout-modal">
+                                    <div class="checkout-header">
+                                        <h2>Confirmar Compra de Lead</h2>
+                                        <i class="close-icon" onclick="this.closest('.checkout-overlay').remove()">✖</i>
+                                    </div>
+                                    <div class="lead-info">
+                                        <div class="lead-interesse">SKU: \${lead.id || "N/A"}</div>
+                                        <div class="lead-interesse">Interesse: \${lead.interesse || "Não especificado"}</div>
+                                        <div class="lead-interesse">Valor do Lead: \${valorFormatado}</div>
+                                    </div>
+                                    <div class="similar-leads">
+                                        <h3>Leads Semelhantes</h3>
+                                        <div class="similar-leads-container" id="similar-leads-container"></div>
+                                    </div>
+                                    <div class="checkout-footer">
+                                        <div class="total-price">Total: \${valorFormatado}</div>
+                                        <div class="checkout-buttons">
+                                            <button class="confirm-btn" onclick="confirmarCompra('\${leadId}')">Confirmar</button>
                                         </div>
                                     </div>
-                                \`;
-                                document.body.appendChild(overlay);
-                                await carregarLeadsSemelhantes(leadId, padrao, valorFormatado);
-                            } catch (error) {
-                                console.error("Erro em mostrarCheckout:", error);
-                            }
+                                </div>
+                            \`;
+                            document.body.appendChild(overlay);
+                            await carregarLeadsSemelhantes(leadId, padrao, valorFormatado);
                         }
                         async function carregarLeadsSemelhantes(leadId, padrao, valorFormatado) {
                             try {
