@@ -3925,7 +3925,7 @@ app.get("/:id", async (req, res) => {
                                 const selectedLeads = [leadId];
                                 let totalPrice = parseFloat(valorFormatado.replace("R$", "").replace(".", "").replace(",", "."));
                                 if (data.clientes && Array.isArray(data.clientes)) {
-                                    const filteredLeads = data.clientes.filter(lead => lead.id !== leadId);
+                                    const filteredLeads = data.clientes.filter(lead => String(lead.id) !== String(leadId));
                                     filteredLeads.forEach(lead => {
                                         const valorLead = parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { 
                                             style: 'currency', 
