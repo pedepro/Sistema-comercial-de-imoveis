@@ -1,0 +1,29 @@
+{
+    "titulo_principal": "Bem-vindo ao Meu Lead!",
+    "subtitulo": "Encontre os melhores imóveis aqui.",
+    "tipo_apresentacao": "video",
+    "valores": [
+        {
+            "titulo": "Qualidade",
+            "subtitulo": "Imóveis de alto padrão",
+            "imagem_url": "https://exemplo.com/qualidade.jpg"
+        },
+        {
+            "titulo": "Conforto",
+            "subtitulo": "Viva com estilo",
+            "imagem_url": "https://exemplo.com/conforto.jpg"
+        }
+    ],
+    "feedbacks": [
+        {
+            "imagem": "https://exemplo.com/user1.jpg",
+            "nome": "João Silva",
+            "comentario": "Ótimo atendimento, recomendo!"
+        },
+        {
+            "imagem": "https://exemplo.com/user2.jpg",
+            "nome": "Maria Oliveira",
+            "comentario": "Encontrei o imóvel perfeito!"
+        }
+    ]
+}

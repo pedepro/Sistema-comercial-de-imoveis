@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const axios = require('axios'); // Adicionado o módulo axios
 require('dotenv').config();
 const cors = require('cors');
+const fs = require('fs').promises; // Módulo para manipular arquivos assíncronos
 
 const app = express();
 const portHttp = 3000;
@@ -119,6 +120,57 @@ const listenForNotifications = () => {
 };
 
 listenForNotifications();
+
+
+
+
+
+
+
+// Caminho para o arquivo JSON
+const textosFilePath = './textos.json';
+
+// Rota para pegar os textos (GET)
+app.get('/textos', async (req, res) => {
+    try {
+        const data = await fs.readFile(textosFilePath, 'utf8');
+        const textos = JSON.parse(data);
+        res.json({ success: true, textos });
+    } catch (error) {
+        console.error('Erro ao ler textos:', error);
+        res.status(500).json({ success: false, message: 'Erro ao carregar textos' });
+    }
+});
+
+// Rota para editar os textos (POST)
+app.post('/editar-textos', async (req, res) => {
+    try {
+        const novosTextos = req.body; // Recebe o objeto completo com os dados
+
+        // Lê o arquivo atual
+        let textosAtuais = {};
+        try {
+            const data = await fs.readFile(textosFilePath, 'utf8');
+            textosAtuais = JSON.parse(data);
+        } catch (err) {
+            // Se o arquivo não existir, começamos com um objeto vazio
+            console.warn('Arquivo textos.json não encontrado, criando novo.');
+        }
+
+        // Mescla os textos atuais com os novos
+        const textosAtualizados = { ...textosAtuais, ...novosTextos };
+
+        // Salva o arquivo
+        await fs.writeFile(textosFilePath, JSON.stringify(textosAtualizados, null, 2), 'utf8');
+        
+        res.json({ success: true, message: 'Textos atualizados com sucesso' });
+    } catch (error) {
+        console.error('Erro ao editar textos:', error);
+        res.status(500).json({ success: false, message: 'Erro ao salvar textos' });
+    }
+});
+
+
 
 
 
