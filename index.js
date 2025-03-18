@@ -3924,25 +3924,8 @@ app.get("/:id", async (req, res) => {
                                 const similarLeadsContainer = document.getElementById("similar-leads-container");
                                 const selectedLeads = [leadId];
                                 let totalPrice = parseFloat(valorFormatado.replace("R$", "").replace(".", "").replace(",", "."));
-                                
-                                console.log("Dados recebidos da API:", data.clientes); // Log para verificar os dados
-                                console.log("LeadId atual:", leadId);
-
                                 if (data.clientes && Array.isArray(data.clientes)) {
-                                    // Garantir que o lead atual não seja incluído
-                                    const filteredLeads = data.clientes.filter(lead => {
-                                        const isDifferent = String(lead.id) !== String(leadId);
-                                        console.log(\`Comparando \${lead.id} com ${leadId}: \${isDifferent}\`);
-                                        return isDifferent;
-                                    });
-                                    
-                                    console.log("Leads filtrados:", filteredLeads);
-
-                                    if (filteredLeads.length === 0) {
-                                        similarLeadsContainer.innerHTML = "<p>Nenhum lead semelhante disponível.</p>";
-                                        return;
-                                    }
-
+                                    const filteredLeads = data.clientes.filter(lead => lead.id !== leadId);
                                     filteredLeads.forEach(lead => {
                                         const valorLead = parseFloat(lead.valor_lead || 0).toLocaleString('pt-BR', { 
                                             style: 'currency', 
@@ -3972,12 +3955,9 @@ app.get("/:id", async (req, res) => {
                                         };
                                         similarLeadsContainer.appendChild(miniCard);
                                     });
-                                } else {
-                                    similarLeadsContainer.innerHTML = "<p>Nenhum lead semelhante encontrado.</p>";
                                 }
                             } catch (error) {
                                 console.error("Erro ao carregar leads semelhantes:", error);
-                                similarLeadsContainer.innerHTML = "<p>Erro ao carregar leads semelhantes.</p>";
                             }
                         }
                         async function confirmarCompra(leadId) {
