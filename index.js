@@ -3917,7 +3917,7 @@ app.get("/:id", async (req, res) => {
                             document.body.appendChild(overlay);
                             await carregarLeadsSemelhantes(leadId, padrao, valorFormatado);
                         }
-async function carregarLeadsSemelhantes(leadId, padrao, valorFormatado) {
+                        async function carregarLeadsSemelhantes(leadId, padrao, valorFormatado) {
                             try {
                                 const response = await fetch(\`https://backand.meuleaditapema.com.br/list-clientes?limit=10&categoria=\${padrao === "alto-padrao" ? 2 : 1}\`);
                                 const data = await response.json();
