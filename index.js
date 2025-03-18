@@ -2112,6 +2112,40 @@ app.get('/cidades', async (req, res) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 app.post('/imoveis/novo', async (req, res) => {
     let client;
     try {
@@ -2135,6 +2169,7 @@ app.post('/imoveis/novo', async (req, res) => {
             return parsed;
         };
 
+        // Dados completos do imóvel, incluindo toggles para o N8N
         const imovelData = {
             valor: parseNumeric(req.body.valor, 'Valor', 12, 2, true), // NUMERIC(12,2) NOT NULL
             banheiros: parseNumeric(req.body.banheiros, 'Banheiros', 10, 0, true), // INTEGER NOT NULL
@@ -2153,10 +2188,12 @@ app.post('/imoveis/novo', async (req, res) => {
             endereco: req.body.endereco || '', // TEXT NOT NULL
             descricao: req.body.descricao || '', // TEXT
             nome_proprietario: req.body.nome_proprietario || '', // TEXT
-            descricao_negociacao: req.body.descricao_negociacao || '' // TEXT
+            descricao_negociacao: req.body.descricao_negociacao || '', // TEXT
+            enviarEmail: req.body.enviarEmail !== undefined ? req.body.enviarEmail : false, // BOOLEAN para N8N
+            enviarWhatsapp: req.body.enviarWhatsapp !== undefined ? req.body.enviarWhatsapp : false // BOOLEAN para N8N
         };
 
-        // Validação de campos obrigatórios
+        // Validação de campos obrigatórios (sem os toggles, pois não vão pro banco)
         const requiredFields = {
             banheiros: 'Banheiros',
             endereco: 'Endereço',
@@ -2174,6 +2211,7 @@ app.post('/imoveis/novo', async (req, res) => {
             throw new Error(`Campos obrigatórios faltando ou inválidos: ${missingFields.join(', ')}`);
         }
 
+        // Query SQL sem os campos enviarEmail e enviarWhatsapp
         const imovelQuery = `
             INSERT INTO imoveis (
                 valor, banheiros, metros_quadrados, andar, imovel_pronto, mobiliado, price_contato, 
@@ -2196,7 +2234,29 @@ app.post('/imoveis/novo', async (req, res) => {
         const imovelResult = await client.query(imovelQuery, imovelValues);
         const imovelId = imovelResult.rows[0].id;
 
+        // Adicionar o ID do imóvel ao imovelData para enviar ao N8N
+        imovelData.id = imovelId;
+
+        // Commit da transação no banco antes de enviar ao N8N
         await client.query('COMMIT');
+
+        // Enviar todos os dados do imóvel para o N8N usando axios
+        const n8nUrl = process.env.n8n_novo_imovel;
+        if (!n8nUrl) {
+            console.warn('Variável de ambiente n8n_novo_imovel não definida. Requisição ao N8N não será realizada.');
+        } else {
+            console.log('Enviando dados para o N8N:', imovelData);
+            try {
+                const n8nResponse = await axios.post(n8nUrl, imovelData, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                console.log('Dados enviados ao N8N com sucesso:', n8nResponse.data);
+            } catch (n8nError) {
+                console.error('Erro ao enviar dados para o N8N:', n8nError.response ? n8nError.response.data : n8nError.message);
+                // Não lançamos erro para o frontend, apenas logamos
+            }
+        }
+
         res.json({ success: true, message: 'Imóvel cadastrado com sucesso', imovelId });
     } catch (err) {
         if (client) await client.query('ROLLBACK');
