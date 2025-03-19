@@ -4565,6 +4565,33 @@ appLead.get("/:id", async (req, res) => {
 
 
 
+app.get('/get-content', async (req, res) => {
+    try {
+        // Busca os ajustes (apenas id = 1)
+        const ajustesResult = await pool.query('SELECT * FROM mli_ajustes WHERE id = 1');
+        if (ajustesResult.rowCount === 0) {
+            return res.status(404).json({ error: 'Ajustes com id = 1 não encontrados' });
+        }
+
+        // Busca todos os valores
+        const valoresResult = await pool.query('SELECT * FROM mli_valores');
+
+        // Busca todos os feedbacks
+        const feedbacksResult = await pool.query('SELECT * FROM mli_feedbacks');
+
+        // Monta o response com os dados
+        const response = {
+            ajustes: ajustesResult.rows[0], // Apenas a primeira linha
+            valores: valoresResult.rows,    // Todas as linhas
+            feedbacks: feedbacksResult.rows // Todas as linhas
+        };
+
+        res.json(response);
+    } catch (err) {
+        console.error('Erro ao buscar conteúdo:', err);
+        res.status(500).json({ error: 'Erro interno no servidor', details: err.message });
+    }
+});
 
 
 
@@ -4573,8 +4600,132 @@ appLead.get("/:id", async (req, res) => {
 
 
 
+app.post('/edit-content', async (req, res) => {
+    const { table, action, data } = req.body;
 
+    // Validação inicial
+    if (!table || !action || !data) {
+        return res.status(400).json({ error: 'Parâmetros "table", "action" e "data" são obrigatórios' });
+    }
 
+    if (!['mli_ajustes', 'mli_valores', 'mli_feedbacks'].includes(table)) {
+        return res.status(400).json({ error: 'Tabela inválida' });
+    }
+
+    if (!['update', 'create', 'delete'].includes(action) && !(table === 'mli_ajustes' && action === 'update')) {
+        return res.status(400).json({ error: 'Ação inválida ou não permitida para a tabela' });
+    }
+
+    try {
+        if (table === 'mli_ajustes') {
+            // Só permite atualização da linha id = 1
+            const { titulo, subtitulo, tipo_apn, video, imagens } = data;
+            const result = await pool.query(
+                `
+                UPDATE mli_ajustes 
+                SET 
+                    titulo = $1, 
+                    subtitulo = $2, 
+                    tipo_apn = $3, 
+                    video = $4, 
+                    imagens = $5 
+                WHERE id = 1
+                RETURNING *
+                `,
+                [titulo, subtitulo, tipo_apn, video, imagens]
+            );
+            if (result.rowCount === 0) {
+                return res.status(404).json({ error: 'Linha com id = 1 não encontrada em mli_ajustes' });
+            }
+            res.json({ message: 'Ajustes atualizados com sucesso', data: result.rows[0] });
+        } 
+        else if (table === 'mli_valores') {
+            if (action === 'create') {
+                const { img, titulo, subtitulo } = data;
+                const result = await pool.query(
+                    `
+                    INSERT INTO mli_valores (img, titulo, subtitulo) 
+                    VALUES ($1, $2, $3) 
+                    RETURNING *
+                    `,
+                    [img, titulo, subtitulo]
+                );
+                res.json({ message: 'Valor criado com sucesso', data: result.rows[0] });
+            } 
+            else if (action === 'update') {
+                const { id, img, titulo, subtitulo } = data;
+                const result = await pool.query(
+                    `
+                    UPDATE mli_valores 
+                    SET img = $1, titulo = $2, subtitulo = $3 
+                    WHERE id = $4 
+                    RETURNING *
+                    `,
+                    [img, titulo, subtitulo, id]
+                );
+                if (result.rowCount === 0) {
+                    return res.status(404).json({ error: 'Valor não encontrado' });
+                }
+                res.json({ message: 'Valor atualizado com sucesso', data: result.rows[0] });
+            } 
+            else if (action === 'delete') {
+                const { id } = data;
+                const result = await pool.query(
+                    'DELETE FROM mli_valores WHERE id = $1 RETURNING *',
+                    [id]
+                );
+                if (result.rowCount === 0) {
+                    return res.status(404).json({ error: 'Valor não encontrado' });
+                }
+                res.json({ message: 'Valor excluído com sucesso', data: result.rows[0] });
+            }
+        } 
+        else if (table === 'mli_feedbacks') {
+            if (action === 'create') {
+                const { img, nome, comentario } = data;
+                const result = await pool.query(
+                    `
+                    INSERT INTO mli_feedbacks (img, nome, comentario) 
+                    VALUES ($1, $2, $3) 
+                    RETURNING *
+                    `,
+                    [img, nome, comentario]
+                );
+                res.json({ message: 'Feedback criado com sucesso', data: result.rows[0] });
+            } 
+            else if (action === 'update') {
+                const { id, img, nome, comentario } = data;
+                const result = await pool.query(
+                    `
+                    UPDATE mli_feedbacks 
+                    SET img = $1, nome = $2, comentario = $3 
+                    WHERE id = $4 
+                    RETURNING *
+                    `,
+                    [img, nome, comentario, id]
+                );
+                if (result.rowCount === 0) {
+                    return res.status(404).json({ error: 'Feedback não encontrado' });
+                }
+                res.json({ message: 'Feedback atualizado com sucesso', data: result.rows[0] });
+            } 
+            else if (action === 'delete') {
+                const { id } = data;
+                const result = await pool.query(
+                    'DELETE FROM mli_feedbacks WHERE id = $1 RETURNING *',
+                    [id]
+                );
+                if (result.rowCount === 0) {
+                    return res.status(404).json({ error: 'Feedback não encontrado' });
+                }
+                res.json({ message: 'Feedback excluído com sucesso', data: result.rows[0] });
+            }
+        }
+    } catch (err) {
+        console.error(`Erro ao editar ${table}:`, err);
+        res.status(500).json({ error: 'Erro interno no servidor', details: err.message });
+    }
+});
 
 
 
