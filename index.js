@@ -1989,6 +1989,96 @@ app.get('/list-clientes/:id', async (req, res) => {
     }
 });
 
+// rota para listar pedidos de um corretor
+app.get('/list-pedidos/:id', async (req, res) => {
+    const corretorId = req.params.id;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = parseInt(req.query.offset) || 0;
+
+    try {
+        // Consulta principal para obter os pedidos do corretor
+        const pedidosResult = await pool.query(
+            `SELECT *
+             FROM pedido 
+             WHERE corretor = $1
+             ORDER BY id
+             LIMIT $2 OFFSET $3`,
+            [corretorId, limit, offset]
+        );
+
+        if (pedidosResult.rows.length === 0) {
+            return res.status(200).json({ 
+                success: true, 
+                pedidos: [], 
+                total: 0 
+            });
+        }
+
+        // Conta o total de pedidos
+        const totalResult = await pool.query(
+            'SELECT COUNT(*) FROM pedido WHERE corretor = $1',
+            [corretorId]
+        );
+        const total = parseInt(totalResult.rows[0].count);
+
+        // Processar cada pedido para buscar informações relacionadas
+        const pedidosEnriquecidos = await Promise.all(pedidosResult.rows.map(async (pedido) => {
+            // Buscar dados dos imóveis
+            let imoveis = [];
+            if (pedido.imoveis_id && pedido.imoveis_id.length > 0) {
+                const imoveisResult = await pool.query(
+                    `SELECT i.*,
+                            COALESCE(
+                                (SELECT json_build_object(
+                                    'id', images.id,
+                                    'url', images.url,
+                                    'livre', images.livre,
+                                    'afiliados', images.afiliados,
+                                    'compradores', images.compradores
+                                )
+                                 FROM images 
+                                 WHERE images.imovel = i.id 
+                                 AND images.livre = true 
+                                 ORDER BY images.id 
+                                 LIMIT 1),
+                                NULL
+                            ) AS imagem
+                     FROM imoveis i
+                     WHERE i.id = ANY($1)`,
+                    [pedido.imoveis_id]
+                );
+                imoveis = imoveisResult.rows;
+            }
+
+            // Buscar dados dos leads/clientes
+            let clientes = [];
+            if (pedido.leads_id && pedido.leads_id.length > 0) {
+                const clientesResult = await pool.query(
+                    'SELECT * FROM clientes WHERE id = ANY($1)',
+                    [pedido.leads_id]
+                );
+                clientes = clientesResult.rows;
+            }
+
+            // Retornar pedido com os dados enriquecidos
+            return {
+                ...pedido,
+                imoveis: imoveis,
+                clientes: clientes
+            };
+        }));
+
+        res.json({
+            success: true,
+            pedidos: pedidosEnriquecidos,
+            total: total
+        });
+
+    } catch (err) {
+        console.error('Erro na rota /list-pedidos:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 
 
 
