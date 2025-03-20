@@ -123,6 +123,80 @@ listenForNotifications();
 
 
 
+// Busca do Facebook Pixel na tabela mli_ajustes (id = 1)
+app.get('/ajustes/facebook-pixel', async (req, res) => {
+    try {
+        // Query para buscar o facebook_pixel onde id = 1
+        const query = `
+            SELECT facebook_pixel
+            FROM mli_ajustes
+            WHERE id = 1;
+        `;
+
+        // Executa a query
+        const result = await pool.query(query);
+
+        // Verifica se o registro existe
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Registro com id = 1 não encontrado' });
+        }
+
+        // Retorna o valor do facebook_pixel
+        res.status(200).json({
+            facebook_pixel: result.rows[0].facebook_pixel
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao buscar facebook_pixel:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+
+
+
+// Atualização do Facebook Pixel na tabela mli_ajustes (apenas id = 1)
+app.put('/ajustes/facebook-pixel', async (req, res) => {
+    try {
+        const { facebook_pixel } = req.body; // Recebe o novo valor do Facebook Pixel via corpo da requisição
+
+        // Validação básica
+        if (!facebook_pixel || typeof facebook_pixel !== 'string') {
+            return res.status(400).json({ error: 'O campo facebook_pixel é obrigatório e deve ser uma string' });
+        }
+
+        // Query para atualizar a coluna facebook_pixel onde id = 1
+        const query = `
+            UPDATE mli_ajustes
+            SET facebook_pixel = $1
+            WHERE id = 1
+            RETURNING *;  -- Retorna os dados atualizados
+        `;
+        const values = [facebook_pixel];
+
+        // Executa a query
+        const result = await pool.query(query, values);
+
+        // Verifica se o registro foi atualizado
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Registro com id = 1 não encontrado' });
+        }
+
+        // Retorna o registro atualizado
+        res.status(200).json({
+            message: 'Facebook Pixel atualizado com sucesso',
+            data: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao atualizar facebook_pixel:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+
+
+
 app.get('/get-content', async (req, res) => {
     try {
         // Busca os ajustes (apenas id = 1)
