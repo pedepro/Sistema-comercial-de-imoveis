@@ -1109,10 +1109,256 @@ app.get('/list-cliientes', async (req, res) => {
     }
 });
 
+//lista apenas clientes disponiveis aceita filtros e paginação
+app.get('/list/clientes', async (req, res) => {
+    try {
+        console.log("🚀 Recebendo requisição em /list-clientes-disponiveis");
+        console.log("📥 Query Params recebidos:", req.query);
+
+        let query = 'SELECT * FROM clientes WHERE disponivel = true'; // Filtro fixo para disponivel = true
+        let values = [];
+        let index = 1;
+
+        // Filtro por tipo de imóvel
+        if (req.query.tipo_imovel) {
+            query += ` AND tipo_imovel = $${index}`;
+            values.push(req.query.tipo_imovel);
+            console.log(`📌 Filtro tipo_imovel: ${req.query.tipo_imovel}`);
+            index++;
+        }
+
+        // Filtro por categoria (1 = Médio Padrão, 2 = Alto Padrão)
+        if (req.query.categoria) {
+            const categoria = parseInt(req.query.categoria);
+            if (!isNaN(categoria) && (categoria === 1 || categoria === 2)) {
+                query += ` AND categoria = $${index}`;
+                values.push(categoria);
+                console.log(`📌 Filtro categoria: ${categoria === 1 ? 'Médio Padrão' : 'Alto Padrão'}`);
+                index++;
+            } else {
+                console.warn("⚠️ categoria recebida não é válida (deve ser 1 ou 2):", req.query.categoria);
+            }
+        }
+
+        // Filtro por intervalo de valor (Preço de Interesse)
+        if (req.query.valor_min) {
+            const valorMin = parseInt(req.query.valor_min);
+            if (!isNaN(valorMin)) {
+                query += ` AND valor >= $${index}`;
+                values.push(valorMin);
+                console.log(`📌 Filtro valor_min: ${valorMin}`);
+                index++;
+            } else {
+                console.warn("⚠️ valor_min recebido não é um número válido:", req.query.valor_min);
+            }
+        }
+
+        if (req.query.valor_max) {
+            const valorMax = parseInt(req.query.valor_max);
+            if (!isNaN(valorMax)) {
+                query += ` AND valor <= $${index}`;
+                values.push(valorMax);
+                console.log(`📌 Filtro valor_max: ${valorMax}`);
+                index++;
+            } else {
+                console.warn("⚠️ valor_max recebido não é um número válido:", req.query.valor_max);
+            }
+        }
+
+        // Filtros booleanos (exceto disponivel, que agora é fixo)
+        if (req.query.ai_created !== undefined) {
+            const aiCreated = req.query.ai_created === 'true' || req.query.ai_created === true;
+            query += ` AND ai_created = $${index}`;
+            values.push(aiCreated);
+            console.log(`📌 Filtro ai_created: ${aiCreated}`);
+            index++;
+        }
+
+        if (req.query.aprovado !== undefined) {
+            const aprovado = req.query.aprovado === 'true' || req.query.aprovado === true;
+            query += ` AND aprovado = $${index}`;
+            values.push(aprovado);
+            console.log(`📌 Filtro aprovado: ${aprovado}`);
+            index++;
+        }
+
+        if (req.query.destaque !== undefined) {
+            const destaque = req.query.destaque === 'true' || req.query.destaque === true;
+            query += ` AND destaque = $${index}`;
+            values.push(destaque);
+            console.log(`📌 Filtro destaque: ${destaque}`);
+            index++;
+        }
+
+        // Filtro de busca geral por nome, id ou valor_lead
+        let buscaExata = false;
+        if (req.query.busca) {
+            const busca = req.query.busca;
+            const buscaInt = parseInt(busca);
+            const buscaFloat = parseFloat(busca);
+
+            if (!isNaN(buscaInt) && buscaInt.toString() === busca) {
+                query += ` AND id = $${index}`;
+                values.push(buscaInt);
+                console.log(`📌 Filtro busca (id): id = ${buscaInt}`);
+                index++;
+                buscaExata = true;
+            } else if (!isNaN(buscaFloat)) {
+                query += ` AND valor_lead = $${index}`;
+                values.push(buscaFloat);
+                console.log(`📌 Filtro busca (valor_lead): valor_lead = ${buscaFloat}`);
+                index++;
+                buscaExata = true;
+            } else {
+                query += ` AND nome ILIKE $${index}`;
+                values.push(`%${busca}%`);
+                console.log(`📌 Filtro busca (texto): nome ILIKE %${busca}%`);
+                index++;
+            }
+        }
+
+        // Ordenação dinâmica
+        let orderBy = req.query.order_by || 'created_at'; // Padrão: created_at
+        const orderDir = req.query.order_dir || 'desc'; // Padrão: descendente
+        const validOrderFields = ['created_at', 'valor_lead'];
+        const validOrderDirs = ['asc', 'desc'];
+
+        // Mapeia 'data_criacao' do frontend para 'created_at' no backend
+        if (orderBy === 'data_criacao') {
+            orderBy = 'created_at';
+        }
+
+        if (validOrderFields.includes(orderBy) && validOrderDirs.includes(orderDir)) {
+            query += ` ORDER BY ${orderBy} ${orderDir.toUpperCase()}`;
+            console.log(`📌 Ordenação: ${orderBy} ${orderDir.toUpperCase()}`);
+        } else {
+            console.warn(`⚠️ Parâmetros de ordenação inválidos: order_by=${orderBy}, order_dir=${orderDir}`);
+            query += ` ORDER BY created_at DESC`; // Fallback para padrão
+        }
+
+        // Paginação
+        const limit = parseInt(req.query.limit) || 20;
+        const offset = parseInt(req.query.offset) || 0;
+        query += ` LIMIT $${index} OFFSET $${index + 1}`;
+        values.push(limit, offset);
+
+        console.log("📝 Query gerada:", query);
+        console.log("📊 Valores utilizados:", values);
+
+        // Consulta principal
+        const result = await pool.query(query, values);
+        let clientes = result.rows;
+
+        // Busca de itens similares se não houver resultados
+        if (clientes.length === 0 && req.query.busca && !buscaExata) {
+            console.log("⚠️ Nenhum resultado exato encontrado. Buscando itens parecidos...");
+            let similarQuery = 'SELECT * FROM clientes WHERE disponivel = true AND nome ILIKE $1 LIMIT 5';
+            let similarValues = [`%${req.query.busca}%`];
+            const similarResult = await pool.query(similarQuery, similarValues);
+            clientes = similarResult.rows;
+            console.log(`📌 Itens parecidos encontrados: ${clientes.length}`);
+        }
+
+        // Consulta de contagem
+        let countQuery = 'SELECT COUNT(*) FROM clientes WHERE disponivel = true'; // Filtro fixo para disponivel = true
+        let countValues = [];
+        let countIndex = 1;
+
+        if (req.query.tipo_imovel) {
+            countQuery += ` AND tipo_imovel = $${countIndex}`;
+            countValues.push(req.query.tipo_imovel);
+            countIndex++;
+        }
+
+        if (req.query.categoria) {
+            const categoria = parseInt(req.query.categoria);
+            if (!isNaN(categoria) && (categoria === 1 || categoria === 2)) {
+                countQuery += ` AND categoria = $${countIndex}`;
+                countValues.push(categoria);
+                countIndex++;
+            }
+        }
+
+        if (req.query.valor_min) {
+            const valorMin = parseInt(req.query.valor_min);
+            if (!isNaN(valorMin)) {
+                countQuery += ` AND valor >= $${countIndex}`;
+                countValues.push(valorMin);
+                countIndex++;
+            }
+        }
+
+        if (req.query.valor_max) {
+            const valorMax = parseInt(req.query.valor_max);
+            if (!isNaN(valorMax)) {
+                countQuery += ` AND valor <= $${countIndex}`;
+                countValues.push(valorMax);
+                countIndex++;
+            }
+        }
+
+        if (req.query.ai_created !== undefined) {
+            const aiCreated = req.query.ai_created === 'true' || req.query.ai_created === true;
+            countQuery += ` AND ai_created = $${countIndex}`;
+            countValues.push(aiCreated);
+            countIndex++;
+        }
+
+        if (req.query.aprovado !== undefined) {
+            const aprovado = req.query.aprovado === 'true' || req.query.aprovado === true;
+            countQuery += ` AND aprovado = $${countIndex}`;
+            countValues.push(aprovado);
+            countIndex++;
+        }
+
+        if (req.query.destaque !== undefined) {
+            const destaque = req.query.destaque === 'true' || req.query.destaque === true;
+            countQuery += ` AND destaque = $${countIndex}`;
+            countValues.push(destaque);
+            countIndex++;
+        }
+
+        if (req.query.busca) {
+            const busca = req.query.busca;
+            const buscaInt = parseInt(busca);
+            const buscaFloat = parseFloat(busca);
+
+            if (!isNaN(buscaInt) && buscaInt.toString() === busca) {
+                countQuery += ` AND id = $${countIndex}`;
+                countValues.push(buscaInt);
+                countIndex++;
+            } else if (!isNaN(buscaFloat)) {
+                countQuery += ` AND valor_lead = $${countIndex}`;
+                countValues.push(buscaFloat);
+                countIndex++;
+            } else {
+                countQuery += ` AND nome ILIKE $${countIndex}`;
+                countValues.push(`%${busca}%`);
+                countIndex++;
+            }
+        }
+
+        console.log("📝 Consulta de contagem gerada:", countQuery);
+        console.log("📊 Valores utilizados na contagem:", countValues);
+
+        const countResult = await pool.query(countQuery, countValues);
+        const totalRegistros = parseInt(countResult.rows[0].count);
+
+        console.log("✅ Consulta realizada com sucesso. Resultados encontrados:", clientes.length);
+        console.log("📊 Total de registros na base com filtros:", totalRegistros);
+
+        res.json({
+            clientes: clientes,
+            total: totalRegistros
+        });
+    } catch (err) {
+        console.error("❌ Erro ao buscar clientes disponíveis:", err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 
 
-
-
+//lista todos os clientes e aceita filtros e paginação
 app.get('/list-clientes', async (req, res) => {
     try {
         console.log("🚀 Recebendo requisição em /list-clientes");
