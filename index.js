@@ -2066,7 +2066,7 @@ app.get('/list-corretores', async (req, res) => {
 
 
 
-
+// lista imoveis de um corretor 
 app.get('/list-imoveis/:id', async (req, res) => {
     const corretorId = req.params.id;
     const limit = parseInt(req.query.limit) || 6;  // Alinha com o nome esperado pelo front-end
@@ -2665,7 +2665,7 @@ app.post('/imoveis/novo', async (req, res) => {
             return parsed;
         };
 
-        // Dados completos do imóvel, incluindo toggles para o N8N
+        // Dados completos do imóvel, incluindo toggles para o N8N e o novo campo estado
         const imovelData = {
             valor: parseNumeric(req.body.valor, 'Valor', 12, 2, true), // NUMERIC(12,2) NOT NULL
             banheiros: parseNumeric(req.body.banheiros, 'Banheiros', 10, 0, true), // INTEGER NOT NULL
@@ -2685,6 +2685,7 @@ app.post('/imoveis/novo', async (req, res) => {
             descricao: req.body.descricao || '', // TEXT
             nome_proprietario: req.body.nome_proprietario || '', // TEXT
             descricao_negociacao: req.body.descricao_negociacao || '', // TEXT
+            estado: req.body.estado || null, // TEXT, não obrigatório
             enviarEmail: req.body.enviarEmail !== undefined ? req.body.enviarEmail : false, // BOOLEAN para N8N
             enviarWhatsapp: req.body.enviarWhatsapp !== undefined ? req.body.enviarWhatsapp : false // BOOLEAN para N8N
         };
@@ -2707,14 +2708,14 @@ app.post('/imoveis/novo', async (req, res) => {
             throw new Error(`Campos obrigatórios faltando ou inválidos: ${missingFields.join(', ')}`);
         }
 
-        // Query SQL sem os campos enviarEmail e enviarWhatsapp
+        // Query SQL com o campo estado adicionado
         const imovelQuery = `
             INSERT INTO imoveis (
                 valor, banheiros, metros_quadrados, andar, imovel_pronto, mobiliado, price_contato, 
                 vagas_garagem, cidade, categoria, quartos, texto_principal, whatsapp, tipo, endereco, 
-                descricao, nome_proprietario, descricao_negociacao
+                descricao, nome_proprietario, descricao_negociacao, estado
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
             RETURNING id
         `;
         const imovelValues = [
@@ -2722,7 +2723,7 @@ app.post('/imoveis/novo', async (req, res) => {
             imovelData.imovel_pronto, imovelData.mobiliado, imovelData.price_contato, imovelData.vagas_garagem,
             imovelData.cidade, imovelData.categoria, imovelData.quartos, imovelData.texto_principal,
             imovelData.whatsapp, imovelData.tipo, imovelData.endereco, imovelData.descricao,
-            imovelData.nome_proprietario, imovelData.descricao_negociacao
+            imovelData.nome_proprietario, imovelData.descricao_negociacao, imovelData.estado
         ];
 
         console.log('Valores enviados para o banco:', imovelValues);
@@ -2828,7 +2829,7 @@ app.delete('/imoveis/:id/imagens/:imagemId', async (req, res) => {
     }
 });
 
-
+//rota de editar um imovel
 app.put('/imoveis/:id', async (req, res) => {
     let client;
     try {
@@ -2881,7 +2882,8 @@ app.put('/imoveis/:id', async (req, res) => {
             endereco: req.body.endereco !== undefined ? req.body.endereco : currentImovel.endereco,
             descricao: req.body.descricao !== undefined ? req.body.descricao : currentImovel.descricao,
             nome_proprietario: req.body.nome_proprietario !== undefined ? req.body.nome_proprietario : currentImovel.nome_proprietario,
-            descricao_negociacao: req.body.descricao_negociacao !== undefined ? req.body.descricao_negociacao : currentImovel.descricao_negociacao
+            descricao_negociacao: req.body.descricao_negociacao !== undefined ? req.body.descricao_negociacao : currentImovel.descricao_negociacao,
+            estado: req.body.estado !== undefined ? req.body.estado : currentImovel.estado // Mantém o valor atual se não enviado
         };
 
         // Log dos valores que serão salvos no banco
@@ -2925,8 +2927,9 @@ app.put('/imoveis/:id', async (req, res) => {
                 endereco = $15, 
                 descricao = $16, 
                 nome_proprietario = $17, 
-                descricao_negociacao = $18
-            WHERE id = $19
+                descricao_negociacao = $18,
+                estado = $19
+            WHERE id = $20
             RETURNING id, imovel_pronto, mobiliado
         `;
         const values = [
@@ -2934,7 +2937,7 @@ app.put('/imoveis/:id', async (req, res) => {
             imovelData.imovel_pronto, imovelData.mobiliado, imovelData.price_contato, imovelData.vagas_garagem,
             imovelData.cidade, imovelData.categoria, imovelData.quartos, imovelData.texto_principal,
             imovelData.whatsapp, imovelData.tipo, imovelData.endereco, imovelData.descricao,
-            imovelData.nome_proprietario, imovelData.descricao_negociacao, imovelId
+            imovelData.nome_proprietario, imovelData.descricao_negociacao, imovelData.estado, imovelId
         ];
 
         console.log('Query de atualização:', updateQuery);
