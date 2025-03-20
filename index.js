@@ -2326,7 +2326,35 @@ app.get('/list-pedidos/:id', async (req, res) => {
     }
 });
 
+app.post('/pedidos/cancelar', async (req, res) => {
+    try {
+        const { pedidoId, refund } = req.body;
 
+        if (!pedidoId) {
+            return res.status(400).json({ error: 'ID do pedido é obrigatório' });
+        }
+
+        // Atualiza o pedido
+        const query = `
+            UPDATE pedido
+            SET cancelado = true,
+                pago = $1
+            WHERE id = $2
+            RETURNING *;
+        `;
+        const values = [refund ? false : true, pedidoId]; // Se refund = true, seta pago = false
+        const result = await pool.query(query, values);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Pedido não encontrado' });
+        }
+
+        res.status(200).json({ message: 'Pedido cancelado com sucesso', pedido: result.rows[0] });
+    } catch (error) {
+        console.error('❌ Erro ao cancelar pedido:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
 
 
 
@@ -2565,6 +2593,144 @@ app.get('/corretores', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Erro ao listar corretores:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+
+// Listagem de pedidos para o dashboard
+app.get('/pedidos', async (req, res) => {
+    try {
+        const {
+            page = 1,              // Paginação: página atual
+            limit = 10,            // Paginação: itens por página
+            startDate,             // Filtro: data inicial (created_at)
+            endDate,               // Filtro: data final (created_at)
+            minValue,              // Filtro: valor mínimo (total_value)
+            maxValue,              // Filtro: valor máximo (total_value)
+            entregue,              // Filtro: entregue (true/false)
+            pago,                  // Filtro: pago (true/false)
+            comImoveis,            // Filtro: pedidos com imóveis
+            comLeads,              // Filtro: pedidos com leads
+            cancelado              // Filtro: cancelado (true/false) - NOVO
+        } = req.query;
+
+        // Calcula offset para paginação
+        const offset = (page - 1) * limit;
+
+        // Constrói a query base para pedidos
+        let query = `
+            SELECT p.*,
+                   json_agg(i.*) FILTER (WHERE i.id IS NOT NULL) AS imoveis,
+                   json_agg(c.*) FILTER (WHERE c.id IS NOT NULL) AS clientes
+            FROM pedido p
+            LEFT JOIN imoveis i ON i.id = ANY(p.imoveis_id)
+            LEFT JOIN clientes c ON c.id = ANY(p.leads_id)
+        `;
+        let conditions = [];
+        let values = [];
+        let valueIndex = 1;
+
+        // Filtro por intervalo de datas (created_at)
+        if (startDate) {
+            conditions.push(`p.created_at >= $${valueIndex}`);
+            values.push(startDate);
+            valueIndex++;
+        }
+        if (endDate) {
+            conditions.push(`p.created_at <= $${valueIndex}`);
+            values.push(endDate);
+            valueIndex++;
+        }
+
+        // Filtro por intervalo de valores (total_value)
+        if (minValue) {
+            conditions.push(`p.total_value >= $${valueIndex}`);
+            values.push(parseFloat(minValue));
+            valueIndex++;
+        }
+        if (maxValue) {
+            conditions.push(`p.total_value <= $${valueIndex}`);
+            values.push(parseFloat(maxValue));
+            valueIndex++;
+        }
+
+        // Filtro por entregue
+        if (entregue === 'true') {
+            conditions.push(`p.entregue = true`);
+        } else if (entregue === 'false') {
+            conditions.push(`p.entregue = false`);
+        }
+
+        // Filtro por pago
+        if (pago === 'true') {
+            conditions.push(`p.pago = true`);
+        } else if (pago === 'false') {
+            conditions.push(`p.pago = false`);
+        }
+
+        // Filtro por pedidos com imóveis
+        if (comImoveis === 'true') {
+            conditions.push(`p.imoveis_id IS NOT NULL AND array_length(p.imoveis_id, 1) > 0`);
+        }
+
+        // Filtro por pedidos com leads
+        if (comLeads === 'true') {
+            conditions.push(`p.leads_id IS NOT NULL AND array_length(p.leads_id, 1) > 0`);
+        }
+
+        // Filtro por cancelado - NOVO
+        if (cancelado === 'true') {
+            conditions.push(`p.cancelado = true`);
+        } else if (cancelado === 'false') {
+            conditions.push(`p.cancelado = false`);
+        }
+
+        // Junta as condições na query
+        if (conditions.length > 0) {
+            query += ' WHERE ' + conditions.join(' AND ');
+        }
+
+        // Agrupa os resultados por pedido para evitar duplicatas
+        query += ' GROUP BY p.id';
+
+        // Conta total de registros para paginação
+        const countQuery = `
+            SELECT COUNT(DISTINCT p.id)
+            FROM pedido p
+            ${conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : ''}
+        `;
+        const countResult = await pool.query(countQuery, values);
+        const totalItems = parseInt(countResult.rows[0].count);
+        const totalPages = Math.ceil(totalItems / limit);
+
+        // Adiciona ordenação e paginação
+        query += `
+            ORDER BY p.created_at DESC
+            LIMIT $${valueIndex} OFFSET $${valueIndex + 1}
+        `;
+        values.push(limit, offset);
+
+        // Executa a query principal
+        const result = await pool.query(query, values);
+
+        // Formata a resposta
+        const response = {
+            data: result.rows,
+            pagination: {
+                currentPage: parseInt(page),
+                itemsPerPage: parseInt(limit),
+                totalItems,
+                totalPages,
+                hasNext: parseInt(page) < totalPages,
+                hasPrevious: parseInt(page) > 1
+            }
+        };
+
+        res.status(200).json(response);
+
+    } catch (error) {
+        console.error('❌ Erro ao listar pedidos:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
