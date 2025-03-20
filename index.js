@@ -2460,9 +2460,151 @@ app.post('/corretores', async (req, res) => {
     }
 });
 
+app.get('/corretores', async (req, res) => {
+    try {
+        const {
+            page,                 // Paginação: página atual (opcional)
+            limit,                // Paginação: itens por página (opcional)
+            search,               // Busca por nome, email ou whatsapp
+            sortBy = 'created_at', // Ordenação: created_at, name, etc
+            sortOrder = 'DESC',   // Ordem: ASC ou DESC
+            minPedidos,           // Filtro: mínimo de pedidos
+            maxPedidos,           // Filtro: máximo de pedidos
+            semImoveis,          // Filtro: corretores sem imóveis
+            semClientes,         // Filtro: corretores sem clientes
+            semPedidos           // Filtro: corretores sem pedidos
+        } = req.query;
+
+        // Constrói a query base
+        let query = 'SELECT * FROM corretores';
+        let conditions = [];
+        let values = [];
+
+        // 1. Busca por proximidade (nome, email ou whatsapp)
+        if (search) {
+            conditions.push(
+                `(name ILIKE $${values.length + 1} OR 
+                  email ILIKE $${values.length + 1} OR 
+                  phone ILIKE $${values.length + 1})`
+            );
+            values.push(`%${search}%`);
+        }
+
+        // 2. Filtros por número de pedidos
+        if (minPedidos || maxPedidos) {
+            if (minPedidos) {
+                conditions.push(`array_length(pedidos, 1) >= $${values.length + 1}`);
+                values.push(parseInt(minPedidos));
+            }
+            if (maxPedidos) {
+                conditions.push(`array_length(pedidos, 1) <= $${values.length + 1}`);
+                values.push(parseInt(maxPedidos));
+            }
+        }
+
+        // 3. Filtros de ausência
+        if (semImoveis === 'true') {
+            conditions.push(`(imoveis_comprados IS NULL OR array_length(imoveis_comprados, 1) = 0)`);
+        }
+        if (semClientes === 'true') {
+            conditions.push(`(clientes IS NULL OR array_length(clientes, 1) = 0)`);
+        }
+        if (semPedidos === 'true') {
+            conditions.push(`(pedidos IS NULL OR array_length(pedidos, 1) = 0)`);
+        }
+
+        // Junta as condições na query
+        if (conditions.length > 0) {
+            query += ' WHERE ' + conditions.join(' AND ');
+        }
+
+        // 4. Validação e aplicação da ordenação
+        const validSortFields = ['created_at', 'name', 'email', 'phone'];
+        const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at';
+        const validSortOrders = ['ASC', 'DESC'];
+        const order = validSortOrders.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
+
+        // Conta total de registros
+        const countQuery = `SELECT COUNT(*) FROM corretores${conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : ''}`;
+        const countResult = await pool.query(countQuery, values);
+        const totalItems = parseInt(countResult.rows[0].count);
+
+        // Aplica ordenação
+        query += ` ORDER BY ${sortField} ${order}`;
+
+        // Aplica paginação apenas se page e limit forem fornecidos
+        let paginationApplied = false;
+        let totalPages = 1;
+        if (page && limit) {
+            const pageNum = parseInt(page) || 1;
+            const limitNum = parseInt(limit) || 10;
+            const offset = (pageNum - 1) * limitNum;
+            totalPages = Math.ceil(totalItems / limitNum);
+            query += ` LIMIT $${values.length + 1} OFFSET $${values.length + 2}`;
+            values.push(limitNum, offset);
+            paginationApplied = true;
+        }
+
+        // Executa a query principal
+        const result = await pool.query(query, values);
+
+        // Formata a resposta
+        const response = {
+            data: result.rows,
+            pagination: paginationApplied ? {
+                currentPage: parseInt(page) || 1,
+                itemsPerPage: parseInt(limit) || 10,
+                totalItems,
+                totalPages,
+                hasNext: page < totalPages,
+                hasPrevious: page > 1
+            } : undefined
+        };
+
+        res.status(200).json(response);
+
+    } catch (error) {
+        console.error('❌ Erro ao listar corretores:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
 
 
 
+// Rota para buscar corretores por lista de IDs
+app.post('/corretores/by-ids', async (req, res) => {
+    try {
+        const { corretorIds } = req.body;
+
+        // Validação básica
+        if (!corretorIds || !Array.isArray(corretorIds) || corretorIds.length === 0) {
+            return res.status(400).json({ error: 'A lista de IDs de corretores é obrigatória e deve ser um array não vazio.' });
+        }
+
+        // Constrói a query
+        const query = `
+            SELECT id, name, email, phone, pedidos, imoveis_comprados, clientes, created_at
+            FROM corretores
+            WHERE id = ANY($1)
+        `;
+        const values = [corretorIds]; // Passa a lista de IDs como um array para o PostgreSQL
+
+        // Executa a query
+        const result = await pool.query(query, values);
+
+        // Formata a resposta
+        const response = {
+            data: result.rows,
+            total: result.rowCount
+        };
+
+        res.status(200).json(response);
+
+    } catch (error) {
+        console.error('❌ Erro ao buscar corretores por IDs:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
 
 
 
