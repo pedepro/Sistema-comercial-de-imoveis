@@ -2492,6 +2492,34 @@ app.post('/corretores', async (req, res) => {
 
 
 
+// 📌 Rota para recuperar token e nome do corretor por email
+app.post('/autenticacao/novasenha', async (req, res) => {
+    const { email } = req.body; // Pegando o email do corpo da requisição
+
+    if (!email || typeof email !== 'string') {
+        return res.status(400).json({ error: "Email é obrigatório e deve ser uma string." });
+    }
+
+    try {
+        const result = await pool.query(
+            "SELECT token, name FROM corretores WHERE email = $1",
+            [email.trim().toLowerCase()] // Normaliza o email para evitar problemas com maiúsculas/minúsculas
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Corretor não encontrado com esse email." });
+        }
+
+        res.status(200).json(result.rows[0]); // Retorna apenas { token, name }
+    } catch (error) {
+        console.error("Erro ao buscar corretor por email:", error);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+});
+
+
+
+
 // 📌 Rota para atualizar senha do corretor
 app.post('/update-password', async (req, res) => {
     const { email, token, newPassword } = req.body;
