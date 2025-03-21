@@ -598,78 +598,6 @@ app.post('/create-user', async (req, res) => {
 });
 
 
-// Rota para atualizar os dados do usuário e, opcionalmente, o restaurante associado a ele
-app.put('/update-user', async (req, res) => {
-    const { user_id, user_token, name, email, password, address, restaurant_id, phone } = req.body;
-
-    if (!user_id || !user_token) {
-        return res.status(400).json({ success: false, error: 'user_id e user_token são obrigatórios' });
-    }
-
-    try {
-        const userCheck = await pool.query(
-            `SELECT * FROM users WHERE id = $1 AND token = $2`,
-            [user_id, user_token]
-        );
-
-        if (userCheck.rowCount === 0) {
-            return res.status(403).json({ success: false, error: 'Usuário não autorizado' });
-        }
-
-        let fields = [];
-        let values = [];
-        let index = 1;
-
-        if (name) {
-            fields.push(`name = $${index}`);
-            values.push(name);
-            index++;
-        }
-
-        if (email) {
-            fields.push(`email = $${index}`);
-            values.push(email);
-            index++;
-        }
-
-        if (password) {
-            fields.push(`password = $${index}`);
-            values.push(password);
-            index++;
-        }
-
-        if (address) {
-            fields.push(`address = $${index}`);
-            values.push(address);
-            index++;
-        }
-
-        if (restaurant_id) {
-            fields.push(`restaurant_id = $${index}`);
-            values.push(restaurant_id);
-            index++;
-        }
-
-        if (phone) {
-            fields.push(`phone = $${index}`);
-            values.push(phone);
-            index++;
-        }
-
-        if (fields.length === 0) {
-            return res.status(400).json({ success: false, error: 'Nenhum campo para atualizar' });
-        }
-
-        values.push(user_id);
-        const query = `UPDATE users SET ${fields.join(", ")} WHERE id = $${index} RETURNING *`;
-
-        const result = await pool.query(query, values);
-
-        res.json({ success: true, user: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
 
 
 
@@ -2561,6 +2489,64 @@ app.post('/corretores', async (req, res) => {
         res.status(500).json({ error: "Erro interno do servidor." });
     }
 });
+
+
+
+// 📌 Rota para atualizar senha do corretor
+app.post('/update-password', async (req, res) => {
+    const { email, token, newPassword } = req.body;
+
+    // Validação dos campos obrigatórios
+    if (!email || !token || !newPassword) {
+        return res.status(400).json({ error: "Email, token e nova senha são obrigatórios." });
+    }
+
+    try {
+        // Etapa 1: Busca o corretor pelo email e verifica o token
+        const result = await pool.query(
+            "SELECT id, token FROM corretores WHERE email = $1",
+            [email]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Corretor não encontrado." });
+        }
+
+        const corretor = result.rows[0];
+
+        // Etapa 2: Valida se o token enviado corresponde ao token do corretor
+        if (token !== corretor.token) {
+            return res.status(401).json({ error: "Token inválido." });
+        }
+
+        // Etapa 3: Gera um novo token
+        const novoToken = gerarToken();
+
+        // Etapa 4: Atualiza a senha e o token no banco
+        const updateResult = await pool.query(
+            "UPDATE corretores SET password = $1, token = $2 WHERE email = $3 RETURNING id, token",
+            [newPassword, novoToken, email]
+        );
+
+        // Etapa 5: Retorna a resposta com o novo token
+        res.status(200).json({
+            id: updateResult.rows[0].id,
+            token: updateResult.rows[0].token,
+            message: "Senha atualizada com sucesso."
+        });
+
+    } catch (error) {
+        console.error("Erro ao atualizar senha:", error);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+});
+
+
+
+
+
+
+
 
 app.get('/corretores', async (req, res) => {
     try {
