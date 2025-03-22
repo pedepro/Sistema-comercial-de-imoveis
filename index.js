@@ -709,10 +709,9 @@ app.get('/envio-em-massa', async (req, res) => {
 app.patch('/envio-em-massa/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { finalizado, agendado } = req.body;
+        const { finalizado, agendado, corretores } = req.body;
 
-        // Verifica se pelo menos um campo foi fornecido
-        if (finalizado === undefined && agendado === undefined) {
+        if (finalizado === undefined && agendado === undefined && corretores === undefined) {
             return res.status(400).json({ error: 'Nenhum campo para atualização fornecido' });
         }
 
@@ -729,6 +728,11 @@ app.patch('/envio-em-massa/:id', async (req, res) => {
         if (agendado !== undefined) {
             updates.push(`agendado = $${paramCount}`);
             values.push(agendado);
+            paramCount++;
+        }
+        if (corretores !== undefined) {
+            updates.push(`corretores = $${paramCount}`);
+            values.push(corretores); // Array de inteiros
             paramCount++;
         }
 
@@ -749,7 +753,6 @@ app.patch('/envio-em-massa/:id', async (req, res) => {
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
-
 
 
 // 4. Rota para deletar envio em massa
