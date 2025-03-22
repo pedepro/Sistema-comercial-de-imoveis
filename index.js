@@ -126,6 +126,7 @@ listenForNotifications();
 
 
 // Função para processar envios agendados
+// Função para processar envios agendados
 const processarEnviosAgendados = async () => {
     const agora = new Date();
     const agoraLocal = new Date(agora.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
@@ -176,18 +177,41 @@ const processarEnviosAgendados = async () => {
 
         for (const envio of enviosPendentes) {
             console.log(`✅ Processando envio ID ${envio.id} agendado para ${new Date(envio.agendado).toLocaleString('pt-BR')}`);
-            
-            // Fazendo a requisição para o webhook usando axios
-            try {
-                const response = await axios.post(
-                    'https://automacao.meuleaditapema.com.br/webhook-test/envio-em-massa',
-                    { id: envio.id },
-                    { headers: { 'Content-Type': 'application/json' } }
-                );
 
-                console.log(`✅ Requisição para o webhook enviada com sucesso para o ID ${envio.id}, Status: ${response.status}`);
-            } catch (webhookError) {
-                console.error(`❌ Erro ao enviar requisição ao webhook para ID ${envio.id}:`, webhookError.message);
+            // Busca os detalhes completos do envio, incluindo corretores
+            const detalhesQuery = `
+                SELECT 
+                    em.*,
+                    json_agg(
+                        json_build_object(
+                            'phone', c.phone,
+                            'name', c.name,
+                            'creci', c.creci,
+                            'email', c.email
+                        )
+                    ) FILTER (WHERE c.id IS NOT NULL) as corretores_detalhes
+                FROM envio_em_massa em
+                CROSS JOIN LATERAL unnest(em.corretores) AS corr(id)
+                LEFT JOIN corretores c ON c.id = corr.id
+                WHERE em.id = $1
+                GROUP BY em.id;
+            `;
+            const detalhesResult = await pool.query(detalhesQuery, [envio.id]);
+
+            if (detalhesResult.rows.length === 0) {
+                console.log(`⚠️ Envio ID ${envio.id} não encontrado nos detalhes. Pulando...`);
+                continue;
+            }
+
+            const envioDetalhado = detalhesResult.rows[0];
+            console.log(`ℹ️ Detalhes do envio ID ${envio.id} recuperados com sucesso.`);
+
+            // Chama a função de processamento diretamente
+            try {
+                await processarEnvioEmMassa(envioDetalhado);
+                console.log(`✅ Envio ID ${envio.id} processado com sucesso pela função interna`);
+            } catch (processError) {
+                console.error(`❌ Erro ao processar envio ID ${envio.id} internamente:`, processError.message);
             }
         }
     } catch (error) {
@@ -198,6 +222,138 @@ const processarEnviosAgendados = async () => {
 // Inicia o processamento imediatamente e a cada 60 segundos
 processarEnviosAgendados();
 setInterval(processarEnviosAgendados, 60 * 1000);
+
+// Função para pausar a execução por um tempo (em milissegundos)
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Função para formatar a mensagem com os dados do corretor
+const formatarMensagem = (mensagem, corretor) => {
+    return mensagem
+        .replace('@name', corretor.name || '')
+        .replace('@email', corretor.email || '')
+        .replace('@phone', corretor.phone || '');
+};
+
+// Função para processar o envio em massa
+const processarEnvioEmMassa = async (envio) => {
+    let sucesso = true; // Flag para rastrear se houve sucesso total
+
+    try {
+        // Verifica se os campos necessários estão presentes
+        if (!envio.id || !envio.corretores_detalhes || !envio.mensagem || typeof envio.email !== 'boolean' || typeof envio.whatsapp !== 'boolean') {
+            throw new Error('Dados incompletos no envio');
+        }
+
+        const { id, email, whatsapp, intervalo, mensagem, corretores_detalhes, titulo, tipo_imovel, html_email } = envio;
+        console.log(`✅ Iniciando processamento do envio ID ${id}. Email: ${email}, WhatsApp: ${whatsapp}, Intervalo: ${intervalo}ms, Tipo Imóvel: ${tipo_imovel}`);
+
+        // Processa cada corretor
+        for (let i = 0; i < corretores_detalhes.length; i++) {
+            const corretor = corretores_detalhes[i];
+            const mensagemFormatada = formatarMensagem(mensagem, corretor);
+            const tituloFormatado = formatarMensagem(titulo || '', corretor); // Formata o título, se existir
+            const conteudoEmail = tipo_imovel ? formatarMensagem(html_email || '', corretor) : mensagemFormatada; // Usa html_email se tipo_imovel for true
+            console.log(`📋 Processando corretor ${corretor.name} (ID ${id})`);
+
+            // Envio por email, se habilitado
+            if (email && corretor.email) {
+                try {
+                    const emailResponse = await axios.post(
+                        'https://automacao.meuleaditapema.com.br/webhook-test/enviar-email-corretor-em-massa',
+                        {
+                            email: corretor.email,
+                            mensagem: conteudoEmail, // Usa html_email se tipo_imovel for true, senão usa mensagem
+                            titulo: tituloFormatado // Inclui o título formatado no envio de email
+                        },
+                        { headers: { 'Content-Type': 'application/json' } }
+                    );
+                    console.log(`✉️ Email enviado com sucesso para ${corretor.email} - Status: ${emailResponse.status}`);
+                } catch (emailError) {
+                    console.error(`❌ Erro ao enviar email para ${corretor.email}:`, emailError.message);
+                    sucesso = false; // Marca como falha parcial
+                }
+            }
+
+            // Envio por WhatsApp, se habilitado
+            if (whatsapp && corretor.phone) {
+                try {
+                    const whatsappResponse = await axios.post(
+                        'https://server.zapnerd.cloud/message/sendText/meuleaditapema',
+                        {
+                            number: corretor.phone,
+                            text: mensagemFormatada, // Sempre usa mensagem para WhatsApp
+                            delay: 1200,
+                            linkPreview: true
+                        },
+                        {
+                            headers: {
+                                'apikey': 'BCF8A5D3D512-456E-BF07-D80CCA3714FC',
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
+                    console.log(`📱 WhatsApp enviado com sucesso para ${corretor.phone} - Status: ${whatsappResponse.status}`);
+                } catch (whatsappError) {
+                    console.error(`❌ Erro ao enviar WhatsApp para ${corretor.phone}:`, whatsappError.message);
+                    sucesso = false; // Marca como falha parcial
+                }
+            }
+
+            // Aguarda o intervalo antes de processar o próximo corretor, se houver mais corretores
+            if (i < corretores_detalhes.length - 1 && (email || whatsapp)) {
+                console.log(`⏳ Aguardando intervalo de ${intervalo}ms antes do próximo envio...`);
+                await delay(intervalo);
+            }
+        }
+
+        console.log(`✅ Envio ID ${id} concluído ${sucesso ? 'com sucesso' : 'com erros'}`);
+        return { success: sucesso, message: `Envio ID ${id} processado ${sucesso ? 'com sucesso' : 'com erros'}` };
+    } catch (error) {
+        console.error(`❌ Erro ao processar envio em massa ID ${envio.id}:`, error.message);
+        throw error;
+    } finally {
+        // Atualiza o campo finalizado para true, mesmo com erros
+        try {
+            const updateQuery = `
+                UPDATE envio_em_massa
+                SET finalizado = TRUE
+                WHERE id = $1;
+            `;
+            await pool.query(updateQuery, [envio.id]);
+            console.log(`✅ Status do envio ID ${envio.id} atualizado para finalizado = TRUE`);
+        } catch (updateError) {
+            console.error(`❌ Erro ao atualizar status do envio ID ${envio.id} para finalizado:`, updateError.message);
+        }
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -656,7 +812,10 @@ app.post('/envio-em-massa', async (req, res) => {
             email,
             whatsapp,
             intervalo,
-            agendado
+            agendado,
+            titulo,        // Novo campo opcional
+            tipo_imovel,   // Novo campo opcional, padrão false
+            html_email     // Novo campo opcional
         } = req.body;
 
         const query = `
@@ -666,18 +825,24 @@ app.post('/envio-em-massa', async (req, res) => {
                 email,
                 whatsapp,
                 intervalo,
-                agendado
-            ) VALUES ($1, $2, $3, $4, $5, $6)
+                agendado,
+                titulo,
+                tipo_imovel,
+                html_email
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *;
         `;
 
         const values = [
-            corretores || [], // Array de inteiros, vazio se não fornecido
-            mensagem || null,
-            email !== undefined ? email : false,
-            whatsapp !== undefined ? whatsapp : false,
-            intervalo !== undefined ? intervalo : 3000,
-            agendado || null // Se null, usa default do banco (data atual + 1 min)
+            corretores || [],               // Array de inteiros, vazio se não fornecido
+            mensagem || null,               // Null se não fornecido
+            email !== undefined ? email : false, // Padrão false
+            whatsapp !== undefined ? whatsapp : false, // Padrão false
+            intervalo !== undefined ? intervalo : 3000, // Padrão 3000ms
+            agendado || null,               // Se null, usa default do banco (data atual + 1 min)
+            titulo || null,                 // Null se não fornecido
+            tipo_imovel !== undefined ? tipo_imovel : false, // Padrão false
+            html_email || null              // Null se não fornecido
         ];
 
         const result = await pool.query(query, values);
@@ -3387,32 +3552,32 @@ app.post('/imoveis/novo', async (req, res) => {
             return parsed;
         };
 
-        // Dados completos do imóvel, incluindo toggles para o N8N e o novo campo estado
+        // Dados completos do imóvel, incluindo toggles
         const imovelData = {
-            valor: parseNumeric(req.body.valor, 'Valor', 12, 2, true), // NUMERIC(12,2) NOT NULL
-            banheiros: parseNumeric(req.body.banheiros, 'Banheiros', 10, 0, true), // INTEGER NOT NULL
-            metros_quadrados: parseNumeric(req.body.metros_quadrados, 'Metros Quadrados', 10, 2, true), // NUMERIC(10,2) NOT NULL
-            andar: parseNumeric(req.body.andar, 'Andar', 10), // INTEGER
-            imovel_pronto: req.body.imovel_pronto !== undefined ? req.body.imovel_pronto : false, // BOOLEAN NOT NULL
-            mobiliado: req.body.mobiliado !== undefined ? req.body.mobiliado : false, // BOOLEAN NOT NULL
-            price_contato: parseNumeric(req.body.price_contato, 'Preço Contato', 10, 2) || 39.90, // NUMERIC(10,2) DEFAULT 39.90
-            vagas_garagem: parseNumeric(req.body.vagas_garagem, 'Vagas Garagem', 10) || 0, // INTEGER DEFAULT 0
-            cidade: parseNumeric(req.body.cidade, 'Cidade', 10), // INTEGER
-            categoria: parseNumeric(req.body.categoria, 'Categoria', 10), // INTEGER
-            quartos: parseNumeric(req.body.quartos, 'Quartos', 10, 0, true), // INTEGER NOT NULL (assumido)
-            texto_principal: req.body.texto_principal || '', // TEXT NOT NULL
-            whatsapp: req.body.whatsapp || '', // TEXT
-            tipo: req.body.tipo || '', // TEXT NOT NULL (assumido)
-            endereco: req.body.endereco || '', // TEXT NOT NULL
-            descricao: req.body.descricao || '', // TEXT
-            nome_proprietario: req.body.nome_proprietario || '', // TEXT
-            descricao_negociacao: req.body.descricao_negociacao || '', // TEXT
-            estado: req.body.estado || null, // TEXT, não obrigatório
-            enviarEmail: req.body.enviarEmail !== undefined ? req.body.enviarEmail : false, // BOOLEAN para N8N
-            enviarWhatsapp: req.body.enviarWhatsapp !== undefined ? req.body.enviarWhatsapp : false // BOOLEAN para N8N
+            valor: parseNumeric(req.body.valor, 'Valor', 12, 2, true),
+            banheiros: parseNumeric(req.body.banheiros, 'Banheiros', 10, 0, true),
+            metros_quadrados: parseNumeric(req.body.metros_quadrados, 'Metros Quadrados', 10, 2, true),
+            andar: parseNumeric(req.body.andar, 'Andar', 10),
+            imovel_pronto: req.body.imovel_pronto !== undefined ? req.body.imovel_pronto : false,
+            mobiliado: req.body.mobiliado !== undefined ? req.body.mobiliado : false,
+            price_contato: parseNumeric(req.body.price_contato, 'Preço Contato', 10, 2) || 39.90,
+            vagas_garagem: parseNumeric(req.body.vagas_garagem, 'Vagas Garagem', 10) || 0,
+            cidade: parseNumeric(req.body.cidade, 'Cidade', 10),
+            categoria: parseNumeric(req.body.categoria, 'Categoria', 10),
+            quartos: parseNumeric(req.body.quartos, 'Quartos', 10, 0, true),
+            texto_principal: req.body.texto_principal || '',
+            whatsapp: req.body.whatsapp || '',
+            tipo: req.body.tipo || '',
+            endereco: req.body.endereco || '',
+            descricao: req.body.descricao || '',
+            nome_proprietario: req.body.nome_proprietario || '',
+            descricao_negociacao: req.body.descricao_negociacao || '',
+            estado: req.body.estado || null,
+            enviarEmail: req.body.enviarEmail !== undefined ? req.body.enviarEmail : false,
+            enviarWhatsapp: req.body.enviarWhatsapp !== undefined ? req.body.enviarWhatsapp : false
         };
 
-        // Validação de campos obrigatórios (sem os toggles, pois não vão pro banco)
+        // Validação de campos obrigatórios
         const requiredFields = {
             banheiros: 'Banheiros',
             endereco: 'Endereço',
@@ -3430,7 +3595,7 @@ app.post('/imoveis/novo', async (req, res) => {
             throw new Error(`Campos obrigatórios faltando ou inválidos: ${missingFields.join(', ')}`);
         }
 
-        // Query SQL com o campo estado adicionado
+        // Query SQL para criar o imóvel
         const imovelQuery = `
             INSERT INTO imoveis (
                 valor, banheiros, metros_quadrados, andar, imovel_pronto, mobiliado, price_contato, 
@@ -3448,33 +3613,115 @@ app.post('/imoveis/novo', async (req, res) => {
             imovelData.nome_proprietario, imovelData.descricao_negociacao, imovelData.estado
         ];
 
-        console.log('Valores enviados para o banco:', imovelValues);
+        console.log('Valores enviados para o banco (imóvel):', imovelValues);
 
         const imovelResult = await client.query(imovelQuery, imovelValues);
         const imovelId = imovelResult.rows[0].id;
 
-        // Adicionar o ID do imóvel ao imovelData para enviar ao N8N
-        imovelData.id = imovelId;
+        // Criação do envio_em_massa apenas se enviarEmail ou enviarWhatsapp for true
+        if (imovelData.enviarEmail || imovelData.enviarWhatsapp) {
+            // Busca todos os corretores ativos
+            const corretoresQuery = `
+                SELECT id FROM corretores WHERE ativo = TRUE;
+            `;
+            const corretoresResult = await client.query(corretoresQuery);
+            const corretoresIds = corretoresResult.rows.map(row => row.id);
 
-        // Commit da transação no banco antes de enviar ao N8N
-        await client.query('COMMIT');
+            // Gera a data atual ajustada para o fuso horário local, no formato ISO
+            const localDate = new Date();
+            const timezoneOffset = localDate.getTimezoneOffset(); // Offset em minutos (ex.: -180 para UTC-3)
+            const adjustedDate = new Date(localDate.getTime() - timezoneOffset * 60 * 1000);
+            const isoScheduleDate = adjustedDate.toISOString();
 
-        // Enviar todos os dados do imóvel para o N8N usando axios
-        const n8nUrl = process.env.n8n_novo_imovel;
-        if (!n8nUrl) {
-            console.warn('Variável de ambiente n8n_novo_imovel não definida. Requisição ao N8N não será realizada.');
+            // Gera o HTML dinâmico para html_email
+            const htmlEmail = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Conexão de Imóvel - Lead Itapema</title>
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Poppins', 'Helvetica', Arial, sans-serif; background-color: #e9ecef; color: #333; }
+        .container { max-width: 650px; margin: 30px auto; background-color: #ffffff; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); }
+        .header { background: linear-gradient(135deg, #1877f2, #00d4ff); padding: 40px 20px; text-align: center; position: relative; overflow: hidden; }
+        .header::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255, 255, 255, 0.2), transparent); animation: pulse 8s infinite; }
+        .header img { max-width: 220px; height: auto; position: relative; z-index: 1; }
+        .content { padding: 40px; text-align: center; }
+        .content h1 { font-size: 28px; font-weight: 700; color: #1877f2; margin: 0 0 20px; text-transform: uppercase; letter-spacing: 1px; }
+        .content p { font-size: 16px; line-height: 1.6; margin: 0 0 25px; color: #555; }
+        .lead-info { background: linear-gradient(135deg, #f0f2f5, #ffffff); padding: 20px; border-radius: 10px; margin-bottom: 30px; text-align: left; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05); }
+        .lead-info p { margin: 8px 0; font-size: 15px; }
+        .lead-info strong { color: #1877f2; font-weight: 600; }
+        .cta-button { display: inline-block; padding: 18px 40px; font-size: 18px; font-weight: 700; color: #fff; text-decoration: none; text-transform: uppercase; background: linear-gradient(135deg, #FFD700, #FF8C00); border-radius: 50px; box-shadow: 0 8px 25px rgba(255, 215, 0, 0.5); transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .cta-button::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.2); transition: all 0.4s ease; }
+        .cta-button:hover::before { left: 100%; }
+        .cta-button:hover { transform: scale(1.05); box-shadow: 0 12px 35px rgba(255, 215, 0, 0.7); }
+        .footer { background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 13px; color: #777; border-top: 1px solid #e9ecef; }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 0.2; } 100% { transform: scale(1); opacity: 0.5; } }
+        @media (max-width: 600px) { .content { padding: 20px; } .cta-button { padding: 14px 30px; font-size: 16px; } .header { padding: 30px 15px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://cloud.meuleaditapema.com.br/uploads/3cbeb5c8-1937-40b0-8f03-765d7a5eba77.png" alt="Lead Itapema Logo">
+        </div>
+        <div class="content">
+            <h1>🏡 Imóvel de Alto Padrão Disponível!</h1>
+            <p>Uma nova conexão foi identificada! Este imóvel exclusivo está pronto para ser apresentado aos seus clientes mais exigentes.</p>
+            <div class="lead-info">
+                <p><strong>Detalhes:</strong> ${imovelData.tipo} com ${imovelData.quartos} quartos, ${imovelData.banheiros} banheiros e ${imovelData.vagas_garagem} vagas de garagem.</p>
+                <p><strong>Negociação:</strong> ${imovelData.descricao_negociacao || 'Proprietário aberto a propostas compatíveis com o mercado.'}</p>
+            </div>
+            <p>Acesse agora para ver mais informações e conectar-se com essa oportunidade de venda única.</p>
+            <a href="https://imovel.meuleaditapema.com.br/${imovelId}" class="cta-button">Ver Imóvel</a>
+        </div>
+        <div class="footer">
+            <p>Lead Itapema - Onde grandes negócios começam. © 2025</p>
+        </div>
+    </div>
+</body>
+</html>
+            `;
+
+            // Query para criar o envio_em_massa
+            const envioQuery = `
+                INSERT INTO envio_em_massa (
+                    corretores,
+                    mensagem,
+                    email,
+                    whatsapp,
+                    intervalo,
+                    agendado,
+                    titulo,
+                    tipo_imovel,
+                    html_email
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                RETURNING id;
+            `;
+            const envioValues = [
+                corretoresIds,                          // Lista de IDs dos corretores ativos
+                imovelData.texto_principal,            // Usado para WhatsApp
+                imovelData.enviarEmail,                // Reflete o toggle enviarEmail
+                imovelData.enviarWhatsapp,             // Reflete o toggle enviarWhatsapp
+                5000,                                  // Intervalo padrão de 5000ms
+                isoScheduleDate,                       // Data atual ajustada para ISO
+                `Novo Imóvel Disponível - ${imovelData.texto_principal}`, // Título dinâmico
+                true,                                  // Tipo_imovel sempre true
+                htmlEmail                              // HTML dinâmico
+            ];
+
+            console.log('Valores enviados para envio_em_massa:', envioValues);
+            const envioResult = await client.query(envioQuery, envioValues);
+            const envioId = envioResult.rows[0].id;
+            console.log(`Envio em massa criado com ID ${envioId}`);
         } else {
-            console.log('Enviando dados para o N8N:', imovelData);
-            try {
-                const n8nResponse = await axios.post(n8nUrl, imovelData, {
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                console.log('Dados enviados ao N8N com sucesso:', n8nResponse.data);
-            } catch (n8nError) {
-                console.error('Erro ao enviar dados para o N8N:', n8nError.response ? n8nError.response.data : n8nError.message);
-                // Não lançamos erro para o frontend, apenas logamos
-            }
+            console.log('Nenhum envio em massa criado, pois enviarEmail e enviarWhatsapp são false');
         }
+
+        // Commit da transação
+        await client.query('COMMIT');
 
         res.json({ success: true, message: 'Imóvel cadastrado com sucesso', imovelId });
     } catch (err) {
@@ -3485,6 +3732,8 @@ app.post('/imoveis/novo', async (req, res) => {
         if (client) client.release();
     }
 });
+
+
 
 // Rota para cadastrar imagens
 app.post('/imoveis/:id/imagens', async (req, res) => {
