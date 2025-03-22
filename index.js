@@ -568,6 +568,216 @@ app.delete('/tables/:tableName', async (req, res) => {
 
 
 
+// 1. Rota para criar/popular envio_em_massa
+app.post('/envio-em-massa', async (req, res) => {
+    try {
+        const {
+            corretores,
+            mensagem,
+            email,
+            whatsapp,
+            intervalo,
+            agendado
+        } = req.body;
+
+        const query = `
+            INSERT INTO envio_em_massa (
+                corretores,
+                mensagem,
+                email,
+                whatsapp,
+                intervalo,
+                agendado
+            ) VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *;
+        `;
+
+        const values = [
+            corretores || [], // Array de inteiros, vazio se não fornecido
+            mensagem || null,
+            email !== undefined ? email : false,
+            whatsapp !== undefined ? whatsapp : false,
+            intervalo !== undefined ? intervalo : 3000,
+            agendado || null // Se null, usa default do banco (data atual + 1 min)
+        ];
+
+        const result = await pool.query(query, values);
+        
+        res.status(201).json({
+            data: result.rows[0]
+        });
+    } catch (error) {
+        console.error('❌ Erro ao criar envio em massa:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// 2. Rota para buscar envios com detalhes dos corretores
+app.get('/envio-em-massa', async (req, res) => {
+    try {
+        const {
+            page,            // Paginação: página atual
+            limit,           // Paginação: itens por página
+            search,          // Busca por mensagem
+            sortBy = 'created_at', // Ordenação
+            sortOrder = 'DESC'     // Ordem
+        } = req.query;
+
+        // Constrói a query base
+        let query = `
+            SELECT 
+                em.*,
+                json_agg(
+                    json_build_object(
+                        'phone', c.phone,
+                        'name', c.name,
+                        'creci', c.creci,
+                        'email', c.email
+                    )
+                ) FILTER (WHERE c.id IS NOT NULL) as corretores_detalhes
+            FROM envio_em_massa em
+            CROSS JOIN LATERAL unnest(em.corretores) AS corr(id)
+            LEFT JOIN corretores c ON c.id = corr.id
+        `;
+        let conditions = [];
+        let values = [];
+
+        // Busca por mensagem
+        if (search) {
+            conditions.push(`mensagem ILIKE $${values.length + 1}`);
+            values.push(`%${search}%`);
+        }
+
+        // Junta as condições
+        if (conditions.length > 0) {
+            query += ' WHERE ' + conditions.join(' AND ');
+        }
+
+        // Conta total de registros
+        const countQuery = `
+            SELECT COUNT(*) 
+            FROM envio_em_massa
+            ${conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : ''}
+        `;
+        const countResult = await pool.query(countQuery, values);
+        const totalItems = parseInt(countResult.rows[0].count);
+
+        // Validação e aplicação da ordenação
+        const validSortFields = ['created_at', 'agendado', 'intervalo'];
+        const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at';
+        const validSortOrders = ['ASC', 'DESC'];
+        const order = validSortOrders.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
+
+        query += ` GROUP BY em.id ORDER BY ${sortField} ${order}`;
+
+        // Aplica paginação se fornecida
+        let paginationApplied = false;
+        let totalPages = 1;
+        if (page && limit) {
+            const pageNum = parseInt(page) || 1;
+            const limitNum = parseInt(limit) || 10;
+            const offset = (pageNum - 1) * limitNum;
+            totalPages = Math.ceil(totalItems / limitNum);
+            query += ` LIMIT $${values.length + 1} OFFSET $${values.length + 2}`;
+            values.push(limitNum, offset);
+            paginationApplied = true;
+        }
+
+        const result = await pool.query(query, values);
+
+        // Formata a resposta
+        const response = {
+            data: result.rows,
+            pagination: paginationApplied ? {
+                currentPage: parseInt(page) || 1,
+                itemsPerPage: parseInt(limit) || 10,
+                totalItems,
+                totalPages,
+                hasNext: page < totalPages,
+                hasPrevious: page > 1
+            } : undefined
+        };
+
+        res.status(200).json(response);
+    } catch (error) {
+        console.error('❌ Erro ao listar envios em massa:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// 3. Rota para atualizar finalizado e agendado
+app.patch('/envio-em-massa/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { finalizado, agendado } = req.body;
+
+        // Verifica se pelo menos um campo foi fornecido
+        if (finalizado === undefined && agendado === undefined) {
+            return res.status(400).json({ error: 'Nenhum campo para atualização fornecido' });
+        }
+
+        let query = 'UPDATE envio_em_massa SET ';
+        let updates = [];
+        let values = [];
+        let paramCount = 1;
+
+        if (finalizado !== undefined) {
+            updates.push(`finalizado = $${paramCount}`);
+            values.push(finalizado);
+            paramCount++;
+        }
+        if (agendado !== undefined) {
+            updates.push(`agendado = $${paramCount}`);
+            values.push(agendado);
+            paramCount++;
+        }
+
+        query += updates.join(', ') + ` WHERE id = $${paramCount} RETURNING *`;
+        values.push(id);
+
+        const result = await pool.query(query, values);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Envio não encontrado' });
+        }
+
+        res.status(200).json({
+            data: result.rows[0]
+        });
+    } catch (error) {
+        console.error('❌ Erro ao atualizar envio em massa:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+
+
+// 4. Rota para deletar envio em massa
+app.delete('/envio-em-massa/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const query = `
+            DELETE FROM envio_em_massa
+            WHERE id = $1
+            RETURNING *;
+        `;
+
+        const result = await pool.query(query, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Envio não encontrado' });
+        }
+
+        res.status(200).json({
+            data: result.rows[0],
+            message: 'Envio em massa deletado com sucesso'
+        });
+    } catch (error) {
+        console.error('❌ Erro ao deletar envio em massa:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
 
 
 
@@ -5457,216 +5667,6 @@ appLead.get("/:id", async (req, res) => {
 
 
 
-// 1. Rota para criar/popular envio_em_massa
-app.post('/envio-em-massa', async (req, res) => {
-    try {
-        const {
-            corretores,
-            mensagem,
-            email,
-            whatsapp,
-            intervalo,
-            agendado
-        } = req.body;
-
-        const query = `
-            INSERT INTO envio_em_massa (
-                corretores,
-                mensagem,
-                email,
-                whatsapp,
-                intervalo,
-                agendado
-            ) VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING *;
-        `;
-
-        const values = [
-            corretores || [], // Array de inteiros, vazio se não fornecido
-            mensagem || null,
-            email !== undefined ? email : false,
-            whatsapp !== undefined ? whatsapp : false,
-            intervalo !== undefined ? intervalo : 3000,
-            agendado || null // Se null, usa default do banco (data atual + 1 min)
-        ];
-
-        const result = await pool.query(query, values);
-        
-        res.status(201).json({
-            data: result.rows[0]
-        });
-    } catch (error) {
-        console.error('❌ Erro ao criar envio em massa:', error);
-        res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-});
-
-// 2. Rota para buscar envios com detalhes dos corretores
-app.get('/envio-em-massa', async (req, res) => {
-    try {
-        const {
-            page,            // Paginação: página atual
-            limit,           // Paginação: itens por página
-            search,          // Busca por mensagem
-            sortBy = 'created_at', // Ordenação
-            sortOrder = 'DESC'     // Ordem
-        } = req.query;
-
-        // Constrói a query base
-        let query = `
-            SELECT 
-                em.*,
-                json_agg(
-                    json_build_object(
-                        'phone', c.phone,
-                        'name', c.name,
-                        'creci', c.creci,
-                        'email', c.email
-                    )
-                ) FILTER (WHERE c.id IS NOT NULL) as corretores_detalhes
-            FROM envio_em_massa em
-            CROSS JOIN LATERAL unnest(em.corretores) AS corr(id)
-            LEFT JOIN corretores c ON c.id = corr.id
-        `;
-        let conditions = [];
-        let values = [];
-
-        // Busca por mensagem
-        if (search) {
-            conditions.push(`mensagem ILIKE $${values.length + 1}`);
-            values.push(`%${search}%`);
-        }
-
-        // Junta as condições
-        if (conditions.length > 0) {
-            query += ' WHERE ' + conditions.join(' AND ');
-        }
-
-        // Conta total de registros
-        const countQuery = `
-            SELECT COUNT(*) 
-            FROM envio_em_massa
-            ${conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : ''}
-        `;
-        const countResult = await pool.query(countQuery, values);
-        const totalItems = parseInt(countResult.rows[0].count);
-
-        // Validação e aplicação da ordenação
-        const validSortFields = ['created_at', 'agendado', 'intervalo'];
-        const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at';
-        const validSortOrders = ['ASC', 'DESC'];
-        const order = validSortOrders.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
-
-        query += ` GROUP BY em.id ORDER BY ${sortField} ${order}`;
-
-        // Aplica paginação se fornecida
-        let paginationApplied = false;
-        let totalPages = 1;
-        if (page && limit) {
-            const pageNum = parseInt(page) || 1;
-            const limitNum = parseInt(limit) || 10;
-            const offset = (pageNum - 1) * limitNum;
-            totalPages = Math.ceil(totalItems / limitNum);
-            query += ` LIMIT $${values.length + 1} OFFSET $${values.length + 2}`;
-            values.push(limitNum, offset);
-            paginationApplied = true;
-        }
-
-        const result = await pool.query(query, values);
-
-        // Formata a resposta
-        const response = {
-            data: result.rows,
-            pagination: paginationApplied ? {
-                currentPage: parseInt(page) || 1,
-                itemsPerPage: parseInt(limit) || 10,
-                totalItems,
-                totalPages,
-                hasNext: page < totalPages,
-                hasPrevious: page > 1
-            } : undefined
-        };
-
-        res.status(200).json(response);
-    } catch (error) {
-        console.error('❌ Erro ao listar envios em massa:', error);
-        res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-});
-
-// 3. Rota para atualizar finalizado e agendado
-app.patch('/envio-em-massa/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { finalizado, agendado } = req.body;
-
-        // Verifica se pelo menos um campo foi fornecido
-        if (finalizado === undefined && agendado === undefined) {
-            return res.status(400).json({ error: 'Nenhum campo para atualização fornecido' });
-        }
-
-        let query = 'UPDATE envio_em_massa SET ';
-        let updates = [];
-        let values = [];
-        let paramCount = 1;
-
-        if (finalizado !== undefined) {
-            updates.push(`finalizado = $${paramCount}`);
-            values.push(finalizado);
-            paramCount++;
-        }
-        if (agendado !== undefined) {
-            updates.push(`agendado = $${paramCount}`);
-            values.push(agendado);
-            paramCount++;
-        }
-
-        query += updates.join(', ') + ` WHERE id = $${paramCount} RETURNING *`;
-        values.push(id);
-
-        const result = await pool.query(query, values);
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Envio não encontrado' });
-        }
-
-        res.status(200).json({
-            data: result.rows[0]
-        });
-    } catch (error) {
-        console.error('❌ Erro ao atualizar envio em massa:', error);
-        res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-});
-
-
-
-// 4. Rota para deletar envio em massa
-app.delete('/envio-em-massa/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const query = `
-            DELETE FROM envio_em_massa
-            WHERE id = $1
-            RETURNING *;
-        `;
-
-        const result = await pool.query(query, [id]);
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Envio não encontrado' });
-        }
-
-        res.status(200).json({
-            data: result.rows[0],
-            message: 'Envio em massa deletado com sucesso'
-        });
-    } catch (error) {
-        console.error('❌ Erro ao deletar envio em massa:', error);
-        res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-});
 
 
 
