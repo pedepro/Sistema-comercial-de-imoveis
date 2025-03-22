@@ -123,6 +123,85 @@ listenForNotifications();
 
 
 
+
+
+// Função para processar envios agendados
+const processarEnviosAgendados = async () => {
+    const agora = new Date();
+    const agoraLocal = new Date(agora.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    console.log(`⏰ Hora atual do servidor (GMT-3): ${agoraLocal.toLocaleString('pt-BR')}`);
+
+    const limiteTolerancia = 60 * 1000; // 60 segundos em milissegundos
+    const dataLimiteLocal = new Date(agoraLocal.getTime() - limiteTolerancia);
+    console.log(`📅 Data limite (agora - 60s, GMT-3): ${dataLimiteLocal.toLocaleString('pt-BR')}`);
+
+    try {
+        // Busca todos os envios para depuração
+        const todosQuery = `
+            SELECT id, agendado AT TIME ZONE 'America/Sao_Paulo' AS agendado, finalizado
+            FROM envio_em_massa
+            ORDER BY agendado;
+        `;
+        const todosResult = await pool.query(todosQuery);
+        console.log('🔍 Todos os envios encontrados no banco (GMT-3):');
+        todosResult.rows.forEach(envio => {
+            const dataAgendada = new Date(envio.agendado);
+            console.log(`  - ID: ${envio.id}, Agendado: ${dataAgendada.toLocaleString('pt-BR')}, Finalizado: ${envio.finalizado}`);
+            console.log(`    ISO (armazenado, UTC): ${envio.agendado.toISOString()}`);
+        });
+
+        // Busca envios pendentes no fuso local
+        const pendentesQuery = `
+            SELECT *
+            FROM envio_em_massa
+            WHERE finalizado = FALSE
+            AND agendado AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo' <= $1
+            AND agendado AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo' >= $2
+        `;
+        const values = [agoraLocal, dataLimiteLocal];
+        const result = await pool.query(pendentesQuery, values);
+        const enviosPendentes = result.rows;
+
+        console.log(`🔍 Envios pendentes filtrados (finalizado = FALSE, agendado entre ${dataLimiteLocal.toLocaleString('pt-BR')} e ${agoraLocal.toLocaleString('pt-BR')}):`);
+        if (enviosPendentes.length === 0) {
+            console.log('ℹ️ Nenhum envio pendente encontrado no intervalo de tolerância.');
+        } else {
+            enviosPendentes.forEach(envio => {
+                const dataAgendada = new Date(envio.agendado);
+                const diffMs = agoraLocal - dataAgendada;
+                console.log(`  - ID: ${envio.id}, Agendado: ${dataAgendada.toLocaleString('pt-BR')}, Diferença: ${diffMs / 1000}s`);
+                console.log(`    ISO (UTC): ${dataAgendada.toISOString()}`);
+            });
+        }
+
+        for (const envio of enviosPendentes) {
+            console.log(`✅ Processando envio ID ${envio.id} agendado para ${new Date(envio.agendado).toLocaleString('pt-BR')}`);
+            
+            // Fazendo a requisição para o webhook usando axios
+            try {
+                const response = await axios.post(
+                    'https://automacao.meuleaditapema.com.br/webhook-test/envio-em-massa',
+                    { id: envio.id },
+                    { headers: { 'Content-Type': 'application/json' } }
+                );
+
+                console.log(`✅ Requisição para o webhook enviada com sucesso para o ID ${envio.id}, Status: ${response.status}`);
+            } catch (webhookError) {
+                console.error(`❌ Erro ao enviar requisição ao webhook para ID ${envio.id}:`, webhookError.message);
+            }
+        }
+    } catch (error) {
+        console.error('❌ Erro ao processar envios agendados:', error);
+    }
+};
+
+// Inicia o processamento imediatamente e a cada 60 segundos
+processarEnviosAgendados();
+setInterval(processarEnviosAgendados, 60 * 1000);
+
+
+
+
 // Busca do Facebook Pixel na tabela mli_ajustes (id = 1)
 app.get('/ajustes/facebook-pixel', async (req, res) => {
     try {
@@ -701,6 +780,40 @@ app.get('/envio-em-massa', async (req, res) => {
         res.status(200).json(response);
     } catch (error) {
         console.error('❌ Erro ao listar envios em massa:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+
+app.get('/envio-em-massa/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const query = `
+            SELECT 
+                em.*,
+                json_agg(
+                    json_build_object(
+                        'phone', c.phone,
+                        'name', c.name,
+                        'creci', c.creci,
+                        'email', c.email
+                    )
+                ) FILTER (WHERE c.id IS NOT NULL) as corretores_detalhes
+            FROM envio_em_massa em
+            CROSS JOIN LATERAL unnest(em.corretores) AS corr(id)
+            LEFT JOIN corretores c ON c.id = corr.id
+            WHERE em.id = $1
+            GROUP BY em.id;
+        `;
+        const result = await pool.query(query, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Envio não encontrado' });
+        }
+
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        console.error('❌ Erro ao buscar envio por ID:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
