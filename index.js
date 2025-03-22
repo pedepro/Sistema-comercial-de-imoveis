@@ -3735,6 +3735,10 @@ app.post('/imoveis/novo', async (req, res) => {
 
 
 
+
+
+
+
 // Rota para cadastrar imagens
 app.post('/imoveis/:id/imagens', async (req, res) => {
     let client;
